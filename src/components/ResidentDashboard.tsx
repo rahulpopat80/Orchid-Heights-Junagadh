@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Bell, ShieldAlert, Check, X, Users, Car, Phone, Lock, Eye, EyeOff, ClipboardList, AlertCircle, Trash2, Plus, Clock, RefreshCw, Megaphone, FileText, Download, Search, Wrench, CheckCircle, Upload, Calendar, Home, User, Dumbbell, Film, Sparkles, BookOpen, MapPin, CheckSquare, PlusCircle, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Bell, ShieldAlert, Check, X, Users, Car, Phone, Lock, Eye, EyeOff, ClipboardList, AlertCircle, Trash2, Plus, Clock, RefreshCw, Megaphone, FileText, Download, Search, Wrench, CheckCircle, Upload, Calendar, Home, User, Dumbbell, Film, Sparkles, BookOpen, MapPin, CheckSquare, PlusCircle, ChevronRight, ArrowLeft, QrCode } from 'lucide-react';
 import { FlatOwner, Visitor, Vehicle, UserSession, Announcement, AmenityBooking, GymTheatreLog, DailyHelper, AbsenceLog, EssentialContact } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -21,6 +21,7 @@ import HelpDeskSection from './resident/HelpDeskSection';
 import NoticeSection from './resident/NoticeSection';
 import ProfileSection from './resident/ProfileSection';
 import BuildingServicesSection from './resident/BuildingServicesSection';
+import PreEntrySection from './resident/PreEntrySection';
 import { generateVisitorPDF } from '../lib/pdfGenerator';
 
 let alarmIntervalId: any = null;
@@ -285,6 +286,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
 
     if (path === '/gate-visitors') {
       setActiveSubSection('visitors');
+    } else if (path === '/pre-entry') {
+      setActiveSubSection('preentry');
     } else if (path === '/complaints') {
       setActiveSubSection('complaints');
     } else if (path === '/directory') {
@@ -1608,6 +1611,25 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     </h4>
                   </div>
 
+                  {/* Block 8: Pre-Entry */}
+                  <div
+                    id="block-preentry"
+                    onClick={() => {
+                      setLastVisitedSubSection('preentry');
+                      navigateToRoute('/pre-entry', 'preentry');
+                    }}
+                    className={`bg-white rounded-none p-6 border shadow-sm flex flex-col items-center justify-center min-h-[140px] text-center hover:shadow-md transition cursor-pointer relative group ${
+                      highlightBlock === 'preentry' ? 'ring-2 ring-indigo-500 ring-offset-2 animate-pulse bg-indigo-50/20 border-indigo-300' : 'border-slate-200/60'
+                    }`}
+                  >
+                    <div className="w-14 h-14 rounded-none bg-[#4F46E5] text-white flex items-center justify-center shrink-0 shadow-sm mb-3 group-hover:scale-105 transition-transform duration-300">
+                      <QrCode className="w-7 h-7" />
+                    </div>
+                    <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
+                      Pre-Entry
+                    </h4>
+                  </div>
+
                 </div>
               </div>
             ) : (
@@ -1770,6 +1792,14 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     compError={compError}
                     setCompError={setCompError}
                     handleFileChange={handleFileChange}
+                  />
+                )}
+
+                {activeSubSection === 'preentry' && (
+                  <PreEntrySection
+                    wing={wing}
+                    flatNo={flatNo}
+                    session={session}
                   />
                 )}
 

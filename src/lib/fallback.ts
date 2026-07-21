@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact } from '../types';
+import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
 import { getInitialOwners } from '../data/ownersData';
 
 // --- Event Subscription & Triggering for Subscriptions ---
@@ -614,6 +614,125 @@ export function deleteFinancialReportLocal(reportId: string): boolean {
 
 export function getFlatPasswordsLocal(): Record<string, string> {
   return getLocalPasswords();
+}
+
+export function getLocalPreEntries(): PreEntry[] {
+  const data = localStorage.getItem('orchid_local_pre_entries');
+  if (data) return JSON.parse(data);
+  return [];
+}
+
+export function saveLocalPreEntries(preEntries: PreEntry[]) {
+  localStorage.setItem('orchid_local_pre_entries', JSON.stringify(preEntries));
+}
+
+export function createPreEntryLocal(payload: any): PreEntry {
+  const { fullName, mobileNumber, guestType, reason, visitorCount, photoUrl, wing, flatNo, ownerName, householdMemberName, ipAddress, deviceImei } = payload;
+  
+  const id = 'pe_' + Math.random().toString(36).substr(2, 9);
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString();
+  
+  const preEntry: PreEntry = {
+    id,
+    fullName,
+    mobileNumber,
+    guestType,
+    reason,
+    visitorCount: parseInt(visitorCount, 10) || 1,
+    photoUrl: photoUrl || '',
+    wing,
+    flatNo: parseInt(flatNo, 10),
+    ownerName,
+    householdMemberName,
+    createdAt,
+    expiresAt,
+    status: 'Pending',
+    ipAddress: ipAddress || '',
+    deviceImei: deviceImei || ''
+  };
+
+  const list = getLocalPreEntries();
+  list.push(preEntry);
+  saveLocalPreEntries(list);
+  return preEntry;
+}
+
+export function getPreEntriesLocal(wing: string, flatNo: number): PreEntry[] {
+  const list = getLocalPreEntries();
+  return list.filter((p) => p.wing.toUpperCase() === wing.toUpperCase() && p.flatNo === parseInt(String(flatNo), 10));
+}
+
+export function getPreEntryByIdLocal(id: string): PreEntry | null {
+  const list = getLocalPreEntries();
+  return list.find((p) => p.id === id) || null;
+}
+
+export function usePreEntryLocal(id: string): boolean {
+  const list = getLocalPreEntries();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx === -1) return false;
+  
+  const data = list[idx];
+  if (data.status !== 'Pending') return false;
+  
+  if (new Date() > new Date(data.expiresAt)) {
+    list[idx].status = 'Expired';
+    saveLocalPreEntries(list);
+    return false;
+  }
+  
+  list[idx].status = 'Used';
+  saveLocalPreEntries(list);
+  
+  // Register as Entered in visitor logs
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const entryDate = `${day}/${month}/${year}`;
+  const entryTime = now.toTimeString().split(' ')[0];
+  
+  const visitorId = 'v_' + Math.random().toString(36).substr(2, 9);
+  const newVisitor: Visitor = {
+    id: visitorId,
+    fullName: data.fullName,
+    mobileNumber: data.mobileNumber,
+    email: '',
+    wing: data.wing,
+    flatNo: data.flatNo,
+    reason: data.reason,
+    guestType: data.guestType,
+    photoUrl: data.photoUrl,
+    status: 'Entered',
+    requestTime: now.toISOString(),
+    respondedTime: now.toISOString(),
+    flatOwnerName: data.ownerName,
+    visitorCount: data.visitorCount,
+    respondedBy: data.householdMemberName,
+    householdMemberName: data.householdMemberName,
+    qrStatus: 'Used',
+    entryDate,
+    entryTime,
+    isPreEntry: true,
+    ipAddress: data.ipAddress,
+    deviceImei: data.deviceImei
+  };
+  
+  const visitors = getLocalVisitors();
+  visitors.push(newVisitor);
+  saveLocalVisitors(visitors);
+  
+  createSocietyNotificationLocal({
+    type: 'visitor',
+    title: `🔑 Pre-Entry Scanned: ${data.fullName}`,
+    message: `${data.fullName} entered using QR Code created by ${data.householdMemberName} for Flat ${data.wing}-${data.flatNo}.`,
+    wing: data.wing,
+    flatNo: data.flatNo,
+    metadata: { visitorId, fullName: data.fullName, guestType: data.guestType }
+  });
+  
+  return true;
 }
 
 export function createSocietyNotificationLocal(payload: {

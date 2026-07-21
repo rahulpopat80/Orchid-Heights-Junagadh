@@ -49,7 +49,7 @@ export interface Visitor {
   reason: string;
   guestType: string; // e.g. milkman, guest, electrician, delivery, laundry, etc.
   photoUrl: string; // Base64 data URI or placeholder
-  status: 'pending' | 'approved' | 'rejected' | 'expired';
+  status: 'pending' | 'approved' | 'rejected' | 'expired' | 'Entered';
   requestTime: string; // ISO timestamp
   respondedTime?: string; // ISO timestamp
   flatOwnerName: string;
@@ -59,6 +59,30 @@ export interface Visitor {
   deletedByResident?: boolean; // soft deletion tracker
   ipAddress?: string; // Device IP that created the log
   deviceImei?: string; // Device SN/IMEI that created the log
+  householdMemberName?: string; // Member name who created the Pre-Entry
+  qrStatus?: 'Used' | 'Pending'; // status of the QR code
+  entryDate?: string; // format: DD/MM/YYYY
+  entryTime?: string; // format: HH:MM:SS
+  isPreEntry?: boolean; // flag to distinguish Pre-Entry records
+}
+
+export interface PreEntry {
+  id: string;
+  fullName: string;
+  mobileNumber: string;
+  guestType: string;
+  reason: string;
+  visitorCount: number;
+  photoUrl: string;
+  wing: 'A' | 'B';
+  flatNo: number;
+  ownerName: string;
+  householdMemberName: string;
+  createdAt: string;
+  expiresAt: string;
+  status: 'Pending' | 'Used' | 'Expired';
+  ipAddress: string;
+  deviceImei: string;
 }
 
 export type UserRole = 'security' | 'owner' | 'admin';

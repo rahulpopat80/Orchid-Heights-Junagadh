@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X } from 'lucide-react';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
 import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
-const playDecisionSound = (status: 'approved' | 'rejected' | 'expired') => {
+const playDecisionSound = (status: string) => {
   if (status === 'expired') return;
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -87,6 +88,149 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
+
+  // Pre-Entry QR Scanner states
+  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan'>('register');
+  const [manualPassId, setManualPassId] = useState<string>('');
+  const [scanResult, setScanResult] = useState<{
+    status: 'success' | 'expired' | 'used' | 'invalid' | null;
+    message: string;
+    data?: any;
+  }>({ status: null, message: '' });
+  const [verifyingPass, setVerifyingPass] = useState<boolean>(false);
+  const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+
+  // Verification Handler for Pre-Entry QR passes
+  const handleVerifyPass = async (id: string) => {
+    if (!id.trim()) return;
+    setVerifyingPass(true);
+    setScanResult({ status: null, message: '' });
+    try {
+      const pass = await api.getPreEntryById(id.trim());
+      if (!pass) {
+        setScanResult({
+          status: 'invalid',
+          message: 'ખોટો પાસ આઈડી: આ પાસ આપણી સિસ્ટમમાં નોંધાયેલ નથી! (Invalid Pass ID)'
+        });
+        playDecisionSound('rejected');
+        return;
+      }
+
+      const expiresDate = new Date(pass.expiresAt);
+      const isExpired = new Date() > expiresDate;
+
+      if (isExpired) {
+        setScanResult({
+          status: 'expired',
+          message: `આ પાસની મર્યાદા પૂરી થઈ ગઈ છે! (Pass Expired) સમય: ${expiresDate.toLocaleString('en-IN')}`,
+          data: pass
+        });
+        playDecisionSound('rejected');
+        return;
+      }
+
+      if (pass.status === 'Used') {
+        setScanResult({
+          status: 'used',
+          message: `આ પાસ પહેલેથી જ વપરાઈ ચૂક્યો છે! (Pass already scanned and used)`,
+          data: pass
+        });
+        playDecisionSound('rejected');
+        return;
+      }
+
+      if (pass.status === 'Expired') {
+        setScanResult({
+          status: 'expired',
+          message: `આ પાસની સમય મર્યાદા પૂરી થઈ ગઈ છે! (Pass expired)`,
+          data: pass
+        });
+        playDecisionSound('rejected');
+        return;
+      }
+
+      // If valid, apply usage & save visitor log
+      const ok = await api.usePreEntry(pass.id);
+      if (ok) {
+        setScanResult({
+          status: 'success',
+          message: `✅ એન્ટ્રી મંજૂર: ${pass.fullName} માટે પ્રવેશ સફળતાપૂર્વક સ્વીકારવામાં આવ્યો છે! (Access Granted)`,
+          data: pass
+        });
+        playDecisionSound('approved');
+        fetchVisitors(); // refresh list
+      } else {
+        setScanResult({
+          status: 'invalid',
+          message: 'પાસ ચકાસવામાં નિષ્ફળતા. કૃપા કરીને ફરીથી પ્રયત્ન કરો.'
+        });
+        playDecisionSound('rejected');
+      }
+    } catch (err) {
+      console.error(err);
+      setScanResult({
+        status: 'invalid',
+        message: 'ભૂલ આવી. કૃપા કરીને ફરીથી પ્રયત્ન કરો.'
+      });
+      playDecisionSound('rejected');
+    } finally {
+      setVerifyingPass(false);
+    }
+  };
+
+  // Camera scanner activation useEffect
+  useEffect(() => {
+    if (!isCameraActive || activeSecTab !== 'qr_scan') return;
+
+    let scanner: any = null;
+    const timer = setTimeout(() => {
+      try {
+        scanner = new Html5QrcodeScanner(
+          'qr-reader',
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          false
+        );
+
+        scanner.render(
+          (decodedText: string) => {
+            let parsedId = decodedText;
+            if (decodedText.includes('Pass ID:')) {
+              const lines = decodedText.split('\n');
+              const idLine = lines.find(l => l.startsWith('Pass ID:'));
+              if (idLine) {
+                parsedId = idLine.replace('Pass ID:', '').trim();
+              }
+            } else if (decodedText.startsWith('{')) {
+              try {
+                const parsed = JSON.parse(decodedText);
+                if (parsed.passId) parsedId = parsed.passId;
+                else if (parsed.id) parsedId = parsed.id;
+              } catch (e) {}
+            }
+            
+            setIsCameraActive(false);
+            if (scanner) {
+              scanner.clear().catch(e => console.error(e));
+            }
+            
+            handleVerifyPass(parsedId);
+          },
+          () => {}
+        );
+      } catch (err) {
+        console.error('Html5QrcodeScanner init error:', err);
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(timer);
+      if (scanner) {
+        try {
+          scanner.clear().catch((e: any) => console.error(e));
+        } catch (e) {}
+      }
+    };
+  }, [isCameraActive, activeSecTab]);
 
   // IP and IMEI tracking
   const [deviceIp, setDeviceIp] = useState<string>('');
@@ -504,7 +648,43 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
         
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 text-left">
-          <div className="flex items-center space-x-4 mb-8 border-b border-slate-100 pb-5">
+          {/* Sub-tabs for Security Actions */}
+          <div className="flex border-b border-slate-200 mb-8 font-display">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSecTab('register');
+                setIsCameraActive(false);
+              }}
+              className={`flex-1 pb-4 text-center font-bold text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-2 ${
+                activeSecTab === 'register'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <Shield className="w-5 h-5 shrink-0" />
+              <span>નવી એન્ટ્રી (New Entry)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSecTab('qr_scan');
+                setIsCameraActive(true);
+              }}
+              className={`flex-1 pb-4 text-center font-bold text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-2 ${
+                activeSecTab === 'qr_scan'
+                  ? 'border-indigo-600 text-indigo-600'
+                  : 'border-transparent text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              <QrCode className="w-5 h-5 shrink-0" />
+              <span>QR કોડ સ્કેનર (QR Scanner)</span>
+            </button>
+          </div>
+
+          {activeSecTab === 'register' ? (
+            <>
+              <div className="flex items-center space-x-4 mb-8 border-b border-slate-100 pb-5">
             <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-700">
               <Shield className="w-8 h-8" />
             </div>
@@ -765,6 +945,107 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               )}
             </button>
           </form>
+          </>
+          ) : (
+            <div className="space-y-6">
+              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200/60 text-center space-y-4">
+                <h3 className="text-xl font-bold text-slate-800">પ્રી-એન્ટ્રી પાસ સ્કેન કરો (Scan Pre-Entry Pass)</h3>
+                <p className="text-sm text-slate-500 font-medium">રહેવાસી દ્વારા મોકલવામાં આવેલ સ્માર્ટ પાસનો QR કોડ કેમેરા સામે રાખો અથવા નીચે આઈડી ટાઈપ કરો.</p>
+                
+                {/* QR Camera Reader Box */}
+                <div className="max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-indigo-200 bg-white shadow-inner relative min-h-[250px] flex items-center justify-center">
+                  {isCameraActive ? (
+                    <div id="qr-reader" className="w-full" />
+                  ) : (
+                    <div className="py-12 px-6 flex flex-col items-center justify-center space-y-4">
+                      <QrCode className="w-16 h-16 text-slate-300 animate-pulse" />
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraActive(true)}
+                        className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-6 py-3 rounded-xl transition shadow"
+                      >
+                        કેમેરો ચાલુ કરો (Turn on Camera)
+                      </button>
+                    </div>
+                  )}
+                  {isCameraActive && (
+                    <button
+                      type="button"
+                      onClick={() => setIsCameraActive(false)}
+                      className="absolute top-3 right-3 bg-red-600 hover:bg-red-700 text-white font-bold p-2 rounded-full shadow-md z-10"
+                      title="કેમેરો બંધ કરો"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Manual Entry */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 text-left">
+                <label className="block text-sm font-bold text-slate-700">મેન્યુઅલ પાસ આઈડી (Manual Pass ID)</label>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={manualPassId}
+                    onChange={(e) => setManualPassId(e.target.value)}
+                    placeholder="દા.ત. pass_xxxxxx"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-lg font-bold font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyPass(manualPassId)}
+                    disabled={verifyingPass || !manualPassId.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition shadow flex items-center justify-center min-w-[120px]"
+                  >
+                    {verifyingPass ? 'ચકાસણી...' : 'ચકાસો (Verify)'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Scan Results Feedback */}
+              {scanResult.status && (
+                <div className={`rounded-2xl p-6 border-2 transition-all duration-300 ${
+                  scanResult.status === 'success'
+                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                    : scanResult.status === 'expired'
+                    ? 'bg-amber-50 border-amber-300 text-amber-900'
+                    : 'bg-red-50 border-red-300 text-red-900'
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className="mt-1">
+                      {scanResult.status === 'success' ? (
+                        <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-8 h-8 text-rose-600 shrink-0" />
+                      )}
+                    </div>
+                    <div className="space-y-3 flex-1 text-left">
+                      <h4 className="text-lg font-black tracking-tight leading-snug">
+                        {scanResult.status === 'success' ? 'પાસ મંજૂર (Pass Approved!)' : 'પાસ અસ્વીકાર (Pass Declined!)'}
+                      </h4>
+                      <p className="font-bold text-base leading-relaxed">{scanResult.message}</p>
+                      
+                      {scanResult.data && (
+                        <div className="bg-white/80 backdrop-blur border border-slate-200/50 rounded-xl p-4 space-y-2 text-sm text-slate-700 font-mono">
+                          <p><strong>મુલાકાતી (Visitor):</strong> {scanResult.data.fullName}</p>
+                          <p><strong>મોબાઇલ (Mobile):</strong> {scanResult.data.mobileNumber}</p>
+                          <p><strong>મુલાકાતીનો પ્રકાર (Type):</strong> {scanResult.data.guestType}</p>
+                          <p><strong>વિગત (Reason):</strong> {scanResult.data.reason || '-'}</p>
+                          <p><strong>ફ્લેટ નંબર (Flat):</strong> Wing {scanResult.data.wing} - {scanResult.data.flatNo}</p>
+                          <p><strong>બનાવનાર (Created By):</strong> {scanResult.data.householdMemberName || 'Resident'}</p>
+                          <p><strong>માનક સમય (Valid Until):</strong> {new Date(scanResult.data.expiresAt).toLocaleString('en-IN')}</p>
+                          <p><strong>સ્થિતિ (Status):</strong> <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            scanResult.data.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          }`}>{scanResult.data.status}</span></p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div id="active-tracker" className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 text-left h-full">

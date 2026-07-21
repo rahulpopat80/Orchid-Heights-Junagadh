@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FlatOwner, Visitor, UserSession, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact } from '../types';
+import { FlatOwner, Visitor, UserSession, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
 import { 
   verifyCredentials,
   getAllOwners,
@@ -39,7 +39,11 @@ import {
   createSocietyNotification,
   subscribeToSocietyNotifications,
   deployFirestoreRulesAutonomously,
-  subscribeToOwners
+  subscribeToOwners,
+  createPreEntry,
+  getPreEntries,
+  getPreEntryById,
+  usePreEntry
 } from './firebase';
 
 export async function detectServerEnvironment(): Promise<boolean> {
@@ -279,5 +283,19 @@ export const api = {
     onError?: (error: Error) => void
   ) => {
     return subscribeToOwners(onUpdate, onError);
+  },
+
+  // Pre-Entry
+  createPreEntry: async (payload: any): Promise<PreEntry> => {
+    return createPreEntry(payload);
+  },
+  getPreEntries: async (wing: string, flatNo: number): Promise<PreEntry[]> => {
+    return getPreEntries(wing, flatNo);
+  },
+  getPreEntryById: async (id: string): Promise<PreEntry | null> => {
+    return getPreEntryById(id);
+  },
+  usePreEntry: async (id: string): Promise<boolean> => {
+    return usePreEntry(id);
   }
 };

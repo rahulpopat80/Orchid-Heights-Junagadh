@@ -22,7 +22,7 @@ import {
   arrayUnion as rawArrayUnion
 } from 'firebase/firestore';
 import { getMessaging, getToken, deleteToken, onMessage } from 'firebase/messaging';
-import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact } from '../types';
+import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
 import { getInitialOwners } from '../data/ownersData';
 import firebaseConfig from '../../firebase-applet-config.json';
 import * as fallback from './fallback';
@@ -607,6 +607,144 @@ export async function registerVisitor(payload: any): Promise<Visitor> {
       return fallback.registerVisitorLocal(payload);
     }
     handleFirestoreError(error, OperationType.WRITE, `visitors/${visitorId}`);
+  }
+}
+
+export async function createPreEntry(payload: any): Promise<PreEntry> {
+  if (isQuotaExceeded) return fallback.createPreEntryLocal(payload);
+  const { fullName, mobileNumber, guestType, reason, visitorCount, photoUrl, wing, flatNo, ownerName, householdMemberName, ipAddress, deviceImei } = payload;
+  
+  const id = 'pe_' + Math.random().toString(36).substr(2, 9);
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString();
+  
+  const preEntry: PreEntry = {
+    id, fullName, mobileNumber, guestType, reason, visitorCount: parseInt(visitorCount, 10) || 1,
+    photoUrl: photoUrl || '', wing, flatNo: parseInt(flatNo, 10), ownerName, householdMemberName,
+    createdAt, expiresAt, status: 'Pending', ipAddress: ipAddress || '', deviceImei: deviceImei || ''
+  };
+
+  try {
+    await setDoc(doc(db, 'pre_entries', id), preEntry);
+    return preEntry;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.createPreEntryLocal(payload);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `pre_entries/${id}`);
+  }
+}
+
+export async function getPreEntries(wing: string, flatNo: number): Promise<PreEntry[]> {
+  if (isQuotaExceeded) return fallback.getPreEntriesLocal(wing, flatNo);
+  try {
+    const snap = await getDocs(collection(db, 'pre_entries'));
+    const list: PreEntry[] = [];
+    snap.forEach((docSnap) => {
+      const data = docSnap.data() as PreEntry;
+      if (data.wing.toUpperCase() === wing.toUpperCase() && data.flatNo === parseInt(String(flatNo), 10)) {
+        list.push(data);
+      }
+    });
+    return list;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.getPreEntriesLocal(wing, flatNo);
+    }
+    handleFirestoreError(error, OperationType.GET, 'pre_entries');
+  }
+}
+
+export async function getPreEntryById(id: string): Promise<PreEntry | null> {
+  if (isQuotaExceeded) return fallback.getPreEntryByIdLocal(id);
+  try {
+    const docRef = doc(db, 'pre_entries', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as PreEntry;
+    }
+    return null;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.getPreEntryByIdLocal(id);
+    }
+    handleFirestoreError(error, OperationType.GET, `pre_entries/${id}`);
+  }
+}
+
+export async function usePreEntry(id: string): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.usePreEntryLocal(id);
+  try {
+    const docRef = doc(db, 'pre_entries', id);
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return false;
+    
+    const data = docSnap.data() as PreEntry;
+    if (data.status !== 'Pending') return false;
+    if (new Date() > new Date(data.expiresAt)) {
+      await updateDoc(docRef, { status: 'Expired' });
+      return false;
+    }
+    
+    // Update status to Used
+    await updateDoc(docRef, { status: 'Used' });
+    
+    // Generate a new Visitor log automatically
+    const now = new Date();
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+    const entryDate = `${day}/${month}/${year}`;
+    const entryTime = now.toTimeString().split(' ')[0];
+    
+    const visitorId = 'v_' + Math.random().toString(36).substr(2, 9);
+    const newVisitor: Visitor = {
+      id: visitorId,
+      fullName: data.fullName,
+      mobileNumber: data.mobileNumber,
+      email: '',
+      wing: data.wing,
+      flatNo: data.flatNo,
+      reason: data.reason,
+      guestType: data.guestType,
+      photoUrl: data.photoUrl,
+      status: 'Entered',
+      requestTime: now.toISOString(),
+      respondedTime: now.toISOString(),
+      flatOwnerName: data.ownerName,
+      visitorCount: data.visitorCount,
+      respondedBy: data.householdMemberName,
+      householdMemberName: data.householdMemberName,
+      qrStatus: 'Used',
+      entryDate,
+      entryTime,
+      isPreEntry: true,
+      ipAddress: data.ipAddress,
+      deviceImei: data.deviceImei
+    };
+    
+    await setDoc(doc(db, 'visitors', visitorId), newVisitor);
+    
+    // Create society alert
+    await createSocietyNotification({
+      type: 'visitor',
+      title: `🔑 Pre-Entry Scanned: ${data.fullName}`,
+      message: `${data.fullName} entered using QR Code created by ${data.householdMemberName} for Flat ${data.wing}-${data.flatNo}.`,
+      wing: data.wing,
+      flatNo: data.flatNo,
+      metadata: { visitorId, fullName: data.fullName, guestType: data.guestType }
+    });
+    
+    return true;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.usePreEntryLocal(id);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `pre_entries/${id}`);
   }
 }
 
