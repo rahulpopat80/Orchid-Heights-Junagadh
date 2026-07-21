@@ -1030,12 +1030,13 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     csvContent += `Flat,${wingAndFlat}\r\n`;
     csvContent += `Owner,"${owner.nameEn.toUpperCase()}"\r\n`;
     csvContent += `Generated On,${new Date().toLocaleString('en-IN')}\r\n\r\n`;
-    csvContent += `"Visitor Name","Mobile Number","Email","Category/Type","Purpose of Visit","Entry Time","Status","Approved By","Status Flag"\r\n`;
+    csvContent += `"Visitor Name","Mobile Number","Email","Category/Type","Entry Type","Purpose of Visit","Entry Time","Status","Approved By","Status Flag"\r\n`;
 
     filtered.forEach((v) => {
       const entryTime = new Date(v.requestTime).toLocaleString('en-IN');
       const deletedTag = v.deletedByResident ? 'Deleted by Resident' : 'Active Log';
-      csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${v.status.toUpperCase()}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
+      const entryType = v.isPreEntry ? 'Pre-Entry' : 'Gate Entry';
+      csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${entryType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${v.status.toUpperCase()}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
     });
 
     // Download Blob
@@ -1100,6 +1101,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         '"Flat No"',
         '"Flat Owner Name"',
         '"Visitor Type"',
+        '"Entry Type"',
         '"Reason / Purpose"',
         '"Count"',
         '"Status"',
@@ -1123,6 +1125,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           `"${v.flatNo}"`,
           `"${(v.flatOwnerName || '').replace(/"/g, '""')}"`,
           `"${v.guestType || ''}"`,
+          `"${v.isPreEntry ? 'Pre-Entry' : 'Gate Entry'}"`,
           `"${(v.reason || '').replace(/"/g, '""')}"`,
           `"${v.visitorCount || 1}"`,
           `"${(v.status || '').toUpperCase()}"`,

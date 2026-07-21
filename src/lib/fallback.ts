@@ -629,7 +629,8 @@ export function saveLocalPreEntries(preEntries: PreEntry[]) {
 export function createPreEntryLocal(payload: any): PreEntry {
   const { fullName, mobileNumber, guestType, reason, visitorCount, photoUrl, wing, flatNo, ownerName, householdMemberName, ipAddress, deviceImei } = payload;
   
-  const id = 'pe_' + Math.random().toString(36).substr(2, 9);
+  // Generate a unique 6-digit numeric pass ID like an OTP
+  const id = Math.floor(100000 + Math.random() * 900000).toString();
   const createdAt = new Date().toISOString();
   const expiresAt = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString();
   

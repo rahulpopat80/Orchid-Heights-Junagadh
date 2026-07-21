@@ -1039,19 +1039,19 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               {/* Manual Entry */}
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 text-left">
                 <label className="block text-sm font-bold text-slate-700">મેન્યુઅલ પાસ આઈડી (Manual Pass ID)</label>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
                     value={manualPassId}
                     onChange={(e) => setManualPassId(e.target.value)}
                     placeholder="દા.ત. pass_xxxxxx"
-                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-lg font-bold font-mono"
+                    className="flex-1 bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-sm sm:text-lg font-bold font-mono w-full"
                   />
                   <button
                     type="button"
                     onClick={() => handleVerifyPass(manualPassId)}
                     disabled={verifyingPass || !manualPassId.trim()}
-                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition shadow flex items-center justify-center min-w-[120px]"
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition shadow flex items-center justify-center sm:min-w-[120px] w-full sm:w-auto"
                   >
                     {verifyingPass ? 'ચકાસણી...' : 'ચકાસો (Verify)'}
                   </button>
@@ -1082,17 +1082,34 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       <p className="font-bold text-base leading-relaxed">{scanResult.message}</p>
                       
                       {scanResult.data && (
-                        <div className="bg-white/80 backdrop-blur border border-slate-200/50 rounded-xl p-4 space-y-2 text-sm text-slate-700 font-mono">
-                          <p><strong>મુલાકાતી (Visitor):</strong> {scanResult.data.fullName}</p>
-                          <p><strong>મોબાઇલ (Mobile):</strong> {scanResult.data.mobileNumber}</p>
-                          <p><strong>મુલાકાતીનો પ્રકાર (Type):</strong> {scanResult.data.guestType}</p>
-                          <p><strong>વિગત (Reason):</strong> {scanResult.data.reason || '-'}</p>
-                          <p><strong>ફ્લેટ નંબર (Flat):</strong> Wing {scanResult.data.wing} - {scanResult.data.flatNo}</p>
-                          <p><strong>બનાવનાર (Created By):</strong> {scanResult.data.householdMemberName || 'Resident'}</p>
-                          <p><strong>માનક સમય (Valid Until):</strong> {new Date(scanResult.data.expiresAt).toLocaleString('en-IN')}</p>
-                          <p><strong>સ્થિતિ (Status):</strong> <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                            scanResult.data.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                          }`}>{scanResult.data.status}</span></p>
+                        <div className="flex flex-col md:flex-row gap-4 items-start bg-white/80 backdrop-blur border border-slate-200/50 rounded-xl p-4">
+                          {scanResult.data.photoUrl ? (
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg overflow-hidden border border-indigo-100 shadow-sm bg-slate-100 flex items-center justify-center">
+                              <img
+                                src={scanResult.data.photoUrl}
+                                alt="Visitor"
+                                className="w-full h-full object-cover"
+                                referrerPolicy="no-referrer"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 p-2 text-center">
+                              <Camera className="w-6 h-6 mb-1 text-slate-300" />
+                              <span className="text-[10px] font-semibold leading-tight">ફોટો નથી<br />(No Photo)</span>
+                            </div>
+                          )}
+                          <div className="space-y-1.5 text-sm text-slate-700 font-mono flex-1 text-left">
+                            <p><strong>મુલાકાતી (Visitor):</strong> {scanResult.data.fullName}</p>
+                            <p><strong>મોબાઇલ (Mobile):</strong> {scanResult.data.mobileNumber}</p>
+                            <p><strong>મુલાકાતીનો પ્રકાર (Type):</strong> {scanResult.data.guestType}</p>
+                            <p><strong>વિગત (Reason):</strong> {scanResult.data.reason || '-'}</p>
+                            <p><strong>ફ્લેટ નંબર (Flat):</strong> Wing {scanResult.data.wing} - {scanResult.data.flatNo}</p>
+                            <p><strong>બનાવનાર (Created By):</strong> {scanResult.data.householdMemberName || 'Resident'}</p>
+                            <p><strong>માનક સમય (Valid Until):</strong> {new Date(scanResult.data.expiresAt).toLocaleString('en-IN')}</p>
+                            <p><strong>સ્થિતિ (Status):</strong> <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                              scanResult.data.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>{scanResult.data.status}</span></p>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1180,7 +1197,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   <div 
                     key={v.id} 
                     className={`p-4 rounded-xl border flex items-center justify-between gap-4 text-sm ${
-                      v.status === 'approved' ? 'border-emerald-100 bg-emerald-50/20' : 'border-red-100 bg-red-50/20'
+                      (v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'border-emerald-100 bg-emerald-50/20' : 'border-red-100 bg-red-50/20'
                     }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
@@ -1194,9 +1211,9 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     </div>
                     <div className="shrink-0 text-right">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                        v.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                        (v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {v.status === 'approved' ? 'મંજૂર' : 'અસ્વીકાર'}
+                        {(v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'મંજૂર' : 'અસ્વીકાર'}
                       </span>
                     </div>
                   </div>

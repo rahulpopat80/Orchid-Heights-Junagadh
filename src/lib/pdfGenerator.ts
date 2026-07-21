@@ -138,7 +138,10 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.text(`Mobile: ${log.mobileNumber}`, textX, currY);
       
       currY += 6;
-      doc.text(`Type: ${sanitizeText(log.guestType).toUpperCase()}`, textX, currY);
+      const typeStr = log.isPreEntry 
+        ? `Type: ${sanitizeText(log.guestType).toUpperCase()} (PRE-ENTRY)`
+        : `Type: ${sanitizeText(log.guestType).toUpperCase()}`;
+      doc.text(typeStr, textX, currY);
       
       currY += 6;
       const ownerMatch = owners.find(o => `${o.wing}-${o.flatNo}` === `${log.wing}-${log.flatNo}`);

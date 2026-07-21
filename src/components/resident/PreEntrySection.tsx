@@ -154,11 +154,15 @@ Expires: ${expDateStr} ${expTimeStr}`;
     setFormError('');
     
     if (!fullName.trim()) {
-      setFormError('Please enter the visitor\'s full name.');
+      setFormError('Please enter the visitor\'s full name. (કૃપા કરીને મુલાકાતીનું આખું નામ લખો.)');
       return;
     }
     if (!mobileNumber.trim()) {
-      setFormError('Please enter a mobile number.');
+      setFormError('Please enter a mobile number. (કૃપા કરીને મોબાઇલ નંબર લખો.)');
+      return;
+    }
+    if (!reason.trim()) {
+      setFormError('Please enter the reason to visit. (કૃપા કરીને મુલાકાતનું કારણ લખો.)');
       return;
     }
 
@@ -283,6 +287,121 @@ Expires: ${expDateStr} ${expTimeStr}`;
     doc.text(`PASS ID: ${entry.id} | Generated on Resident Device`, 50, currY + 52, { align: 'center' });
 
     doc.save(`GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.pdf`);
+  };
+
+  // Share pass as a clean styled PDF using navigator.share
+  const sharePDFPass = async (entry: PreEntry) => {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [100, 160] // custom card dimensions (100mm wide, 160mm tall)
+    });
+
+    // Outer border decoration
+    doc.setDrawColor(79, 70, 229); // indigo-600
+    doc.setLineWidth(1.5);
+    doc.roundedRect(4, 4, 92, 152, 4, 4, 'D');
+
+    // Header strip background
+    doc.setFillColor(79, 70, 229);
+    doc.roundedRect(5, 5, 90, 20, 2, 2, 'F');
+
+    // Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ORCHID HEIGHTS', 50, 13, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text('OFFICIAL VISIT PRE-ENTRY PASS', 50, 18, { align: 'center' });
+
+    // Visitor Details
+    doc.setTextColor(15, 23, 42); // slate-900
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(entry.fullName.toUpperCase(), 50, 32, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Mobile: ${entry.mobileNumber}`, 50, 37, { align: 'center' });
+
+    // Key stats labels and values
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(10, 42, 90, 42);
+
+    let currY = 48;
+    const drawRow = (label: string, val: string) => {
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(100, 116, 139);
+      doc.text(label, 12, currY);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(15, 23, 42);
+      doc.text(val, 88, currY, { align: 'right' });
+      currY += 6.5;
+    };
+
+    drawRow('Visitor Type:', entry.guestType.toUpperCase());
+    drawRow('Reason for Visit:', entry.reason);
+    drawRow('Visitors Count:', String(entry.visitorCount));
+    drawRow('Target Flat:', `Wing ${entry.wing} - Flat ${entry.flatNo}`);
+    drawRow('Invited By:', entry.householdMemberName);
+
+    doc.line(10, currY - 2, 90, currY - 2);
+
+    // QR Code rendering
+    if (selectedPassQR) {
+      doc.addImage(selectedPassQR, 'PNG', 30, currY + 2, 40, 40);
+    }
+
+    // Expiration Details
+    const expiresDate = new Date(entry.expiresAt);
+    const expDateStr = expiresDate.toLocaleDateString('en-IN');
+    const expTimeStr = expiresDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(239, 68, 68); // red-500
+    doc.text(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 50, currY + 47, { align: 'center' });
+
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(148, 163, 184); // slate-400
+    doc.text(`PASS ID: ${entry.id} | Generated on Resident Device`, 50, currY + 52, { align: 'center' });
+
+    const filename = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.pdf`;
+    
+    try {
+      if (navigator.share) {
+        const pdfBlob = doc.output('blob');
+        const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+        
+        const shareData = {
+          files: [file],
+          title: `Gate Pass - ${entry.fullName}`,
+          text: `Hi ${entry.fullName}, here is your Pre-Approved Gate Entry Pass for Orchid Heights. Pass ID is ${entry.id}. Please show this to the security guard.`
+        };
+
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          await navigator.share(shareData);
+          return;
+        }
+        
+        // Fallback text sharing if file sharing is not supported by device
+        await navigator.share({
+          title: `Gate Pass - ${entry.fullName}`,
+          text: `*ORCHID HEIGHTS GATE PASS*\nVisitor: ${entry.fullName}\nPass ID: ${entry.id}\nWing: ${entry.wing}, Flat No: ${entry.flatNo}\nValid Until: ${expDateStr} • ${expTimeStr}\n\nPlease show this Pass ID or QR code to the Security Guard.`
+        });
+      } else {
+        throw new Error('Sharing not supported');
+      }
+    } catch (err) {
+      console.log('Share fallback:', err);
+      // Clipboard fallback
+      navigator.clipboard.writeText(`*ORCHID HEIGHTS GATE PASS*\nVisitor: ${entry.fullName}\nPass ID: ${entry.id}\nWing: ${entry.wing}, Flat No: ${entry.flatNo}\nValid Until: ${expDateStr} • ${expTimeStr}`);
+      alert(`Pass details copied to clipboard! (પાસની વિગતો ક્લિપબોર્ડ પર કોપી થઈ ગઈ છે)`);
+    }
   };
 
   // Download pass as a beautiful shareable high-contrast image
@@ -519,10 +638,12 @@ Expires: ${expDateStr} ${expTimeStr}`;
             {/* Reason to Visit */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Reason to Visit
+                Reason to Visit <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
+                required
+                placeholder="e.g. Guest visit, Courier delivery"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl py-3 px-4 text-sm font-semibold outline-none transition"
@@ -723,20 +844,29 @@ Expires: ${expDateStr} ${expTimeStr}`;
             </div>
 
             {/* Download and Share Button Triggers */}
-            <div className="grid grid-cols-2 gap-3 pb-2">
+            <div className="space-y-2 pb-2">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => downloadImagePass(selectedPass)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Save Image</span>
+                </button>
+                <button
+                  onClick={() => downloadPDFPass(selectedPass)}
+                  className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </button>
+              </div>
               <button
-                onClick={() => downloadImagePass(selectedPass)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                onClick={() => sharePDFPass(selectedPass)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs flex items-center justify-center space-x-2 transition shadow-md"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Save Image</span>
-              </button>
-              <button
-                onClick={() => downloadPDFPass(selectedPass)}
-                className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Download PDF</span>
+                <Share2 className="w-4 h-4" />
+                <span>Share PDF Pass (WhatsApp / All Apps)</span>
               </button>
             </div>
           </div>
@@ -790,20 +920,29 @@ Expires: ${expDateStr} ${expTimeStr}`;
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => downloadImagePass(showSuccessModal)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Save Image</span>
+                </button>
+                <button
+                  onClick={() => downloadPDFPass(showSuccessModal)}
+                  className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Download PDF</span>
+                </button>
+              </div>
               <button
-                onClick={() => downloadImagePass(showSuccessModal)}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
+                onClick={() => sharePDFPass(showSuccessModal)}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs flex items-center justify-center space-x-2 transition shadow-md"
               >
-                <Download className="w-3.5 h-3.5" />
-                <span>Save Image</span>
-              </button>
-              <button
-                onClick={() => downloadPDFPass(showSuccessModal)}
-                className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 transition shadow-sm"
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Download PDF</span>
+                <Share2 className="w-4 h-4" />
+                <span>Share PDF Pass (WhatsApp / All Apps)</span>
               </button>
             </div>
 
