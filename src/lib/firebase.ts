@@ -808,8 +808,13 @@ export async function registerUserDevice(wing: string, flatNo: number, device: D
       const currentDevices = ownerData.devices || [];
       
       // Strict matching by Phone Number as requested by user (1 Number = 1 Device)
-      // Filter out ALL existing entries with the same phoneNumber or deviceId to clean up any past duplicates
-      const filteredDevices = currentDevices.filter(d => d.deviceId !== device.deviceId);
+      // Filter out ALL existing entries with the same phoneNumber, memberId, or deviceId to clean up any past duplicates
+      const filteredDevices = currentDevices.filter(d => {
+        const isSameDevice = d.deviceId === device.deviceId;
+        const isSamePhone = !!(d.phoneNumber && device.phoneNumber && d.phoneNumber === device.phoneNumber);
+        const isSameMember = !!(d.memberId && device.memberId && d.memberId === device.memberId);
+        return !isSameDevice && !isSamePhone && !isSameMember;
+      });
       
       const newDevice = { ...device, lastLogin: new Date().toISOString() };
       filteredDevices.push(newDevice);

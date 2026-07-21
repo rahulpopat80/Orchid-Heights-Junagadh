@@ -456,10 +456,12 @@ export function registerUserDeviceLocal(wing: string, flatNo: number, device: De
   if (idx > -1) {
     const ownerData = owners[idx];
     const currentDevices = ownerData.devices || [];
-    const filteredDevices = currentDevices.filter(d => 
-        d.deviceId !== device.deviceId && 
-        !(d.phoneNumber && device.phoneNumber && d.phoneNumber === device.phoneNumber)
-      );
+    const filteredDevices = currentDevices.filter(d => {
+      const isSameDevice = d.deviceId === device.deviceId;
+      const isSamePhone = !!(d.phoneNumber && device.phoneNumber && d.phoneNumber === device.phoneNumber);
+      const isSameMember = !!(d.memberId && device.memberId && d.memberId === device.memberId);
+      return !isSameDevice && !isSamePhone && !isSameMember;
+    });
     
     const newDevice = { ...device, lastLogin: new Date().toISOString() };
     filteredDevices.push(newDevice);

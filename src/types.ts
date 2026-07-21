@@ -20,6 +20,10 @@ export interface DeviceInfo {
   browser: string;
   lastLogin: string;
   phoneNumber?: string;
+  memberId?: string;
+  memberName?: string;
+  wing?: string;
+  flatNo?: number;
 }
 
 export interface FlatOwner {

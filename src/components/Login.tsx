@@ -52,18 +52,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       if (role === 'owner') {
         const flatKey = `${wing}_${flatNo}`;
         
-        let ipAddress = '115.240.122.' + (Math.floor(Math.random() * 90) + 10);
-        try {
-          const ipRes = await fetch('https://api.ipify.org?format=json');
-          if (ipRes.ok) {
-            const ipData = await ipRes.json();
-            if (ipData.ip) ipAddress = ipData.ip;
-          }
-        } catch (ipErr) {
-          console.warn('IP fetch failed, using fallback.');
-        }
-
-        // Base deviceId firmly on a unique, persistent physical device ID in localStorage
+        // 1. Base deviceId and IMEI firmly and SYNCHRONOUSLY first to prevent any async race conditions
         let deviceId = localStorage.getItem('orchid_physical_device_id');
         if (!deviceId) {
           deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
@@ -82,6 +71,18 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         }
         localStorage.setItem(`orchid_imei_${deviceId}`, imei);
         localStorage.setItem(`orchid_device_imei_${flatKey}`, imei);
+
+        // 2. Fetch IP address after synchronous variables are securely persisted
+        let ipAddress = '115.240.122.' + (Math.floor(Math.random() * 90) + 10);
+        try {
+          const ipRes = await fetch('https://api.ipify.org?format=json');
+          if (ipRes.ok) {
+            const ipData = await ipRes.json();
+            if (ipData.ip) ipAddress = ipData.ip;
+          }
+        } catch (ipErr) {
+          console.warn('IP fetch failed, using fallback.');
+        }
 
         const ua = navigator.userAgent;
         let os = 'Unknown OS';
@@ -116,14 +117,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await api.login(payload);
 
       if (data.success && data.session) {
-        if (role === 'owner' && activeDevice) {
-          const enrichedDevice = {
-            ...activeDevice,
-            memberName: data.session.ownerName,
-            memberId: `mem_${wing}_${flatNo}_${phoneNumber}`
-          };
-          await api.registerDevice(wing, parseInt(flatNo, 10), enrichedDevice);
-        }
         onLoginSuccess(data.session);
       } else if ((data as any).code === 'DEVICE_LIMIT_EXCEEDED') {
         setIsDeviceBlocked(true);

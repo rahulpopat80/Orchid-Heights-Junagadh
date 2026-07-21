@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { FlatOwner, UserSession } from './types';
@@ -19,6 +19,7 @@ import firebaseConfig from '../firebase-applet-config.json';
 
 export default function App() {
   const navigate = useNavigate();
+  const lastRegisteredRef = useRef<string>('');
 
   // Session details stored in localStorage for persistent logins
   const [session, setSession] = useState<UserSession | null>(() => {
@@ -200,7 +201,35 @@ export default function App() {
         try {
           const flatKey = `${session.wing}_${session.flatNo}`;
           
-          // 1. Fetch public IP address using an online API, fallback if offline or failed
+          // 1. Get or create unique persistent physical device ID and IMEI SYNCHRONOUSLY first!
+          // This absolutely prevents any race conditions during asynchronous public IP address lookups.
+          let deviceId = localStorage.getItem('orchid_physical_device_id');
+          if (!deviceId) {
+            deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
+            localStorage.setItem('orchid_physical_device_id', deviceId);
+          }
+          
+          // Keep a copy in the legacy keys for backward compatibility
+          localStorage.setItem(`orchid_device_uuid_${flatKey}`, deviceId);
+          localStorage.setItem('orchid_device_uuid', deviceId);
+
+          let imei = localStorage.getItem('orchid_physical_device_imei');
+          if (!imei) {
+            imei = '358401' + Math.floor(100000 + Math.random() * 900000) + Math.floor(10 + Math.random() * 90);
+            localStorage.setItem('orchid_physical_device_imei', imei);
+          }
+          localStorage.setItem(`orchid_imei_${deviceId}`, imei);
+          localStorage.setItem(`orchid_device_imei_${flatKey}`, imei);
+
+          // 2. Prevent redundant registrations for the exact same session configuration in the same app lifecycle
+          const regKey = `${session.wing}_${session.flatNo}_${session.phone || 'no_phone'}_${deviceId}`;
+          if (lastRegisteredRef.current === regKey) {
+            console.log('[Device Register] Already registered/validated in this session, skipping redundant write.');
+            return;
+          }
+          lastRegisteredRef.current = regKey;
+
+          // 3. Fetch public IP address after synchronous variables are securely persisted in localStorage
           let ipAddress = '127.0.0.1';
           try {
             const res = await fetch('https://api.ipify.org?format=json');
@@ -215,26 +244,6 @@ export default function App() {
               console.warn('IP lookup failed, using local network IP:', e);
             }
           }
-
-          // 2. Base deviceId firmly on a unique, persistent physical device ID in localStorage
-          let deviceId = localStorage.getItem('orchid_physical_device_id');
-          if (!deviceId) {
-            deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
-            localStorage.setItem('orchid_physical_device_id', deviceId);
-          }
-          
-          // Keep a copy in the legacy keys for backward compatibility
-          localStorage.setItem(`orchid_device_uuid_${flatKey}`, deviceId);
-          localStorage.setItem('orchid_device_uuid', deviceId);
-
-          // 3. Get or create a persistent unique Serial Number / IMEI mapped to this physical device
-          let imei = localStorage.getItem('orchid_physical_device_imei');
-          if (!imei) {
-            imei = '358401' + Math.floor(100000 + Math.random() * 900000) + Math.floor(10 + Math.random() * 90);
-            localStorage.setItem('orchid_physical_device_imei', imei);
-          }
-          localStorage.setItem(`orchid_imei_${deviceId}`, imei);
-          localStorage.setItem(`orchid_device_imei_${flatKey}`, imei);
 
           // 4. Parse OS and Browser details elegantly
           const ua = navigator.userAgent;
@@ -254,15 +263,17 @@ export default function App() {
 
           const devInfo = {
             deviceId,
+            memberId: `mem_${session.wing}_${session.flatNo}_${session.phone || 'owner'}`,
+            phoneNumber: session.phone || '',
+            wing: session.wing,
+            flatNo: session.flatNo,
+            browser,
+            os,
+            imei,
             ipAddress,
             userAgent: ua,
-            imei,
-            os,
-            browser,
             lastLogin: new Date().toISOString(),
-            phoneNumber: session.phone,
-            memberName: session.ownerName,
-            memberId: `mem_${session.wing}_${session.flatNo}_${session.phone}`
+            memberName: session.ownerName || `Flat ${session.wing}-${session.flatNo}`
           };
 
           await api.registerDevice(session.wing, session.flatNo, devInfo);
@@ -319,7 +330,7 @@ export default function App() {
   const handleLogout = async () => {
     if (session && session.wing && session.flatNo) {
       const flatKey = `${session.wing}_${session.flatNo}`;
-      const deviceId = localStorage.getItem(`orchid_device_uuid_${flatKey}`);
+      const deviceId = localStorage.getItem('orchid_physical_device_id') || localStorage.getItem(`orchid_device_uuid_${flatKey}`);
       if (deviceId) {
         try {
           await (api as any).deregisterDevice(session.wing, session.flatNo, deviceId);
