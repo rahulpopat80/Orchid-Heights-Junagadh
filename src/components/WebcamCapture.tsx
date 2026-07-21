@@ -24,7 +24,7 @@ const PRESETS: Record<string, { label: string; svgColor: string; iconLetter: str
 };
 
 export default function WebcamCapture({ onPhotoCaptured, value, guestType }: WebcamCaptureProps) {
-  const [mode, setMode] = useState<'preset' | 'camera'>('preset');
+  const [mode, setMode] = useState<'preset' | 'camera' | 'upload'>('preset');
   const [photo, setPhoto] = useState<string>(value || '');
   const [selectedPreset, setSelectedPreset] = useState<string>('other');
   
@@ -208,6 +208,13 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
           >
             Webcam
           </button>
+          <button
+            type="button"
+            onClick={() => { setMode('upload'); stopCamera(); }}
+            className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
+          >
+            Upload
+          </button>
           {mode === 'camera' && (
             <button
               type="button"
@@ -314,6 +321,25 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
                   </button>
                 )}
               </div>
+            </div>
+          )}
+
+          {mode === 'upload' && (
+            <div className="space-y-2">
+              <p className="text-[11px] text-slate-500 leading-relaxed mb-1.5">
+                તમારા ડિવાઇસમાંથી મુલાકાતીનો ફોટો પસંદ કરો (Upload visitor photo):
+              </p>
+              <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-white hover:bg-indigo-50 hover:border-indigo-400 transition cursor-pointer">
+                <ImageIcon className="w-6 h-6 text-indigo-500 mb-1" />
+                <span className="text-[11px] font-bold text-slate-700">ફોટો અપલોડ કરો (Choose Photo)</span>
+                <span className="text-[9px] text-slate-400">JPEG, PNG up to 5MB</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
           )}
         </div>

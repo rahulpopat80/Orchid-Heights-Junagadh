@@ -52,7 +52,7 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
       rows.push(`""`);
       rows.push([
         '"Sr."', '"Visitor Name"', '"Mobile Number"', '"Email"', '"Wing"', '"Flat No"',
-        '"Visitor Type"', '"Reason"', '"Status"', '"Request Date"', '"Request Time"',
+        '"Visitor Type"', '"Entry Type"', '"Reason"', '"Status"', '"Request Date"', '"Request Time"',
         '"Response Time"', '"Approved / Rejected By"', '"IP Address"', '"Device SN"', '"Rejection Reason"'
       ].join(','));
 
@@ -62,7 +62,7 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
         rows.push([
           `"${idx + 1}"`, `"${(v.fullName || '').replace(/"/g, '""')}"`, `"${v.mobileNumber || ''}"`,
           `"${(v.email || '').replace(/"/g, '""')}"`, `"${v.wing}"`, `"${v.flatNo}"`,
-          `"${v.guestType || ''}"`, `"${(v.reason || '').replace(/"/g, '""')}"`,
+          `"${v.guestType || ''}"`, `"${v.isPreEntry ? 'Pre-Entry' : 'Gate Entry'}"`, `"${(v.reason || '').replace(/"/g, '""')}"`,
           `"${(v.status || '').toUpperCase()}"`,
           `"${reqDate.toLocaleDateString('en-IN')}"`, `"${reqDate.toLocaleTimeString('en-IN')}"`,
           `"${respDate ? respDate.toLocaleString('en-IN') : '-'}"`,

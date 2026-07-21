@@ -163,6 +163,15 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.setFont('helvetica', 'bold');
       doc.text(log.status.toUpperCase(), rightX - 12.5, currY - 0.5, { align: 'center' });
 
+      if (log.isPreEntry) {
+        doc.setFillColor(219, 234, 254); // Blue-100
+        doc.roundedRect(rightX - 25, currY + 4, 25, 6, 1.5, 1.5, 'F');
+        doc.setTextColor(30, 64, 175); // Blue-800
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PRE-ENTRY', rightX - 12.5, currY + 8.2, { align: 'center' });
+      }
+
       currY += 10;
       doc.setTextColor(100, 116, 139);
       doc.setFontSize(8);

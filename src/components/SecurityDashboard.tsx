@@ -4,12 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera } from 'lucide-react';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
 import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 
 const playDecisionSound = (status: string) => {
   if (status === 'expired') return;
@@ -99,6 +99,45 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   }>({ status: null, message: '' });
   const [verifyingPass, setVerifyingPass] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+
+  const handleQrImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setVerifyingPass(true);
+    setScanResult({ status: null, message: '' });
+
+    try {
+      const html5QrCode = new Html5Qrcode("qr-image-temp");
+      const decodedText = await html5QrCode.scanFile(file, true);
+      
+      let parsedId = decodedText;
+      if (decodedText.includes('Pass ID:')) {
+        const lines = decodedText.split('\n');
+        const idLine = lines.find(l => l.startsWith('Pass ID:'));
+        if (idLine) {
+          parsedId = idLine.replace('Pass ID:', '').trim();
+        }
+      } else if (decodedText.startsWith('{')) {
+        try {
+          const parsed = JSON.parse(decodedText);
+          if (parsed.passId) parsedId = parsed.passId;
+          else if (parsed.id) parsedId = parsed.id;
+        } catch (e) {}
+      }
+
+      handleVerifyPass(parsedId);
+    } catch (err) {
+      console.error("QR Code Image Scan Error:", err);
+      setScanResult({
+        status: 'invalid',
+        message: 'ફોટોમાં QR કોડ મળ્યો નથી અથવા વાંચી શકાય તેમ નથી. કૃપા કરીને ફરી પ્રયાસ કરો. (No readable QR code found in photo)'
+      });
+      playDecisionSound('rejected');
+    } finally {
+      setVerifyingPass(false);
+    }
+  };
 
   // Verification Handler for Pre-Entry QR passes
   const handleVerifyPass = async (id: string) => {
@@ -645,24 +684,24 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         </div>
       )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8 items-start">
         
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 text-left">
+        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left">
           {/* Sub-tabs for Security Actions */}
-          <div className="flex border-b border-slate-200 mb-8 font-display">
+          <div className="flex border-b border-slate-200 mb-4 sm:mb-8 font-display">
             <button
               type="button"
               onClick={() => {
                 setActiveSecTab('register');
                 setIsCameraActive(false);
               }}
-              className={`flex-1 pb-4 text-center font-bold text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-2 ${
+              className={`flex-1 pb-2 sm:pb-4 text-center font-bold text-xs sm:text-sm md:text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-1 sm:space-x-2 ${
                 activeSecTab === 'register'
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <Shield className="w-5 h-5 shrink-0" />
+              <Shield className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               <span>નવી એન્ટ્રી (New Entry)</span>
             </button>
             <button
@@ -671,13 +710,13 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 setActiveSecTab('qr_scan');
                 setIsCameraActive(true);
               }}
-              className={`flex-1 pb-4 text-center font-bold text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-2 ${
+              className={`flex-1 pb-2 sm:pb-4 text-center font-bold text-xs sm:text-sm md:text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-1 sm:space-x-2 ${
                 activeSecTab === 'qr_scan'
                   ? 'border-indigo-600 text-indigo-600'
                   : 'border-transparent text-slate-400 hover:text-slate-600'
               }`}
             >
-              <QrCode className="w-5 h-5 shrink-0" />
+              <QrCode className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
               <span>QR કોડ સ્કેનર (QR Scanner)</span>
             </button>
           </div>
@@ -852,7 +891,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-2 max-h-60 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+                  <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-8 gap-1.5 sm:gap-2 max-h-60 overflow-y-auto border border-slate-200 rounded-xl p-2 sm:p-3 bg-slate-50">
                     {filteredFlatsChecklist.map((flatId) => {
                       const isChecked = selectedFlats.includes(flatId);
                       return (
@@ -948,24 +987,40 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </>
           ) : (
             <div className="space-y-6">
-              <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200/60 text-center space-y-4">
+              <div className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200/60 text-center space-y-4">
                 <h3 className="text-xl font-bold text-slate-800">પ્રી-એન્ટ્રી પાસ સ્કેન કરો (Scan Pre-Entry Pass)</h3>
                 <p className="text-sm text-slate-500 font-medium">રહેવાસી દ્વારા મોકલવામાં આવેલ સ્માર્ટ પાસનો QR કોડ કેમેરા સામે રાખો અથવા નીચે આઈડી ટાઈપ કરો.</p>
                 
                 {/* QR Camera Reader Box */}
                 <div className="max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-indigo-200 bg-white shadow-inner relative min-h-[250px] flex items-center justify-center">
+                  <div id="qr-image-temp" className="hidden" />
                   {isCameraActive ? (
                     <div id="qr-reader" className="w-full" />
                   ) : (
-                    <div className="py-12 px-6 flex flex-col items-center justify-center space-y-4">
-                      <QrCode className="w-16 h-16 text-slate-300 animate-pulse" />
-                      <button
-                        type="button"
-                        onClick={() => setIsCameraActive(true)}
-                        className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-6 py-3 rounded-xl transition shadow"
-                      >
-                        કેમેરો ચાલુ કરો (Turn on Camera)
-                      </button>
+                    <div className="py-8 px-4 flex flex-col items-center justify-center space-y-4 w-full">
+                      <QrCode className="w-16 h-16 text-slate-300 animate-pulse shrink-0" />
+                      <div className="flex flex-col gap-3 w-full max-w-xs">
+                        <button
+                          type="button"
+                          onClick={() => setIsCameraActive(true)}
+                          className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-4 py-3 rounded-xl transition shadow text-sm flex items-center justify-center space-x-2"
+                        >
+                          <QrCode className="w-4 h-4" />
+                          <span>લાઈવ સ્કેનર ચાલુ કરો (Live Scanner)</span>
+                        </button>
+
+                        <label className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold px-4 py-3 rounded-xl transition shadow cursor-pointer text-sm flex items-center justify-center space-x-2">
+                          <Camera className="w-4 h-4" />
+                          <span>લાઇવ કેમેરાથી ફોટો પાડો (Photo Capture)</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handleQrImageUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
                     </div>
                   )}
                   {isCameraActive && (
@@ -1048,7 +1103,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           )}
         </div>
 
-        <div id="active-tracker" className="bg-white border border-slate-200 rounded-3xl shadow-sm p-8 text-left h-full">
+        <div id="active-tracker" className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left h-full">
           <div className="flex items-center justify-between mb-8 pb-5 border-b border-slate-100">
             <div>
               <h3 className="font-display font-bold text-2xl text-slate-800">ચાલુ મંજૂરીઓનું લિસ્ટ</h3>
