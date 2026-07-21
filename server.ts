@@ -24,6 +24,7 @@ import {
   setDocument,
   deleteDocument
 } from './src/lib/server-db';
+import { startServerNotificationService } from './src/lib/server-notifications';
 
 async function startServer() {
   const app = express();
@@ -38,6 +39,13 @@ async function startServer() {
     await seedDatabaseIfNeeded();
   } catch (err) {
     console.error('Initial Firestore seeding failed:', err);
+  }
+
+  // Start background real-time notification listeners for FCM push alerts
+  try {
+    startServerNotificationService();
+  } catch (err) {
+    console.error('Failed to start server-side background notification listeners:', err);
   }
 
   // --- API ROUTES ---
