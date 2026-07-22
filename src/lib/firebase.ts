@@ -1436,7 +1436,7 @@ export function subscribeToVisitorNotifications(wing: string, flatNo: number, on
         if (!active) return;
         const pending: Visitor[] = [];
         snapshot.forEach((docSnap) => {
-          const data = { id: docSnap.id, ...docSnap.data() } as Visitor;
+          const data = docSnap.data() as Visitor;
           if (!data.deletedByResident) {
             pending.push(data);
           }
@@ -1520,7 +1520,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
       if (!active) return;
       const list: Announcement[] = [];
       snapshot.forEach((docSnap) => {
-        const item = { id: docSnap.id, ...docSnap.data() } as Announcement;
+        const item = docSnap.data() as Announcement;
         if (item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo)) {
           list.push(item);
         }
@@ -1568,7 +1568,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
       if (!active) return;
       const list: any[] = [];
       snapshot.forEach((docSnap) => {
-        const data = { id: docSnap.id, ...docSnap.data() };
+        const data = docSnap.data();
         const isGlobal = !data.wing || Number(data.flatNo) === 0;
         const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
         if (isGlobal || isMine) {

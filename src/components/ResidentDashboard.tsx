@@ -144,8 +144,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('orchid_dismissed_notifs');
-      const parsed = saved ? JSON.parse(saved) : [];
-      return Array.isArray(parsed) ? parsed.filter((id: any) => Boolean(id) && id !== 'undefined' && id !== 'null') : [];
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
@@ -563,26 +562,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     }
   };
 
-  const handleDismissNotification = async (notificationId: string) => {
-    if (!notificationId || notificationId === 'undefined' || notificationId === 'null') return;
-
-    // 1. Save to local storage dismissed IDs to prevent re-rendering during current session
-    const updated = Array.from(new Set([...dismissedNotifIds.filter(x => Boolean(x) && x !== 'undefined'), notificationId]));
+  const handleDismissNotification = (id: string) => {
+    const updated = [...dismissedNotifIds, id];
     setDismissedNotifIds(updated);
     localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
-
-    // 2. Remove ONLY this specific notification from local state
-    setSocietyNotifications(prev => prev.filter(n => n.id !== notificationId));
-    setActivePoll(prev => prev.filter(v => v.id !== notificationId));
-    setAnnouncements(prev => prev.filter(a => a.id !== notificationId));
-
-    // 3. Permanently delete from Firebase so it never returns on refresh
-    try {
-      await deleteDoc(doc(db, 'society_notifications', notificationId));
-      await deleteDoc(doc(db, 'notifications', notificationId));
-    } catch (error) {
-      console.error("Failed to delete notification from DB:", error);
-    }
   };
 
   // Vote or Toggle support for a function booking
@@ -1266,15 +1249,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const firstName = fullName.split(' ')[0] || 'Rahul';
   const nameGu = myOwnerData?.nameGu || 'રાહુલ જશવંતરાય પોપટ';
   const flatStr = `Flat ${wing}-${flatNo}`;
-
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-  const activeNotices = announcements.filter(notice => new Date(notice.timestamp || notice.createdAt || Date.now()) >= threeMonthsAgo);
-  const activeLedgers = financials.filter(report => new Date(report.createdAt || report.timestamp || Date.now()) >= threeMonthsAgo);
-  const activePreEntries = guestHistory.filter(v => v.isPreEntry && new Date(v.requestTime || v.createdAt || Date.now()) >= threeMonthsAgo);
-
-  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id) && new Date(n.timestamp || Date.now()) >= threeMonthsAgo);
+  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id));
 
   return (
     <div className="space-y-6 text-slate-800 pb-24 text-left">
@@ -1327,7 +1302,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow bg-white/95 p-0.5 shrink-0">
                   <img 
-                    src="https://i.ibb.co/HftgL4rJ/image.png" 
+                    src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
                     alt="Orchid Heights Logo" 
                     className="w-full h-full object-contain"
                     referrerPolicy="no-referrer"
@@ -1691,7 +1666,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider hidden sm:block">Orchid Heights</span>
                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-xs flex items-center justify-center bg-white p-0.5">
                       <img 
-                        src="https://i.ibb.co/HftgL4rJ/image.png" 
+                        src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
                         alt="Orchid Heights Logo" 
                         className="w-full h-full object-contain"
                         referrerPolicy="no-referrer"
@@ -1784,10 +1759,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     flatNo={flatNo}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
-                    financials={activeLedgers}
+                    financials={financials}
                     loadingFinancials={loadingFinancials}
                     onRefreshComplaints={fetchComplaints}
-                    announcements={activeNotices}
+                    announcements={announcements}
                     viewMode="helpdesk"
                     compTitle={compTitle}
                     setCompTitle={setCompTitle}
@@ -1813,10 +1788,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     flatNo={flatNo}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
-                    financials={activeLedgers}
+                    financials={financials}
                     loadingFinancials={loadingFinancials}
                     onRefreshComplaints={fetchComplaints}
-                    announcements={activeNotices}
+                    announcements={announcements}
                     viewMode="complaints"
                     compTitle={compTitle}
                     setCompTitle={setCompTitle}
@@ -2314,7 +2289,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                   })}
 
                   {/* Recent Society Announcements */}
-                  {activeNotices.filter(a => !dismissedNotifIds.includes(a.id)).slice(0, 5).map((notice) => {
+                  {announcements.filter(a => !dismissedNotifIds.includes(a.id)).slice(0, 5).map((notice) => {
                     const noticeTitle = notice.title || notice.text?.slice(0, 40) || 'Society Notice';
                     const noticeMessage = notice.message || notice.content || notice.text || '';
                     const noticeDate = notice.createdAt || notice.timestamp || new Date().toISOString();

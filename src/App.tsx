@@ -151,54 +151,7 @@ export default function App() {
         // Dispatch an event to update in-app UI badges
         window.dispatchEvent(new CustomEvent('in-app-notification', { detail: payload }));
       });
-
-      // Listener for the 5-Second Undo from the Service Worker
-      const handleSWMessage = (event: MessageEvent) => {
-        if (event.data && event.data.type === 'VISITOR_ACTION_UNDOABLE') {
-          const { visitorId, status } = event.data;
-          
-          // 1. Instantly show a toast in your UI
-          const toast = document.createElement('div');
-          toast.className = "fixed bottom-5 right-5 bg-slate-900 text-white p-4 rounded-xl shadow-2xl z-50 flex items-center gap-4";
-          toast.innerHTML = `
-            <span>Visitor ${status === 'approved' ? 'Approved' : 'Declined'}.</span>
-            <button id="undo-btn-${visitorId}" class="text-indigo-400 font-bold hover:text-indigo-300 transition cursor-pointer">UNDO</button>
-            <div class="absolute bottom-0 left-0 h-1 bg-indigo-500 transition-all duration-[5000ms] w-full" style="width: 0%;"></div>
-          `;
-          document.body.appendChild(toast);
-
-          // Start progress bar animation
-          setTimeout(() => { if (toast.querySelector('div')) toast.querySelector('div')!.style.width = '100%'; }, 50);
-
-          let isUndone = false;
-          document.getElementById(`undo-btn-${visitorId}`)?.addEventListener('click', () => {
-            isUndone = true;
-            if (document.body.contains(toast)) {
-              document.body.removeChild(toast);
-            }
-          });
-
-          // 2. Wait 5 seconds. If not undone, commit to DB.
-          setTimeout(async () => {
-            if (!isUndone && document.body.contains(toast)) {
-              document.body.removeChild(toast);
-              // Commit to database
-              await api.respondToVisitor(visitorId, status);
-            }
-          }, 5000);
-        }
-      };
-
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.addEventListener('message', handleSWMessage);
-      }
-
-      return () => {
-        unsubFCM();
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.removeEventListener('message', handleSWMessage);
-        }
-      };
+      return () => unsubFCM();
     }
   }, [session]);
 
