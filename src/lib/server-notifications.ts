@@ -12,7 +12,8 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  onSnapshot 
+  onSnapshot,
+  updateDoc
 } from 'firebase/firestore';
 import { webcrypto } from 'crypto';
 import { GoogleAuth } from 'google-auth-library';
@@ -201,6 +202,24 @@ async function getAllFCMTokensServer(): Promise<string[]> {
   return [];
 }
 
+// Purge stale or unregistered FCM tokens from Firestore
+async function cleanupStaleTokenServer(token: string): Promise<void> {
+  try {
+    const snap = await getDocs(collection(db, 'owners'));
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const tokens: string[] = data.fcmTokens || [];
+      if (tokens.includes(token)) {
+        const remaining = tokens.filter(t => t !== token);
+        await updateDoc(doc(db, 'owners', docSnap.id), { fcmTokens: remaining });
+        console.log(`[Server FCM] Automatically purged stale token ${token.substring(0, 8)}... from owner ${docSnap.id}`);
+      }
+    }
+  } catch (err) {
+    console.warn('[Server FCM] Failed to purge stale token:', err);
+  }
+}
+
 // Dispatch FCM Push Notification to target tokens
 async function sendFCMPushServer(
   tokens: string[],
@@ -279,7 +298,12 @@ async function sendFCMPushServer(
 
         if (!response.ok) {
           const errText = await response.text();
-          console.warn(`[Server FCM] Failed to send to token ${token.substring(0, 8)}: ${errText}`);
+          if (errText.includes('UNREGISTERED') || errText.includes('INVALID_ARGUMENT') || errText.includes('NOT_FOUND')) {
+            console.log(`[Server FCM] Purging unregistered token ${token.substring(0, 8)}...`);
+            await cleanupStaleTokenServer(token);
+          } else {
+            console.warn(`[Server FCM] Failed to send to token ${token.substring(0, 8)}: ${errText}`);
+          }
         } else {
           console.log(`[Server FCM] Successfully delivered push to token ${token.substring(0, 8)}...`);
         }
