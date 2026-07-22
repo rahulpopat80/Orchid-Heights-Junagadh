@@ -289,13 +289,24 @@ export async function verifyCredentials(role: string, payload: any): Promise<{ s
 
     if (password === savedPassword) {
       const ownerData = await getDocument('owners', id);
+      let displayName = ownerData ? ownerData.nameEn : `Flat ${wing}-${flatNum}`;
+      const credentialsUsername = payload.phoneNumber || payload.username;
+
+      if (credentialsUsername && ownerData && ownerData.members && ownerData.members.length > 0) {
+        const matchedMember = ownerData.members.find((m: string) => m.includes(credentialsUsername));
+        if (matchedMember) {
+          displayName = matchedMember.split('(')[0].trim();
+        }
+      }
+
       return {
         success: true,
         session: {
           role: 'owner',
           wing,
           flatNo: flatNum,
-          ownerName: ownerData ? ownerData.nameEn : `Flat ${wing}-${flatNum}`
+          phone: credentialsUsername,
+          ownerName: displayName
         }
       };
     }
