@@ -1318,7 +1318,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-xl overflow-hidden shadow bg-white/95 p-0.5 shrink-0">
                   <img 
-                    src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
+                    src="https://i.ibb.co/HftgL4rJ/image.png" 
                     alt="Orchid Heights Logo" 
                     className="w-full h-full object-contain"
                     referrerPolicy="no-referrer"
@@ -1682,7 +1682,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider hidden sm:block">Orchid Heights</span>
                     <div className="w-8 h-8 rounded-lg overflow-hidden border border-slate-200 shadow-xs flex items-center justify-center bg-white p-0.5">
                       <img 
-                        src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
+                        src="https://i.ibb.co/HftgL4rJ/image.png" 
                         alt="Orchid Heights Logo" 
                         className="w-full h-full object-contain"
                         referrerPolicy="no-referrer"
