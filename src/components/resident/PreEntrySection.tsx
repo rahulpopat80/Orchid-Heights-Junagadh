@@ -116,19 +116,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
 
   // Generate a detailed text block to be encoded inside the QR code
   const getQRText = (entry: PreEntry) => {
-    const expiresDate = new Date(entry.expiresAt);
-    const expDateStr = expiresDate.toLocaleDateString('en-IN');
-    const expTimeStr = expiresDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    
-    return `ORCHID HEIGHTS GATE PASS
-Pass ID: ${entry.id}
-Visitor: ${entry.fullName}
-Type: ${entry.guestType}
-Reason: ${entry.reason}
-Count: ${entry.visitorCount}
-Flat: ${entry.wing}-${entry.flatNo}
-Created By: ${entry.householdMemberName}
-Expires: ${expDateStr} ${expTimeStr}`;
+    return `PASS:${entry.id}`;
   };
 
   // Generate and set QR Data URI for selected/success pass

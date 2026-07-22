@@ -154,13 +154,43 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     }
   };
 
+  // Helper to extract clean 6-digit numeric pass ID from any raw scanner string
+  const extractPassIdFromRaw = (rawInput: string): string => {
+    if (!rawInput) return '';
+    let str = rawInput.trim();
+
+    if (str.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(str);
+        if (parsed.passId) return String(parsed.passId).trim();
+        if (parsed.id) return String(parsed.id).trim();
+      } catch (e) {}
+    }
+
+    if (str.toUpperCase().includes('PASS:')) {
+      str = str.split(/PASS:/i)[1].trim();
+    } else if (str.toUpperCase().includes('PASS ID:')) {
+      str = str.split(/PASS ID:/i)[1].trim();
+    }
+
+    if (str.includes('|')) {
+      str = str.split('|')[0].trim();
+    }
+
+    const match6 = str.match(/\b\d{6}\b/);
+    if (match6) return match6[0];
+
+    return str;
+  };
+
   // Verification Handler for Pre-Entry QR passes
   const handleVerifyPass = async (id: string) => {
-    if (!id.trim()) return;
+    const cleanedId = extractPassIdFromRaw(id);
+    if (!cleanedId) return;
     setVerifyingPass(true);
     setScanResult({ status: null, message: '' });
     try {
-      const pass = await api.getPreEntryById(id.trim());
+      const pass = await api.getPreEntryById(cleanedId);
       if (!pass) {
         setScanResult({
           status: 'invalid',
@@ -1018,23 +1048,11 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                         <button
                           type="button"
                           onClick={() => setIsCameraActive(true)}
-                          className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-4 py-3 rounded-xl transition shadow text-sm flex items-center justify-center space-x-2"
+                          className="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-bold px-6 py-3.5 rounded-xl transition shadow text-base flex items-center justify-center space-x-2 w-full"
                         >
-                          <QrCode className="w-4 h-4" />
-                          <span>લાઈવ સ્કેનર ચાલુ કરો (Live Scanner)</span>
+                          <QrCode className="w-5 h-5" />
+                          <span>લાઈવ કેમેરા સ્કેનર (Live Camera Scanner)</span>
                         </button>
-
-                        <label className="bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold px-4 py-3 rounded-xl transition shadow cursor-pointer text-sm flex items-center justify-center space-x-2">
-                          <Camera className="w-4 h-4" />
-                          <span>લાઇવ કેમેરાથી ફોટો પાડો (Photo Capture)</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            onChange={handleQrImageUpload}
-                            className="hidden"
-                          />
-                        </label>
                       </div>
                     </div>
                   )}
@@ -1122,8 +1140,8 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                             <p><strong>બનાવનાર (Created By):</strong> {scanResult.data.householdMemberName || 'Resident'}</p>
                             <p><strong>માનક સમય (Valid Until):</strong> {new Date(scanResult.data.expiresAt).toLocaleString('en-IN')}</p>
                             <p><strong>સ્થિતિ (Status):</strong> <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                              scanResult.data.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                            }`}>{scanResult.data.status}</span></p>
+                              scanResult.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>{scanResult.status === 'success' ? 'મંજૂર (Approved)' : (scanResult.data.status || 'Declined')}</span></p>
                           </div>
                         </div>
                       )}

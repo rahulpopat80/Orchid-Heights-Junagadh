@@ -127,40 +127,43 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       let currY = startY + 12;
 
       doc.setTextColor(15, 23, 42);
-      doc.setFontSize(14);
+      doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
-      doc.text(sanitizeText(log.fullName).toUpperCase(), textX, currY);
+      const truncatedVisitorName = log.fullName.length > 18 ? log.fullName.substring(0, 18) + '...' : log.fullName;
+      doc.text(sanitizeText(truncatedVisitorName).toUpperCase(), textX, currY);
 
       currY += 5.5;
       doc.setTextColor(71, 85, 105);
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'normal');
       doc.text(`Mobile: ${log.mobileNumber}`, textX, currY);
       
-      currY += 5;
+      currY += 4.5;
       const typeStr = log.isPreEntry 
         ? `Type: ${sanitizeText(log.guestType).toUpperCase()} (PRE-ENTRY)`
         : `Type: ${sanitizeText(log.guestType).toUpperCase()}`;
       doc.text(typeStr, textX, currY);
 
-      currY += 5;
-      doc.text(`Reason: ${sanitizeText(log.reason || 'General Visit')}`, textX, currY);
+      currY += 4.5;
+      const truncatedReason = (log.reason || 'General Visit').length > 20 ? (log.reason || 'General Visit').substring(0, 20) + '...' : (log.reason || 'General Visit');
+      doc.text(`Reason: ${sanitizeText(truncatedReason)}`, textX, currY);
       
-      currY += 5;
+      currY += 4.5;
       const ownerMatch = owners.find(o => `${o.wing}-${o.flatNo}` === `${log.wing}-${log.flatNo}`);
       const ownerName = ownerMatch ? ownerMatch.nameEn : (log.flatOwnerName || 'Resident');
       const responder = log.respondedBy ? log.respondedBy.toUpperCase() : ownerName;
-      const truncatedResponder = responder.length > 18 ? responder.substring(0, 18) + '...' : responder;
+      const truncatedResponder = responder.length > 14 ? responder.substring(0, 14) + '...' : responder;
       doc.text(`Target: Flat ${log.wing}-${log.flatNo} (${sanitizeText(truncatedResponder)})`, textX, currY);
 
-      currY += 5;
+      currY += 4.5;
       doc.text(`Visitors: ${log.visitorCount || 1} Person(s)`, textX, currY);
 
       if (log.exited && log.exitTime) {
-        currY += 5;
+        currY += 4.5;
         doc.setTextColor(225, 29, 72); // Rose-600
         doc.setFont('helvetica', 'bold');
-        doc.text(`Exit: ${new Date(log.exitTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })} (${log.duration || 'N/A'})`, textX, currY);
+        doc.setFontSize(8);
+        doc.text(`Exit: ${new Date(log.exitTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true })} (${log.duration || 'N/A'})`, textX, currY);
         doc.setTextColor(71, 85, 105);
         doc.setFont('helvetica', 'normal');
       }

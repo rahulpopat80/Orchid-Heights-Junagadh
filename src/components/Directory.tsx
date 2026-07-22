@@ -34,15 +34,25 @@ export default function Directory({ owners, session, onEditTrigger, onBack }: Di
     // 3. Filter by search query (Name English, Gujarati, Flat Number, Phone, or Vehicle Plate)
     if (searchQuery.trim() !== '') {
       const query = searchQuery.toLowerCase().trim();
-      const matchFlat = `${owner.wing}-${owner.flatNo}`.toLowerCase().includes(query) || owner.flatNo.toString().includes(query);
+      const cleanQuery = query.replace(/[^a-z0-9]/g, '');
+
+      const matchFlat = `${owner.wing}-${owner.flatNo}`.toLowerCase().includes(query) ||
+                        `${owner.wing}${owner.flatNo}`.toLowerCase().includes(cleanQuery) ||
+                        owner.flatNo.toString().includes(query);
       const matchNameEn = owner.nameEn.toLowerCase().includes(query);
-      const matchNameGu = owner.nameGu.toLowerCase().includes(query);
+      const matchNameGu = owner.nameGu && owner.nameGu.toLowerCase().includes(query);
       const matchPhone = owner.phone.includes(query);
       const matchSecondary = owner.secondaryContact?.includes(query);
       
-      const matchVehicle = owner.vehicles.some(
-        (v) => v.plateNumber.toLowerCase().includes(query) || v.brandModel.toLowerCase().includes(query)
-      );
+      const matchVehicle = owner.vehicles.some((v) => {
+        const cleanPlate = v.plateNumber.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const cleanPlot = v.parkingPlot ? v.parkingPlot.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
+        return v.plateNumber.toLowerCase().includes(query) ||
+               v.brandModel.toLowerCase().includes(query) ||
+               (v.parkingPlot && v.parkingPlot.toLowerCase().includes(query)) ||
+               (cleanPlot && cleanQuery.length >= 1 && cleanPlot.includes(cleanQuery)) ||
+               (cleanPlate && cleanQuery.length >= 2 && cleanPlate.includes(cleanQuery));
+      });
       
       const matchMembers = owner.members.some((m) => m.toLowerCase().includes(query));
 
