@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut } from 'lucide-react';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
@@ -99,6 +99,21 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   }>({ status: null, message: '' });
   const [verifyingPass, setVerifyingPass] = useState<boolean>(false);
   const [isCameraActive, setIsCameraActive] = useState<boolean>(false);
+  const [exitingId, setExitingId] = useState<string | null>(null);
+
+  const handleExitVisitor = async (vId: string) => {
+    setExitingId(vId);
+    try {
+      const res = await api.markVisitorExited(vId);
+      if (res.success) {
+        fetchVisitors();
+      }
+    } catch (e) {
+      console.error('Failed to exit visitor:', e);
+    } finally {
+      setExitingId(null);
+    }
+  };
 
   const handleQrImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -194,7 +209,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         setScanResult({
           status: 'success',
           message: `✅ એન્ટ્રી મંજૂર: ${pass.fullName} માટે પ્રવેશ સફળતાપૂર્વક સ્વીકારવામાં આવ્યો છે! (Access Granted)`,
-          data: pass
+          data: { ...pass, status: 'Approved' }
         });
         playDecisionSound('approved');
         fetchVisitors(); // refresh list
@@ -1193,31 +1208,65 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 {filteredLogs.filter(v => {
                   const todayStr = new Date().toDateString();
                   return new Date(v.requestTime).toDateString() === todayStr;
-                }).map((v) => (
-                  <div 
-                    key={v.id} 
-                    className={`p-4 rounded-xl border flex items-center justify-between gap-4 text-sm ${
-                      (v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'border-emerald-100 bg-emerald-50/20' : 'border-red-100 bg-red-50/20'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3 min-w-0">
-                      <img src={v.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} className="w-12 h-12 rounded-lg object-cover bg-slate-200 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-800 truncate">{v.fullName}</p>
-                        <p className="text-xs text-slate-500 font-semibold">
-                          ફ્લેટ {v.wing}-{v.flatNo} • {v.guestType} • {new Date(v.requestTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                        </p>
+                }).map((v) => {
+                  const isApprovedEntry = v.status === 'approved' || v.status === 'Entered' || v.isPreEntry;
+                  return (
+                    <div 
+                      key={v.id} 
+                      className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm ${
+                        isApprovedEntry ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3 min-w-0">
+                        <img src={v.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} className="w-12 h-12 rounded-lg object-cover bg-slate-200 shrink-0" />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-bold text-slate-800 truncate">{v.fullName}</p>
+                            {v.isPreEntry && (
+                              <span className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                Pass (Pre-Entry)
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-slate-500 font-semibold mt-0.5">
+                            ફ્લેટ {v.wing}-{v.flatNo} • {v.guestType} • {new Date(v.requestTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          {v.exited && (
+                            <p className="text-[11px] text-slate-600 font-semibold mt-1 flex items-center gap-1">
+                              <LogOut className="w-3 h-3 text-rose-500 inline shrink-0" />
+                              બહાર આવ્યા: {new Date(v.exitTime!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} (રોકાણ સમય: {v.duration || 'N/A'})
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="shrink-0 flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200/60">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
+                          isApprovedEntry ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {isApprovedEntry ? 'મંજૂર' : 'અસ્વીકાર'}
+                        </span>
+
+                        {isApprovedEntry && !v.exited && (
+                          <button
+                            type="button"
+                            onClick={() => handleExitVisitor(v.id)}
+                            disabled={exitingId === v.id}
+                            className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition shadow flex items-center gap-1"
+                          >
+                            <LogOut className="w-3.5 h-3.5" />
+                            {exitingId === v.id ? 'પ્રોસેસ...' : 'બહાર ગયા (Exit)'}
+                          </button>
+                        )}
+
+                        {v.exited && (
+                          <span className="bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                            ✓ Exited
+                          </span>
+                        )}
                       </div>
                     </div>
-                    <div className="shrink-0 text-right">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                        (v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {(v.status === 'approved' || v.status === 'Entered' || v.isPreEntry) ? 'મંજૂર' : 'અસ્વીકાર'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

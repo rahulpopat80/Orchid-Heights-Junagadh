@@ -154,31 +154,44 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.text(`Target: Flat ${log.wing}-${log.flatNo} (${sanitizeText(truncatedResponder)})`, textX, currY);
 
       currY += 5;
-      doc.text(`Visitors: ${log.visitorCount || 1} Person(s) | Resident Member: ${sanitizeText(ownerName)}`, textX, currY);
+      doc.text(`Visitors: ${log.visitorCount || 1} Person(s)`, textX, currY);
+
+      if (log.exited && log.exitTime) {
+        currY += 5;
+        doc.setTextColor(225, 29, 72); // Rose-600
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Exit: ${new Date(log.exitTime).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' })} (${log.duration || 'N/A'})`, textX, currY);
+        doc.setTextColor(71, 85, 105);
+        doc.setFont('helvetica', 'normal');
+      }
 
       const rightX = pageWidth - margin - 5;
       currY = startY + 12;
 
+      let displayStatus = log.exited ? 'EXITED' : log.status.toUpperCase();
       let statusColor = [226, 232, 240];
       let statusTextColor = [100, 116, 139];
-      if (log.status === 'approved') { statusColor = [209, 250, 229]; statusTextColor = [4, 120, 87]; }
+      if (log.exited) { statusColor = [241, 245, 249]; statusTextColor = [71, 85, 105]; }
+      else if (log.status === 'approved' || log.status === 'Entered') { statusColor = [209, 250, 229]; statusTextColor = [4, 120, 87]; }
       else if (log.status === 'rejected') { statusColor = [254, 226, 226]; statusTextColor = [185, 28, 28]; }
       else if (log.status === 'pending') { statusColor = [254, 243, 199]; statusTextColor = [180, 83, 9]; }
 
+      // Status badge at far right
       doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
       doc.roundedRect(rightX - 25, currY - 6, 25, 8, 2, 2, 'F');
       doc.setTextColor(statusTextColor[0], statusTextColor[1], statusTextColor[2]);
-      doc.setFontSize(9);
+      doc.setFontSize(8.5);
       doc.setFont('helvetica', 'bold');
-      doc.text(log.status.toUpperCase(), rightX - 12.5, currY - 0.5, { align: 'center' });
+      doc.text(displayStatus, rightX - 12.5, currY - 0.5, { align: 'center' });
 
+      // If Pre-Entry, place PRE-ENTRY badge directly beside Status badge (at rightX - 53)
       if (log.isPreEntry) {
         doc.setFillColor(219, 234, 254); // Blue-100
-        doc.roundedRect(rightX - 25, currY + 4, 25, 6, 1.5, 1.5, 'F');
+        doc.roundedRect(rightX - 53, currY - 6, 26, 8, 2, 2, 'F');
         doc.setTextColor(30, 64, 175); // Blue-800
-        doc.setFontSize(7);
+        doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
-        doc.text('PRE-ENTRY', rightX - 12.5, currY + 8.2, { align: 'center' });
+        doc.text('PRE-ENTRY', rightX - 40, currY - 0.5, { align: 'center' });
       }
 
       currY += 10;

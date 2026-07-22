@@ -43,24 +43,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     window.addEventListener('hashchange', handleHashChange);
     handleHashChange();
 
-    let touchStartX = 0;
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartX = e.changedTouches[0].screenX;
-    };
-    const handleTouchEnd = (e: TouchEvent) => {
-      const touchEndX = e.changedTouches[0].screenX;
-      if (touchEndX - touchStartX > 100) {
-        // Swipe right (Go back to home)
-        window.location.hash = 'home';
-      }
-    };
-    window.addEventListener('touchstart', handleTouchStart);
-    window.addEventListener('touchend', handleTouchEnd);
-
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
     };
   }, []);
   
@@ -1030,13 +1014,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     csvContent += `Flat,${wingAndFlat}\r\n`;
     csvContent += `Owner,"${owner.nameEn.toUpperCase()}"\r\n`;
     csvContent += `Generated On,${new Date().toLocaleString('en-IN')}\r\n\r\n`;
-    csvContent += `"Visitor Name","Mobile Number","Email","Category/Type","Entry Type","Purpose of Visit","Entry Time","Status","Approved By","Status Flag"\r\n`;
+    csvContent += `"Visitor Name","Mobile Number","Email","Category/Type","Entry Type","Purpose of Visit","Entry Time","Exit Time","Duration Stayed","Status","Approved By","Status Flag"\r\n`;
 
     filtered.forEach((v) => {
       const entryTime = new Date(v.requestTime).toLocaleString('en-IN');
+      const exitTimeStr = v.exitTime ? new Date(v.exitTime).toLocaleString('en-IN') : '-';
       const deletedTag = v.deletedByResident ? 'Deleted by Resident' : 'Active Log';
       const entryType = v.isPreEntry ? 'Pre-Entry' : 'Gate Entry';
-      csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${entryType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${v.status.toUpperCase()}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
+      const statusStr = v.exited ? 'EXITED' : v.status.toUpperCase();
+      csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${entryType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${exitTimeStr}","${v.duration || '-'}","${statusStr}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
     });
 
     // Download Blob
@@ -1109,6 +1095,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         '"Request Time"',
         '"Response Time"',
         '"Approved/Rejected By"',
+        '"Exit Time"',
+        '"Duration Stayed"',
         '"Reject Reason"',
         '"Log Status"'
       ].join(','));
@@ -1116,6 +1104,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       filtered.forEach((v, idx) => {
         const reqDate = new Date(v.requestTime);
         const respDate = v.respondedTime ? new Date(v.respondedTime) : null;
+        const exitDate = v.exitTime ? new Date(v.exitTime) : null;
         rows.push([
           `"${idx + 1}"`,
           `"${(v.fullName || '').replace(/"/g, '""')}"`,
@@ -1128,13 +1117,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           `"${v.isPreEntry ? 'Pre-Entry' : 'Gate Entry'}"`,
           `"${(v.reason || '').replace(/"/g, '""')}"`,
           `"${v.visitorCount || 1}"`,
-          `"${(v.status || '').toUpperCase()}"`,
+          `"${v.exited ? 'EXITED' : (v.status || '').toUpperCase()}"`,
           `"${reqDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}"`,
           `"${reqDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}"`,
           `"${respDate ? respDate.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}"`,
           `"${(v.respondedBy || '-').replace(/"/g, '""')}"`,
+          `"${exitDate ? exitDate.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}"`,
+          `"${(v.duration || '-').replace(/"/g, '""')}"`,
           `"${(v.rejectReason || '-').replace(/"/g, '""')}"`,
-          `"${v.deletedByResident ? 'DELETED BY RESIDENT' : v.status === 'pending' ? 'PENDING (AWAITING)' : 'ACTIVE LOG'}"`
+          `"${v.deletedByResident ? 'DELETED BY RESIDENT' : v.exited ? 'EXITED' : v.status === 'pending' ? 'PENDING (AWAITING)' : 'ACTIVE LOG'}"`
         ].join(','));
       });
 

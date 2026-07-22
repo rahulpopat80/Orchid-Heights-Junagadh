@@ -841,6 +841,62 @@ export async function respondToVisitorRequest(
   }
 }
 
+export async function markVisitorExited(visitorId: string): Promise<{ success: boolean; visitor?: Visitor }> {
+  if (isQuotaExceeded) return fallback.markVisitorExitedLocal(visitorId);
+  const visitorRef = doc(db, 'visitors', visitorId);
+  try {
+    let snap;
+    try {
+      snap = await getDoc(visitorRef);
+    } catch (error) {
+      if (isQuotaError(error)) {
+        markQuotaExceeded();
+        return fallback.markVisitorExitedLocal(visitorId);
+      }
+      handleFirestoreError(error, OperationType.GET, `visitors/${visitorId}`);
+    }
+    if (!snap || !snap.exists()) return { success: false };
+
+    const currentVisitor = snap.data() as Visitor;
+    const exitTime = new Date().toISOString();
+    const duration = fallback.calculateDuration(currentVisitor.requestTime, exitTime);
+
+    const updated: Visitor = {
+      ...currentVisitor,
+      exited: true,
+      exitTime,
+      duration,
+      status: 'Entered'
+    };
+
+    await setDoc(visitorRef, updated);
+    await setDoc(doc(db, 'notifications', visitorId), { exited: true, exitTime, duration, status: 'Exited' }, { merge: true });
+
+    try {
+      await addDoc(collection(db, 'society_notifications'), {
+        type: 'visitor',
+        title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
+        message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
+        wing: currentVisitor.wing,
+        flatNo: currentVisitor.flatNo,
+        timestamp: exitTime,
+        read: false,
+        metadata: { visitorId, exited: true, exitTime, duration }
+      });
+    } catch (e) {
+      console.warn('Failed to post exit notification:', e);
+    }
+
+    return { success: true, visitor: updated };
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.markVisitorExitedLocal(visitorId);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `visitors/${visitorId}`);
+  }
+}
+
 export async function deleteVisitorRequest(visitorId: string): Promise<boolean> {
   if (isQuotaExceeded) return fallback.deleteVisitorRequestLocal(visitorId);
   const visitorRef = doc(db, 'visitors', visitorId);

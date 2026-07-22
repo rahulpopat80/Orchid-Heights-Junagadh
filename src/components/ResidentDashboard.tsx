@@ -1687,6 +1687,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     setDirectorySearch={setDirectorySearch}
                     dailyHelpers={dailyHelpers}
                     absenceLogs={absenceLogs}
+                    onBack={() => setActiveSubSection('home')}
                   />
                 )}
 

@@ -14,6 +14,7 @@ import {
   getVisitorsList,
   pollPendingVisitorAlerts,
   respondToVisitorRequest,
+  markVisitorExited,
   deleteVisitorRequest,
   seedDatabaseIfNeeded,
   subscribeToVisitorNotifications,
@@ -173,6 +174,10 @@ export const api = {
   },
 
   // Delete a visitor request/log
+  markVisitorExited: async (visitorId: string): Promise<{ success: boolean; visitor?: Visitor }> => {
+    return markVisitorExited(visitorId);
+  },
+
   deleteVisitor: async (visitorId: string): Promise<{ success: boolean; message: string }> => {
     const success = await deleteVisitorRequest(visitorId);
     if (success) {

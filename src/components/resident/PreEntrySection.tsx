@@ -259,6 +259,8 @@ Expires: ${expDateStr} ${expTimeStr}`;
     // Logo image
     const logoBase64 = await getLogoBase64();
     if (logoBase64) {
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(7, 6, 20, 20, 3, 3, 'F');
       doc.addImage(logoBase64, 'PNG', 8, 7, 18, 18);
     }
 
@@ -358,6 +360,8 @@ Expires: ${expDateStr} ${expTimeStr}`;
     // Logo image
     const logoBase64 = await getLogoBase64();
     if (logoBase64) {
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(7, 6, 20, 20, 3, 3, 'F');
       doc.addImage(logoBase64, 'PNG', 8, 7, 18, 18);
     }
 

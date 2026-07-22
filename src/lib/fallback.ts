@@ -372,6 +372,55 @@ export function respondToVisitorRequestLocal(
   return { success: true, visitor: updated };
 }
 
+export function calculateDuration(startTimeISO: string, exitTimeISO: string): string {
+  const start = new Date(startTimeISO).getTime();
+  const end = new Date(exitTimeISO).getTime();
+  if (isNaN(start) || isNaN(end) || end <= start) return 'Less than 1 min';
+  const diffMinutes = Math.floor((end - start) / (1000 * 60));
+  if (diffMinutes < 1) return 'Less than 1 min';
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  if (hours === 0) return `${mins} mins`;
+  if (mins === 0) return `${hours} hr${hours > 1 ? 's' : ''}`;
+  return `${hours} hr${hours > 1 ? 's' : ''} ${mins} mins`;
+}
+
+export function markVisitorExitedLocal(visitorId: string): { success: boolean; visitor?: Visitor } {
+  const visitors = getLocalVisitors();
+  const idx = visitors.findIndex(v => v.id === visitorId);
+  if (idx === -1) return { success: false };
+
+  const currentVisitor = visitors[idx];
+  const exitTime = new Date().toISOString();
+  const duration = calculateDuration(currentVisitor.requestTime, exitTime);
+
+  const updated: Visitor = {
+    ...currentVisitor,
+    exited: true,
+    exitTime,
+    duration,
+    status: 'Entered' // keep status as Entered or exited
+  };
+  visitors[idx] = updated;
+  saveLocalVisitors(visitors);
+
+  const notifications = getLocalSocietyNotifications();
+  notifications.unshift({
+    id: 'exit_notif_' + Date.now(),
+    type: 'visitor',
+    title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
+    message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
+    wing: currentVisitor.wing,
+    flatNo: currentVisitor.flatNo,
+    timestamp: exitTime,
+    read: false,
+    metadata: { visitorId, exited: true, exitTime, duration }
+  });
+  saveLocalSocietyNotifications(notifications);
+
+  return { success: true, visitor: updated };
+}
+
 export function deleteVisitorRequestLocal(visitorId: string): boolean {
   const visitors = getLocalVisitors();
   const idx = visitors.findIndex(v => v.id === visitorId);

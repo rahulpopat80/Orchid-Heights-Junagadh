@@ -49,7 +49,7 @@ export default function DirectorySection({
       const matchSecondary = owner.secondaryContact?.includes(query);
       
       const matchVehicle = owner.vehicles.some(
-        (v) => v.plateNumber.toLowerCase().includes(query) || v.brandModel.toLowerCase().includes(query)
+        (v) => v.plateNumber.toLowerCase().includes(query) || v.brandModel.toLowerCase().includes(query) || (v.parkingPlot && v.parkingPlot.toLowerCase().includes(query))
       );
       
       const matchMembers = owner.members.some((m) => m.toLowerCase().includes(query));
@@ -109,15 +109,13 @@ export default function DirectorySection({
               <p className="text-[10px] text-slate-400 font-medium">Verify neighbours, vehicles, and daily helper associations</p>
             </div>
           </div>
-          {onBack && (
-            <button
-              onClick={onBack}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer border border-slate-200"
-            >
-              <ArrowLeft className="w-4 h-4 text-indigo-600" />
-              <span>Back</span>
-            </button>
-          )}
+          <button
+            onClick={onBack || (() => { window.location.hash = 'home'; })}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center space-x-2 transition shadow-sm cursor-pointer shrink-0"
+          >
+            <ArrowLeft className="w-4 h-4 text-white" />
+            <span>Back to Home / હોમ પર પાછા જાઓ</span>
+          </button>
         </div>
 
         {/* Filters and Search Controls */}
@@ -129,7 +127,7 @@ export default function DirectorySection({
             </span>
             <input
               type="text"
-              placeholder="Search by name, flat (B-1104), phone, helper or plate #..."
+              placeholder="Search by name, flat (B-1104), phone, parking no. (B-1/G-18), plate #..."
               value={directorySearch}
               onChange={(e) => setDirectorySearch(e.target.value)}
               className="w-full bg-white border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl py-2.5 pl-10 pr-4 text-xs font-semibold transition outline-none"
