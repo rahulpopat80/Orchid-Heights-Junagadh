@@ -5,6 +5,8 @@
 
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
+import { GoogleAuth } from 'google-auth-library';
 import { createServer as createViteServer } from 'vite';
 import { 
   verifyCredentials,
@@ -25,6 +27,50 @@ import {
   deleteDocument
 } from './src/lib/server-db';
 import { startServerNotificationService } from './src/lib/server-notifications';
+
+async function getFcmAccessToken(clientEmail?: string, privateKey?: string): Promise<string | null> {
+  try {
+    let auth: GoogleAuth | null = null;
+    if (fs.existsSync('./service-account.json')) {
+      const sa = JSON.parse(fs.readFileSync('./service-account.json', 'utf8'));
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: sa.client_email,
+          private_key: sa.private_key,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : process.env.FIREBASE_SERVICE_ACCOUNT;
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: sa.client_email,
+          private_key: sa.private_key,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
+    } else if (clientEmail && privateKey) {
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
+    }
+
+    if (auth) {
+      const client = await auth.getClient();
+      const tokenRes = await client.getAccessToken();
+      return tokenRes.token || null;
+    }
+  } catch (err: any) {
+    console.error('[FCM OAuth] Failed to generate access token:', err?.message || err);
+  }
+  return null;
+}
 
 async function startServer() {
   const app = express();
@@ -286,12 +332,31 @@ async function startServer() {
     }
   });
 
-  // FCM Proxy to bypass CORS during local development
+  // FCM Proxy with automatic OAuth2 token minting and payload wrapping
   app.post('/api/fcm', async (req, res) => {
     try {
-      const { projectId, accessToken, payload } = req.body;
-      if (!projectId || !accessToken || !payload) {
-        return res.status(400).json({ error: 'Missing required fields' });
+      let { projectId, accessToken, payload } = req.body;
+      projectId = projectId || 'orchidheights-d46f2';
+
+      if (!payload) {
+        return res.status(400).json({ error: 'Missing required payload field' });
+      }
+
+      // Automatically generate OAuth2 token if not explicitly provided by client
+      if (!accessToken) {
+        accessToken = await getFcmAccessToken();
+      }
+
+      if (!accessToken) {
+        return res.status(500).json({ 
+          error: 'Failed to obtain Google OAuth access token for FCM. Please ensure service-account.json is present in the project root or FIREBASE_SERVICE_ACCOUNT environment variable is configured.' 
+        });
+      }
+
+      // Ensure FCM v1 payload format: { message: { token/topic, notification, data } }
+      let fcmPayload = payload;
+      if (!fcmPayload.message) {
+        fcmPayload = { message: payload };
       }
 
       const response = await fetch(
@@ -302,12 +367,13 @@ async function startServer() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${accessToken}`
           },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(fcmPayload)
         }
       );
 
       if (!response.ok) {
         const errText = await response.text();
+        console.error(`[FCM HTTP v1 Error] Status ${response.status}:`, errText);
         return res.status(response.status).json({ error: errText });
       }
 
@@ -315,7 +381,7 @@ async function startServer() {
       res.json(data);
     } catch (error: any) {
       console.error('FCM proxy error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error.message || 'Internal Server Error' });
     }
   });
 

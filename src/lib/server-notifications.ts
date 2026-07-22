@@ -15,6 +15,8 @@ import {
   onSnapshot 
 } from 'firebase/firestore';
 import { webcrypto } from 'crypto';
+import { GoogleAuth } from 'google-auth-library';
+import fs from 'fs';
 
 // Use global crypto or fallback to Node's built-in webcrypto
 const crypto = (globalThis.crypto || (webcrypto as any)) as Crypto;
@@ -54,8 +56,40 @@ function getHardcodedServiceAccount(): { client_email: string; private_key: stri
   }
 }
 
-// Generate Google Access Token using standard Web Crypto API
+// Generate Google Access Token using GoogleAuth or Web Crypto fallback
 async function getGoogleAccessTokenServer(clientEmail: string, privateKeyPem: string, scope = "https://www.googleapis.com/auth/firebase.messaging"): Promise<string> {
+  try {
+    let auth: GoogleAuth | null = null;
+    if (fs.existsSync('./service-account.json')) {
+      const sa = JSON.parse(fs.readFileSync('./service-account.json', 'utf8'));
+      auth = new GoogleAuth({
+        credentials: { client_email: sa.client_email, private_key: sa.private_key },
+        scopes: [scope],
+      });
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : process.env.FIREBASE_SERVICE_ACCOUNT;
+      auth = new GoogleAuth({
+        credentials: { client_email: sa.client_email, private_key: sa.private_key },
+        scopes: [scope],
+      });
+    } else if (clientEmail && privateKeyPem) {
+      auth = new GoogleAuth({
+        credentials: { client_email: clientEmail, private_key: privateKeyPem },
+        scopes: [scope],
+      });
+    }
+
+    if (auth) {
+      const client = await auth.getClient();
+      const tokenRes = await client.getAccessToken();
+      if (tokenRes.token) return tokenRes.token;
+    }
+  } catch (err: any) {
+    console.warn('[FCM Auth] GoogleAuth error:', err?.message || err);
+  }
+
   try {
     const pemHeader = "-----BEGIN PRIVATE KEY-----";
     const pemFooter = "-----END PRIVATE KEY-----";

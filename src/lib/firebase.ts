@@ -1385,7 +1385,7 @@ async function triggerFCMPushForSocietyNotification(payload: {
 
           if (!response.ok) {
             const errText = await response.text();
-            alert(`FCM Delivery Failed: ${errText}`);
+            console.warn(`[FCM Broadcast] FCM Delivery Failed (${response.status}):`, errText);
             throw new Error(`FCM Server returned status ${response.status}: ${errText}`);
           }
           console.log(`[FCM Trigger] Notification successfully broadcast-sent to token ${token.substring(0, 8)}...`);
@@ -1941,7 +1941,7 @@ export async function sendFCMPushToFlat(
 
         if (!response.ok) {
           const errText = await response.text();
-          alert(`FCM Delivery Failed: ${errText}`);
+          console.warn(`[FCM] Delivery Failed (${response.status}):`, errText);
           throw new Error(`FCM Server returned status ${response.status}: ${errText}`);
         }
         console.log(`[FCM] Notification successfully sent to token ${token.substring(0, 8)}...`);

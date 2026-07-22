@@ -26,12 +26,9 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  const fcmData = payload.data || {};
-  const fcmNotif = payload.notification || {};
-  // FCM v1 sometimes wraps in message payload
-  const message = payload.message || {};
-  const actualData = message.data || fcmData;
-  const actualNotif = message.notification || fcmNotif;
+  const msg = payload.message || payload;
+  const actualData = msg.data || payload.data || {};
+  const actualNotif = msg.notification || payload.notification || {};
 
   const title = actualNotif.title || actualData.title || '🏢 Orchid Heights';
   const body = actualNotif.body || actualData.body || actualData.message || 'You have a new notification.';
