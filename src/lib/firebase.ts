@@ -1716,68 +1716,79 @@ function base64ToArrayBuffer(b64: string): ArrayBuffer {
 }
 
 async function getGoogleAccessToken(clientEmail: string, privateKeyPem: string, scope = "https://www.googleapis.com/auth/firebase.messaging"): Promise<string> {
-  const pemHeader = "-----BEGIN PRIVATE KEY-----";
-  const pemFooter = "-----END PRIVATE KEY-----";
-  let pemContents = privateKeyPem.trim();
-  if (pemContents.startsWith(pemHeader)) {
-    pemContents = pemContents.substring(pemHeader.length);
+  try {
+    const pemHeader = "-----BEGIN PRIVATE KEY-----";
+    const pemFooter = "-----END PRIVATE KEY-----";
+    let pemContents = privateKeyPem.trim();
+    if (pemContents.startsWith(pemHeader)) {
+      pemContents = pemContents.substring(pemHeader.length);
+    }
+    if (pemContents.endsWith(pemFooter)) {
+      pemContents = pemContents.substring(0, pemContents.length - pemFooter.length);
+    }
+    pemContents = pemContents.replace(/\\n/g, "").replace(/\s/g, "").replace(/[^A-Za-z0-9+/=]/g, "");
+
+    if (!pemContents) {
+      console.warn('[FCM Auth] Empty private key contents');
+      return "";
+    }
+
+    const derBuffer = base64ToArrayBuffer(pemContents);
+
+    const cryptoKey = await crypto.subtle.importKey(
+      "pkcs8",
+      derBuffer,
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: { name: "SHA-256" }
+      },
+      false,
+      ["sign"]
+    );
+
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: "RS256", typ: "JWT" };
+    const claim = {
+      iss: clientEmail,
+      scope: scope,
+      aud: "https://oauth2.googleapis.com/token",
+      exp: now + 3600,
+      iat: now
+    };
+
+    const encodedHeader = base64url(JSON.stringify(header));
+    const encodedClaim = base64url(JSON.stringify(claim));
+    const tokenInput = `${encodedHeader}.${encodedClaim}`;
+
+    const signature = await crypto.subtle.sign(
+      "RSASSA-PKCS1-v1_5",
+      cryptoKey,
+      new TextEncoder().encode(tokenInput)
+    );
+
+    const encodedSignature = base64url(signature);
+    const assertion = `${tokenInput}.${encodedSignature}`;
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${assertion}`
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.warn(`[FCM Auth] Failed to get OAuth token: ${errorText}`);
+      return "";
+    }
+
+    const data = await response.json();
+    return data.access_token || "";
+  } catch (err: any) {
+    console.warn('[FCM Auth] Invalid service account key or OAuth token generation error:', err?.message || err);
+    return "";
   }
-  if (pemContents.endsWith(pemFooter)) {
-    pemContents = pemContents.substring(0, pemContents.length - pemFooter.length);
-  }
-  pemContents = pemContents.replace(/\s/g, "");
-
-  const derBuffer = base64ToArrayBuffer(pemContents);
-
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    derBuffer,
-    {
-      name: "RSASSA-PKCS1-v1_5",
-      hash: { name: "SHA-256" }
-    },
-    false,
-    ["sign"]
-  );
-
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claim = {
-    iss: clientEmail,
-    scope: scope,
-    aud: "https://oauth2.googleapis.com/token",
-    exp: now + 3600,
-    iat: now
-  };
-
-  const encodedHeader = base64url(JSON.stringify(header));
-  const encodedClaim = base64url(JSON.stringify(claim));
-  const tokenInput = `${encodedHeader}.${encodedClaim}`;
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    new TextEncoder().encode(tokenInput)
-  );
-
-  const encodedSignature = base64url(signature);
-  const assertion = `${tokenInput}.${encodedSignature}`;
-
-  const response = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${assertion}`
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Failed to get OAuth token: ${errorText}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
 }
 
 // Safely gets the base64-obfuscated Google Service Account credentials to bypass GitHub secret scanning
@@ -1809,6 +1820,10 @@ export async function sendFCMBroadcast(notification: { title: string; body: stri
     const serviceAccount = getHardcodedServiceAccount();
     if (!serviceAccount.client_email) return;
     const accessToken = await getGoogleAccessToken(serviceAccount.client_email, serviceAccount.private_key);
+    if (!accessToken) {
+      console.warn('[FCM Broadcast] Valid access token unavailable. Skipping broadcast.');
+      return;
+    }
     console.log(`[FCM Broadcast] Sending to ${allTokens.length} tokens`);
     
     const sendPromises = allTokens.map(async (token) => {
@@ -1860,6 +1875,11 @@ export async function sendFCMPushToFlat(
       serviceAccount.client_email,
       serviceAccount.private_key
     );
+
+    if (!accessToken) {
+      console.warn('[FCM] Valid OAuth access token unavailable. Skipping push.');
+      return;
+    }
 
     console.log(`[FCM] Sending push payload using FCM v1 to ${tokens.length} device tokens:`, tokens);
 
