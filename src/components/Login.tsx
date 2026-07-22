@@ -137,6 +137,27 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setLoading(true);
     setError('');
     try {
+      // 1. Alert the device that is about to be terminated
+      try {
+        await fetch('/api/fcm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            payload: {
+              token: targetDeviceId,
+              notification: {
+                title: "Session Terminated",
+                body: "Your device was securely logged out from Orchid Heights."
+              },
+              data: { type: "system_logout" }
+            }
+          })
+        });
+      } catch (fcmErr) {
+        console.warn('FCM logout notification error:', fcmErr);
+      }
+
+      // 2. Proceed with DB removal
       const res = await (api as any).deregisterDevice(wing, parseInt(flatNo, 10), targetDeviceId);
       if (res.success) {
         setBlockedDevices((prev) => prev.filter((d) => d.deviceId !== targetDeviceId));
@@ -164,7 +185,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div className="text-center mb-8">
           <div className="inline-flex bg-white border border-slate-200 p-1 rounded-2xl shadow-md mb-3 w-20 h-20 items-center justify-center">
             <img 
-              src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
+              src="https://i.ibb.co/HftgL4rJ/image.png" 
               alt="Orchid Heights Logo" 
               className="w-full h-full object-contain rounded-xl"
               referrerPolicy="no-referrer"

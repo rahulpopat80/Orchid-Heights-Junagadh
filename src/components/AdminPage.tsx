@@ -30,7 +30,7 @@ function AdminLoginForm({ onLoginSuccess, onGoBack }: AdminLoginFormProps) {
         <div className="text-center space-y-2">
           <div className="inline-flex bg-white border border-slate-800 p-1 rounded-2xl shadow-md mb-2 w-20 h-20 items-center justify-center">
             <img 
-              src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
+              src="https://i.ibb.co/svZ2cqYq/image.png" 
               alt="Orchid Heights Logo" 
               className="w-full h-full object-contain rounded-xl"
               referrerPolicy="no-referrer"
@@ -170,7 +170,7 @@ export default function AdminPage({
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0 bg-white border border-slate-800 flex items-center justify-center p-0.5">
               <img 
-                src="https://i.ibb.co/zT5tpcdY/1000296229-1.png" 
+                src="https://i.ibb.co/svZ2cqYq/image.png" 
                 alt="Orchid Heights Logo" 
                 className="w-full h-full object-contain rounded-lg"
                 referrerPolicy="no-referrer"

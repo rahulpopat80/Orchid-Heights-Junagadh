@@ -562,10 +562,18 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     }
   };
 
-  const handleDismissNotification = (id: string) => {
+  const handleDismissNotification = async (id: string) => {
     const updated = [...dismissedNotifIds, id];
     setDismissedNotifIds(updated);
     localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
+    setSocietyNotifications(prev => prev.filter(n => n.id !== id));
+
+    try {
+      await deleteDoc(doc(db, 'society_notifications', id));
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (error) {
+      console.error("Failed to delete notification from DB:", error);
+    }
   };
 
   // Vote or Toggle support for a function booking
@@ -1249,7 +1257,15 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const firstName = fullName.split(' ')[0] || 'Rahul';
   const nameGu = myOwnerData?.nameGu || 'રાહુલ જશવંતરાય પોપટ';
   const flatStr = `Flat ${wing}-${flatNo}`;
-  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id));
+
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  const activeNotices = announcements.filter(notice => new Date(notice.timestamp || notice.createdAt || Date.now()) >= threeMonthsAgo);
+  const activeLedgers = financials.filter(report => new Date(report.createdAt || report.timestamp || Date.now()) >= threeMonthsAgo);
+  const activePreEntries = guestHistory.filter(v => v.isPreEntry && new Date(v.requestTime || v.createdAt || Date.now()) >= threeMonthsAgo);
+
+  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id) && new Date(n.timestamp || Date.now()) >= threeMonthsAgo);
 
   return (
     <div className="space-y-6 text-slate-800 pb-24 text-left">
@@ -1759,10 +1775,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     flatNo={flatNo}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
-                    financials={financials}
+                    financials={activeLedgers}
                     loadingFinancials={loadingFinancials}
                     onRefreshComplaints={fetchComplaints}
-                    announcements={announcements}
+                    announcements={activeNotices}
                     viewMode="helpdesk"
                     compTitle={compTitle}
                     setCompTitle={setCompTitle}
@@ -1788,10 +1804,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     flatNo={flatNo}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
-                    financials={financials}
+                    financials={activeLedgers}
                     loadingFinancials={loadingFinancials}
                     onRefreshComplaints={fetchComplaints}
-                    announcements={announcements}
+                    announcements={activeNotices}
                     viewMode="complaints"
                     compTitle={compTitle}
                     setCompTitle={setCompTitle}
@@ -2289,7 +2305,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                   })}
 
                   {/* Recent Society Announcements */}
-                  {announcements.filter(a => !dismissedNotifIds.includes(a.id)).slice(0, 5).map((notice) => {
+                  {activeNotices.filter(a => !dismissedNotifIds.includes(a.id)).slice(0, 5).map((notice) => {
                     const noticeTitle = notice.title || notice.text?.slice(0, 40) || 'Society Notice';
                     const noticeMessage = notice.message || notice.content || notice.text || '';
                     const noticeDate = notice.createdAt || notice.timestamp || new Date().toISOString();

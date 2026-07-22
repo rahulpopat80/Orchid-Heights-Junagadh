@@ -1,65 +1,3 @@
-/**
- * Firebase Messaging Service Worker
- * Orchid Heights Apartment Management System
- */
-
-// ─── 1. INTERCEPT NATIVE PUSH EVENT FIRST ──────────────────────────────────
-// We attach this BEFORE importing Firebase SDKs so it fires first.
-// We then call stopImmediatePropagation() to PREVENT the Firebase SDK from
-// hijacking the notification. This gives us 100% control over the display,
-// allowing us to add custom Approve/Reject buttons reliably.
-
-self.addEventListener('push', (event) => {
-  event.stopImmediatePropagation();
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    try {
-      payload = { notification: { title: 'Orchid Heights', body: event.data.text() }, data: {} };
-    } catch (e2) {
-      return;
-    }
-  }
-
-  const msg = payload.message || payload;
-  const actualData = msg.data || payload.data || {};
-  const actualNotif = msg.notification || payload.notification || {};
-
-  const title = actualNotif.title || actualData.title || 'Orchid Heights';
-  const body = actualNotif.body || actualData.body || actualData.message || 'New notification.';
-  const type = actualData.type || 'society';
-  const visitorId = actualData.visitorId || actualData.id || null;
-
-  // STRICT RULE: Only add Approve/Reject for actual new gate requests
-  const isActionableRequest = type === 'visitor_request' || (type === 'visitor' && !body.toLowerCase().includes('exit') && !body.toLowerCase().includes('pre-entry'));
-
-  const notifOptions = {
-    body: body,
-    icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png', // Absolute URL
-    badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
-    tag: visitorId || type || 'orchid_notif',
-    data: { ...actualData, clickType: type }, // Pass type for routing
-    requireInteraction: isActionableRequest,
-    vibrate: [200, 100, 200]
-  };
-
-  if (isActionableRequest) {
-    notifOptions.actions = [
-      { action: 'approve', title: 'Approve Entry' },
-      { action: 'reject', title: 'Reject' }
-    ];
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(title, notifOptions)
-  );
-});
-
-// ─── 2. LOAD FIREBASE SDKS (AFTER PUSH LISTENER) ─────────────────────────
-
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
@@ -76,99 +14,86 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 const db = firebase.firestore();
 
-// ─── INSTALL & ACTIVATE ──────────────────────────────────────────────────────
+self.addEventListener('push', (event) => {
+  event.stopImmediatePropagation(); // Prevents duplicates
+  if (!event.data) return;
+  
+  let payload;
+  try { payload = event.data.json(); } catch (e) { return; }
 
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing new service worker version...');
-  self.skipWaiting();
+  const msg = payload.message || payload;
+  const actualData = msg.data || payload.data || {};
+  const actualNotif = msg.notification || payload.notification || {};
+  
+  const title = actualNotif.title || actualData.title || 'Orchid Heights';
+  const body = actualNotif.body || actualData.body || 'New notification.';
+  const type = actualData.type || 'society';
+  const visitorId = actualData.visitorId || actualData.id || null;
+
+  const bodyLower = body.toLowerCase();
+  // STRICT RULE: No buttons for Exits or Pre-entries
+  const isActionableRequest = type === 'visitor' && !bodyLower.includes('exit') && !bodyLower.includes('pre-entry') && !bodyLower.includes('left');
+
+  const notifOptions = {
+    body: body,
+    icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png', // Strict Logo
+    badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+    tag: visitorId || type || 'orchid_notif',
+    data: { ...actualData, clickType: type, visitorId },
+    requireInteraction: isActionableRequest,
+    vibrate: [200, 100, 200]
+  };
+
+  if (isActionableRequest) {
+    notifOptions.actions = [
+      { action: 'approve', title: 'Approve Entry' },
+      { action: 'reject', title: 'Decline' }
+    ];
+  }
+
+  event.waitUntil(self.registration.showNotification(title, notifOptions));
 });
-
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Service worker activated. Taking control of all clients...');
-  event.waitUntil(clients.claim());
-});
-
-// ─── NOTIFICATION CLICK HANDLER ──────────────────────────────────────────────
 
 self.addEventListener('notificationclick', function(event) {
   event.notification.close();
-  
   const notifData = event.notification.data || {};
-  const visitorId = notifData.visitorId || notifData.id || event.notification.tag;
-  const action = event.action;
+  const type = notifData.clickType || '';
+  const visitorId = notifData.visitorId;
 
-  console.log(`[SW] Notification clicked. Action: "${action}", VisitorId: "${visitorId}"`);
-
-  if ((action === 'approve' || action === 'reject') && visitorId && visitorId !== 'fcm_notif' && visitorId !== 'society' && visitorId !== 'visitor') {
-    const status = action === 'approve' ? 'approved' : 'rejected';
-    console.log(`[SW] Processing visitor ${action} for ID: ${visitorId}`);
-
-    const visitorRef = db.collection('visitors').doc(visitorId);
-
-    const updatePromise = db.runTransaction((transaction) => {
-      return transaction.get(visitorRef).then((visitorDoc) => {
-        if (!visitorDoc.exists) {
-          console.warn('[SW] Visitor document not found:', visitorId);
-          return;
-        }
-
-        const visitorData = visitorDoc.data();
-        if (visitorData.status !== 'pending') {
-          console.log(`[SW] Visitor already responded (${visitorData.status}). Skipping.`);
-          return;
-        }
-
-        const respondedTime = new Date().toISOString();
-        const respondedBy = 'Resident (Notification)';
-
-        transaction.set(visitorRef, {
-          ...visitorData,
-          status: status,
-          respondedTime: respondedTime,
-          respondedBy: respondedBy,
-          rejectReason: ''
-        });
-
-        transaction.set(db.collection('notifications').doc(visitorId), {
-          status: status,
-          respondedTime: respondedTime,
-          respondedBy: respondedBy
-        }, { merge: true });
-      });
-    }).then(() => {
-      console.log(`[SW] Successfully updated visitor ${visitorId} → ${status}`);
-    }).catch(err => {
-      console.error('[SW] Transaction failed:', err);
-    });
-
-    const broadcastPromise = clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      clientList.forEach(client => {
-        client.postMessage({ type: 'VISITOR_ACTION', visitorId, status });
-      });
-    });
-
-    event.waitUntil(Promise.all([updatePromise, broadcastPromise]));
-  } else {
-    // Normal click - focus or open the app with exact routing logic
-    const type = notifData.clickType || notifData.type || '';
+  // If they clicked Approve/Decline, send message to frontend for the 5-second Undo
+  if (event.action === 'approve' || event.action === 'reject') {
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-        let targetPath = '/home';
-
-        if (type.includes('visitor')) targetPath = '/gate-visitors';
-        else if (type === 'notice' || type === 'announcement') targetPath = '/help-desk/noticies';
-        else if (type === 'financial') targetPath = '/help-desk/financial-ledger';
-        else if (type.includes('complaint')) targetPath = '/complaints';
-        else if (type.includes('amenity') || type.includes('gym') || type.includes('movie')) targetPath = '/amenities';
-
-        for (const client of clientList) {
-          if ('focus' in client) {
-            client.navigate(targetPath).catch(() => {});
-            return client.focus();
-          }
-        }
-        return clients.openWindow(targetPath);
+        clientList.forEach(client => {
+          client.postMessage({ 
+            type: 'VISITOR_ACTION_UNDOABLE', 
+            visitorId, 
+            status: event.action === 'approve' ? 'approved' : 'rejected' 
+          });
+        });
       })
     );
+    return;
   }
+
+  // EXACT ROUTING LOGIC
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      let targetPath = '/home';
+      
+      if (type.includes('visitor')) targetPath = '/gate-visitors';
+      else if (type === 'notice' || type === 'announcement') targetPath = '/help-desk/noticies';
+      else if (type === 'financial') targetPath = '/help-desk/financial-ledger';
+      else if (type.includes('complaint')) targetPath = '/complaints';
+      else if (type.includes('amenity') || type.includes('gym') || type.includes('movie')) targetPath = '/amenities';
+
+      for (const client of clientList) {
+        if ('focus' in client) {
+          client.navigate(targetPath);
+          return client.focus();
+        }
+      }
+      return clients.openWindow(targetPath);
+    })
+  );
 });
