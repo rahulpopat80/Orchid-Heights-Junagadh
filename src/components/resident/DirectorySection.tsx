@@ -11,6 +11,7 @@ interface DirectorySectionProps {
   dailyHelpers: DailyHelper[];
   absenceLogs: AbsenceLog[];
   onEditTrigger?: (owner: FlatOwner) => void;
+  onBack?: () => void;
 }
 
 export default function DirectorySection({
@@ -20,7 +21,8 @@ export default function DirectorySection({
   setDirectorySearch,
   dailyHelpers,
   absenceLogs,
-  onEditTrigger
+  onEditTrigger,
+  onBack
 }: DirectorySectionProps) {
   const [selectedWing, setSelectedWing] = useState<'ALL' | 'A' | 'B'>('ALL');
   const [selectedFloor, setSelectedFloor] = useState<string>('ALL');
@@ -107,6 +109,15 @@ export default function DirectorySection({
               <p className="text-[10px] text-slate-400 font-medium">Verify neighbours, vehicles, and daily helper associations</p>
             </div>
           </div>
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center space-x-1.5 transition cursor-pointer border border-slate-200"
+            >
+              <ArrowLeft className="w-4 h-4 text-indigo-600" />
+              <span>Back</span>
+            </button>
+          )}
         </div>
 
         {/* Filters and Search Controls */}

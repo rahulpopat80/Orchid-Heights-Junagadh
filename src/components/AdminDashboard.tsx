@@ -1466,7 +1466,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                   <div className="text-left font-medium">
                                     <p className="font-bold text-slate-800 uppercase">{v.plateNumber}</p>
                                     <p className="text-[10px] text-slate-500">{v.brandModel} • {v.type === 'twowheeler' ? '2-Wheeler' : '4-Wheeler'}</p>
-                                    {v.parkingPlot && <p className="text-[10px] text-indigo-600 font-bold mt-0.5">Plot: {v.parkingPlot}</p>}</div>
+                                    {v.type === 'fourwheeler' && v.parkingPlot && <p className="text-[10px] text-indigo-600 font-bold mt-0.5">Plot: {v.parkingPlot}</p>}</div>
                                   <button
                                     onClick={() => handleDeleteVehicleFromFlat(selectedFlat.wing, selectedFlat.flatNo, v.id)}
                                     className="text-slate-400 hover:text-red-600 p-1 rounded-md transition cursor-pointer"
@@ -1503,13 +1503,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 className="bg-slate-50 border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 text-[11px]"
                               /></div>
 
-                            <input
-                              type="text"
-                              placeholder="Parking Plot (e.g. B-1 Basement)"
-                              value={adminNewVehicleParking}
-                              onChange={(e) => setAdminNewVehicleParking(e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 text-[11px] font-medium"
-                            />
+                            {adminNewVehicleType === 'fourwheeler' && (
+                              <input
+                                type="text"
+                                placeholder="Parking Plot (4-Wheeler Only e.g. B-1 Basement)"
+                                value={adminNewVehicleParking}
+                                onChange={(e) => setAdminNewVehicleParking(e.target.value)}
+                                className="w-full bg-slate-50 border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 text-[11px] font-medium"
+                              />
+                            )}
 
                             <button
                               onClick={() => handleAddVehicleToFlat(selectedFlat.wing, selectedFlat.flatNo)}

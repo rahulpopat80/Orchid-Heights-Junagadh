@@ -205,49 +205,90 @@ Expires: ${expDateStr} ${expTimeStr}`;
     }
   };
 
+  // Helper to load logo image
+  const getLogoBase64 = async (): Promise<string | null> => {
+    try {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      return await new Promise((resolve) => {
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+          } else {
+            resolve(null);
+          }
+        };
+        img.onerror = () => resolve(null);
+        img.src = 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
+      });
+    } catch (e) {
+      return null;
+    }
+  };
+
   // Download pass as a clean styled PDF
-  const downloadPDFPass = (entry: PreEntry) => {
+  const downloadPDFPass = async (entry: PreEntry) => {
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: [100, 160] // custom card dimensions (100mm wide, 160mm tall)
     });
 
+    // White background
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 100, 160, 'F');
+
     // Outer border decoration
     doc.setDrawColor(79, 70, 229); // indigo-600
     doc.setLineWidth(1.5);
     doc.roundedRect(4, 4, 92, 152, 4, 4, 'D');
 
-    // Header strip background
-    doc.setFillColor(79, 70, 229);
-    doc.roundedRect(5, 5, 90, 20, 2, 2, 'F');
+    // Header strip background - Slate 900 for dark luxury contrast
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(5, 5, 90, 24, 3, 3, 'F');
+
+    // Pink accent bar
+    doc.setFillColor(216, 27, 96);
+    doc.rect(5, 27, 90, 2, 'F');
+
+    // Logo image
+    const logoBase64 = await getLogoBase64();
+    if (logoBase64) {
+      doc.addImage(logoBase64, 'PNG', 8, 7, 18, 18);
+    }
 
     // Title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('ORCHID HEIGHTS', 50, 13, { align: 'center' });
-    doc.setFontSize(8);
+    doc.text('ORCHID HEIGHTS', logoBase64 ? 56 : 50, 14, { align: 'center' });
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.text('OFFICIAL VISIT PRE-ENTRY PASS', 50, 18, { align: 'center' });
+    doc.setTextColor(226, 232, 240);
+    doc.text('OFFICIAL VISIT PRE-ENTRY PASS', logoBase64 ? 56 : 50, 19, { align: 'center' });
 
     // Visitor Details
     doc.setTextColor(15, 23, 42); // slate-900
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(entry.fullName.toUpperCase(), 50, 32, { align: 'center' });
+    doc.text(entry.fullName.toUpperCase(), 50, 36, { align: 'center' });
 
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139); // slate-500
     doc.setFont('helvetica', 'normal');
-    doc.text(`Mobile: ${entry.mobileNumber}`, 50, 37, { align: 'center' });
+    doc.text(`Mobile: ${entry.mobileNumber}`, 50, 41, { align: 'center' });
 
     // Key stats labels and values
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
-    doc.line(10, 42, 90, 42);
+    doc.line(10, 45, 90, 45);
 
-    let currY = 48;
+    let currY = 51;
     const drawRow = (label: string, val: string) => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
@@ -278,13 +319,13 @@ Expires: ${expDateStr} ${expTimeStr}`;
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(239, 68, 68); // red-500
-    doc.text(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 50, currY + 47, { align: 'center' });
+    doc.setTextColor(220, 38, 38); // red-600
+    doc.text(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 50, currY + 46, { align: 'center' });
 
-    doc.setFontSize(6);
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184); // slate-400
-    doc.text(`PASS ID: ${entry.id} | Generated on Resident Device`, 50, currY + 52, { align: 'center' });
+    doc.text(`PASS ID: ${entry.id} | Orchid Heights Gatekeeper`, 50, currY + 51, { align: 'center' });
 
     doc.save(`GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.pdf`);
   };
@@ -297,41 +338,56 @@ Expires: ${expDateStr} ${expTimeStr}`;
       format: [100, 160] // custom card dimensions (100mm wide, 160mm tall)
     });
 
+    // White background
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 100, 160, 'F');
+
     // Outer border decoration
     doc.setDrawColor(79, 70, 229); // indigo-600
     doc.setLineWidth(1.5);
     doc.roundedRect(4, 4, 92, 152, 4, 4, 'D');
 
-    // Header strip background
-    doc.setFillColor(79, 70, 229);
-    doc.roundedRect(5, 5, 90, 20, 2, 2, 'F');
+    // Header strip background - Slate 900
+    doc.setFillColor(15, 23, 42);
+    doc.roundedRect(5, 5, 90, 24, 3, 3, 'F');
+
+    // Pink accent bar
+    doc.setFillColor(216, 27, 96);
+    doc.rect(5, 27, 90, 2, 'F');
+
+    // Logo image
+    const logoBase64 = await getLogoBase64();
+    if (logoBase64) {
+      doc.addImage(logoBase64, 'PNG', 8, 7, 18, 18);
+    }
 
     // Title
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('ORCHID HEIGHTS', 50, 13, { align: 'center' });
-    doc.setFontSize(8);
+    doc.text('ORCHID HEIGHTS', logoBase64 ? 56 : 50, 14, { align: 'center' });
+    doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
-    doc.text('OFFICIAL VISIT PRE-ENTRY PASS', 50, 18, { align: 'center' });
+    doc.setTextColor(226, 232, 240);
+    doc.text('OFFICIAL VISIT PRE-ENTRY PASS', logoBase64 ? 56 : 50, 19, { align: 'center' });
 
     // Visitor Details
     doc.setTextColor(15, 23, 42); // slate-900
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text(entry.fullName.toUpperCase(), 50, 32, { align: 'center' });
+    doc.text(entry.fullName.toUpperCase(), 50, 36, { align: 'center' });
 
     doc.setFontSize(9);
     doc.setTextColor(100, 116, 139); // slate-500
     doc.setFont('helvetica', 'normal');
-    doc.text(`Mobile: ${entry.mobileNumber}`, 50, 37, { align: 'center' });
+    doc.text(`Mobile: ${entry.mobileNumber}`, 50, 41, { align: 'center' });
 
     // Key stats labels and values
     doc.setDrawColor(226, 232, 240);
     doc.setLineWidth(0.5);
-    doc.line(10, 42, 90, 42);
+    doc.line(10, 45, 90, 45);
 
-    let currY = 48;
+    let currY = 51;
     const drawRow = (label: string, val: string) => {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(100, 116, 139);
@@ -362,13 +418,13 @@ Expires: ${expDateStr} ${expTimeStr}`;
 
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(239, 68, 68); // red-500
-    doc.text(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 50, currY + 47, { align: 'center' });
+    doc.setTextColor(220, 38, 38); // red-600
+    doc.text(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 50, currY + 46, { align: 'center' });
 
-    doc.setFontSize(6);
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(148, 163, 184); // slate-400
-    doc.text(`PASS ID: ${entry.id} | Generated on Resident Device`, 50, currY + 52, { align: 'center' });
+    doc.text(`PASS ID: ${entry.id} | Orchid Heights Gatekeeper`, 50, currY + 51, { align: 'center' });
 
     const filename = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.pdf`;
     

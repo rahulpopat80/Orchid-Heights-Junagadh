@@ -131,24 +131,30 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.setFont('helvetica', 'bold');
       doc.text(sanitizeText(log.fullName).toUpperCase(), textX, currY);
 
-      currY += 7;
+      currY += 5.5;
       doc.setTextColor(71, 85, 105);
-      doc.setFontSize(10);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text(`Mobile: ${log.mobileNumber}`, textX, currY);
       
-      currY += 6;
+      currY += 5;
       const typeStr = log.isPreEntry 
         ? `Type: ${sanitizeText(log.guestType).toUpperCase()} (PRE-ENTRY)`
         : `Type: ${sanitizeText(log.guestType).toUpperCase()}`;
       doc.text(typeStr, textX, currY);
+
+      currY += 5;
+      doc.text(`Reason: ${sanitizeText(log.reason || 'General Visit')}`, textX, currY);
       
-      currY += 6;
+      currY += 5;
       const ownerMatch = owners.find(o => `${o.wing}-${o.flatNo}` === `${log.wing}-${log.flatNo}`);
       const ownerName = ownerMatch ? ownerMatch.nameEn : (log.flatOwnerName || 'Resident');
       const responder = log.respondedBy ? log.respondedBy.toUpperCase() : ownerName;
       const truncatedResponder = responder.length > 18 ? responder.substring(0, 18) + '...' : responder;
       doc.text(`Target: Flat ${log.wing}-${log.flatNo} (${sanitizeText(truncatedResponder)})`, textX, currY);
+
+      currY += 5;
+      doc.text(`Visitors: ${log.visitorCount || 1} Person(s) | Resident Member: ${sanitizeText(ownerName)}`, textX, currY);
 
       const rightX = pageWidth - margin - 5;
       currY = startY + 12;

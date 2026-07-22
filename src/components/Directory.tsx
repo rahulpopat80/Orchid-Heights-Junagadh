@@ -4,16 +4,17 @@
  */
 
 import React, { useState } from 'react';
-import { Search, Building, Phone, User, Car, Shield, Languages, HelpCircle, Smartphone } from 'lucide-react';
+import { Search, Building, Phone, User, Car, Shield, Languages, HelpCircle, Smartphone, ArrowLeft } from 'lucide-react';
 import { FlatOwner, UserSession } from '../types';
 
 interface DirectoryProps {
   owners: FlatOwner[];
   session: UserSession;
   onEditTrigger?: (owner: FlatOwner) => void;
+  onBack?: () => void;
 }
 
-export default function Directory({ owners, session, onEditTrigger }: DirectoryProps) {
+export default function Directory({ owners, session, onEditTrigger, onBack }: DirectoryProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedWing, setSelectedWing] = useState<'ALL' | 'A' | 'B'>('ALL');
   const [selectedFloor, setSelectedFloor] = useState<string>('ALL');
@@ -275,9 +276,16 @@ export default function Directory({ owners, session, onEditTrigger }: DirectoryP
                               <span className="text-base">{v.type === 'fourwheeler' ? '🚗' : '🏍️'}</span>
                               <span className="font-semibold text-slate-700 capitalize text-[11px]">{v.brandModel || 'Vehicle'}</span>
                             </div>
-                            <span className="font-mono font-bold bg-white text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] uppercase">
-                              {v.plateNumber}
-                            </span>
+                            <div className="flex items-center space-x-1.5">
+                              {v.type === 'fourwheeler' && v.parkingPlot && (
+                                <span className="font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.5 rounded text-[10px]">
+                                  🅿️ {v.parkingPlot}
+                                </span>
+                              )}
+                              <span className="font-mono font-bold bg-white text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded text-[10px] uppercase">
+                                {v.plateNumber}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>

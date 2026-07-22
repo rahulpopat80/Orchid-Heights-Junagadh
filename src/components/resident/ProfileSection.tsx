@@ -229,7 +229,7 @@ export default function ProfileSection({
                         <span>{v.plateNumber}</span>
                         <span className="text-[10px] text-slate-400 font-normal">({v.brandModel})</span>
                       </div>
-                      {v.parkingPlot && (
+                      {v.type === 'fourwheeler' && v.parkingPlot && (
                         <span className="text-[10px] text-indigo-600 font-bold mt-0.5">🅿️ Plot: {v.parkingPlot}</span>
                       )}
                     </div>
@@ -292,15 +292,17 @@ export default function ProfileSection({
                 />
               </div>
 
-              <div className="text-xs">
-                <input
-                  type="text"
-                  placeholder="Parking Plot (e.g. B-1 (Basement), G-1 (Ground))"
-                  value={vParkingPlot}
-                  onChange={(e) => setVParkingPlot(e.target.value)}
-                  className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 outline-none focus:border-indigo-500"
-                />
-              </div>
+              {vType === 'fourwheeler' && (
+                <div className="text-xs">
+                  <input
+                    type="text"
+                    placeholder="Parking Plot (e.g. B-1 Basement, G-1 Ground)"
+                    value={vParkingPlot}
+                    onChange={(e) => setVParkingPlot(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-2 outline-none focus:border-indigo-500"
+                  />
+                </div>
+              )}
 
               <button
                 type="submit"
