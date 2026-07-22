@@ -144,7 +144,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('orchid_dismissed_notifs');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return Array.isArray(parsed) ? parsed.filter((id: any) => Boolean(id) && id !== 'undefined' && id !== 'null') : [];
     } catch {
       return [];
     }
@@ -562,15 +563,23 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     }
   };
 
-  const handleDismissNotification = async (id: string) => {
-    const updated = [...dismissedNotifIds, id];
+  const handleDismissNotification = async (notificationId: string) => {
+    if (!notificationId || notificationId === 'undefined' || notificationId === 'null') return;
+
+    // 1. Save to local storage dismissed IDs to prevent re-rendering during current session
+    const updated = Array.from(new Set([...dismissedNotifIds.filter(x => Boolean(x) && x !== 'undefined'), notificationId]));
     setDismissedNotifIds(updated);
     localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
-    setSocietyNotifications(prev => prev.filter(n => n.id !== id));
 
+    // 2. Remove ONLY this specific notification from local state
+    setSocietyNotifications(prev => prev.filter(n => n.id !== notificationId));
+    setActivePoll(prev => prev.filter(v => v.id !== notificationId));
+    setAnnouncements(prev => prev.filter(a => a.id !== notificationId));
+
+    // 3. Permanently delete from Firebase so it never returns on refresh
     try {
-      await deleteDoc(doc(db, 'society_notifications', id));
-      await deleteDoc(doc(db, 'notifications', id));
+      await deleteDoc(doc(db, 'society_notifications', notificationId));
+      await deleteDoc(doc(db, 'notifications', notificationId));
     } catch (error) {
       console.error("Failed to delete notification from DB:", error);
     }
