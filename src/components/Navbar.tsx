@@ -94,9 +94,15 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
                 <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
                   {getRoleLabel()}
                 </p>
-                <p className="text-xs font-medium text-slate-700 max-w-[120px] truncate">
+                <p className="text-xs font-bold text-slate-800 max-w-[120px] truncate">
                   {session.role === 'security' ? 'Gate Guard' : session.ownerName}
                 </p>
+                {/* Display the phone number they used to sign in */}
+                {session.role !== 'security' && session.phone && (
+                  <p className="text-[9px] text-indigo-600 font-mono font-bold mt-0.5">
+                    +91 {session.phone}
+                  </p>
+                )}
               </div>
             </div>
 

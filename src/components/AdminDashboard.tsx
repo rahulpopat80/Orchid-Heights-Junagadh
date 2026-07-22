@@ -412,6 +412,27 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const handleRemoteLogout = async (wing: string, flatNo: number, deviceId: string) => {
     if (!window.confirm(`Deregister and log out device ${deviceId} from Flat ${wing}-${flatNo}?`)) return;
     try {
+      // 1. Send the termination notification first
+      try {
+        await fetch('/api/fcm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            payload: {
+              token: deviceId, // Target the specific device
+              notification: {
+                title: "Security Alert",
+                body: "Your device session was remotely terminated by administration."
+              },
+              data: { type: "system_logout" }
+            }
+          })
+        });
+      } catch (fcmErr) {
+        console.warn('FCM notification dispatch failed:', fcmErr);
+      }
+
+      // 2. Deregister the device from DB
       const res = await api.deregisterDevice(wing, flatNo, deviceId);
       if (res.success) {
         alert('Device logged out successfully.');
@@ -426,7 +447,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         alert(res.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Logout error:', error);
     }
   };
 

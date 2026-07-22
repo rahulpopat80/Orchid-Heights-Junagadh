@@ -230,11 +230,17 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   // Announcements state
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
 
-  // Subscribe to targeted real-time announcements
+  // Subscribe to targeted real-time announcements (filtered for 3-month retention)
   useEffect(() => {
     if (!wing || !flatNo) return;
     const unsubscribe = api.subscribeAnnouncements(wing, flatNo, (list) => {
-      setAnnouncements(list);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const filtered = (list || []).filter(item => {
+        const itemDate = new Date(item.timestamp || (item as any).createdAt || Date.now());
+        return itemDate >= threeMonthsAgo;
+      });
+      setAnnouncements(filtered);
     });
     return () => unsubscribe();
   }, [wing, flatNo]);
@@ -932,7 +938,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     setLoadingComplaints(true);
     try {
       const list = await api.getComplaints();
-      setComplaints(list);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const filtered = (list || []).filter((item: any) => new Date(item.createdAt || Date.now()) >= threeMonthsAgo);
+      setComplaints(filtered);
     } catch (err) {
       console.error('Failed to fetch complaints:', err);
     } finally {
@@ -944,7 +953,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     setLoadingFinancials(true);
     try {
       const list = await api.getFinancialReports();
-      setFinancials(list);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const filtered = (list || []).filter((item: any) => new Date(item.createdAt || Date.now()) >= threeMonthsAgo);
+      setFinancials(filtered);
     } catch (err) {
       console.error('Failed to fetch financials:', err);
     } finally {
@@ -1021,7 +1033,10 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     setLoadingHistory(true);
     try {
       const data = await api.getVisitors({ wing, flatNo });
-      setGuestHistory(data);
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const filtered = (data || []).filter((v: any) => new Date(v.requestTime || v.createdAt || Date.now()) >= threeMonthsAgo);
+      setGuestHistory(filtered);
     } catch (error) {
       console.error('Failed to fetch personal history:', error);
     } finally {
@@ -2057,6 +2072,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
           ) : (
             /* Master "You" Profile Section */
             <ProfileSection
+              session={session}
               wing={wing}
               flatNo={flatNo}
               myOwnerData={myOwnerData || null}
