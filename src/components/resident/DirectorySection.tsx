@@ -9,7 +9,7 @@ interface DirectorySectionProps {
   directorySearch: string;
   setDirectorySearch: (text: string) => void;
   dailyHelpers: DailyHelper[];
-  absenceLogs: AbsenceLog[];
+  absenceLogs?: AbsenceLog[];
   onEditTrigger?: (owner: FlatOwner) => void;
   onBack?: () => void;
 }
@@ -20,7 +20,7 @@ export default function DirectorySection({
   directorySearch,
   setDirectorySearch,
   dailyHelpers,
-  absenceLogs,
+  absenceLogs = [],
   onEditTrigger,
   onBack
 }: DirectorySectionProps) {

@@ -10,6 +10,7 @@ interface WebcamCaptureProps {
   onPhotoCaptured: (base64: string) => void;
   value?: string;
   guestType?: string; // used to pre-select preset
+  allowedTypes?: string[]; // optional filter for preset keys
 }
 
 // Custom built-in presets represented as high-quality SVGs converted to Data URIs (or we can use inline color canvas/base64).
@@ -23,7 +24,7 @@ const PRESETS: Record<string, { label: string; svgColor: string; iconLetter: str
   other: { label: 'General Visitor', svgColor: 'from-slate-400 to-slate-600', iconLetter: '👤' }
 };
 
-export default function WebcamCapture({ onPhotoCaptured, value, guestType }: WebcamCaptureProps) {
+export default function WebcamCapture({ onPhotoCaptured, value, guestType, allowedTypes }: WebcamCaptureProps) {
   const [mode, setMode] = useState<'preset' | 'camera' | 'upload'>('preset');
   const [photo, setPhoto] = useState<string>(value || '');
   const [selectedPreset, setSelectedPreset] = useState<string>('other');
@@ -253,8 +254,16 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
               <p className="text-[11px] text-slate-500 mb-2">
                 Click to generate a clean preset profile image for this type of guest:
               </p>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.keys(PRESETS).map((key) => {
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {Object.keys(PRESETS)
+                  .filter((key) => {
+                    if (!allowedTypes || allowedTypes.length === 0) return true;
+                    return allowedTypes.some(t => {
+                      const lower = t.toLowerCase();
+                      return lower.includes(key) || (key === 'guest' && (lower.includes('guest') || lower.includes('relative'))) || (key === 'other' && lower.includes('other'));
+                    });
+                  })
+                  .map((key) => {
                   const p = PRESETS[key];
                   return (
                     <button

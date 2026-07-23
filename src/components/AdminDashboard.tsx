@@ -118,6 +118,22 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [loading, setLoading] = useState<boolean>(false);
   const [passwordsVisible, setPasswordsVisible] = useState<Record<string, boolean>>({});
 
+  // Helper to deduplicate logged-in devices
+  const getUniqueDevices = (devices?: any[]) => {
+    if (!devices || devices.length === 0) return [];
+    const sorted = [...devices].sort((a, b) => new Date(b.lastLogin || 0).getTime() - new Date(a.lastLogin || 0).getTime());
+    const seen = new Set<string>();
+    const unique: any[] = [];
+    for (const d of sorted) {
+      const key = d.phoneNumber ? 'phone_' + d.phoneNumber : d.deviceId ? 'dev_' + d.deviceId : d.imei ? 'imei_' + d.imei : JSON.stringify(d);
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(d);
+      }
+    }
+    return unique;
+  };
+
   // Search through all owners
   const [adminSearch, setAdminSearch] = useState<string>('');
 
@@ -1316,7 +1332,12 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       const flatKey = `${owner.wing}-${owner.flatNo}`;
                       const password = flatPasswords[flatKey] || 'admin@123';
                       const isPassVisible = passwordsVisible[flatKey] || false;
-                      const hasDevices = owner.devices && owner.devices.length > 0;
+                      const activeDevices = owner.devices ? Array.from(new Map(
+                        [...owner.devices]
+                          .sort((a, b) => new Date(b.lastLogin || 0).getTime() - new Date(a.lastLogin || 0).getTime())
+                          .map(d => [d.phoneNumber ? `phone_${d.phoneNumber}` : d.deviceId ? `dev_${d.deviceId}` : d.imei, d])
+                      ).values()) : [];
+                      const hasDevices = activeDevices.length > 0;
                       
                       return (
                         <tr key={flatKey} className={`hover:bg-slate-50/50 transition cursor-pointer ${selectedFlat?.wing === owner.wing && selectedFlat?.flatNo === owner.flatNo ? 'bg-indigo-50/40' : ''}`} onClick={() => viewFlatDetails(owner)}>
@@ -1333,7 +1354,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                           <td className="py-3 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                             {hasDevices ? (
                               <span className="bg-emerald-50 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-emerald-100">
-                                {owner.devices!.length} Active
+                                {activeDevices.length} Active
                               </span>
                             ) : (
                               <span className="text-slate-400 text-[10px]">-</span>
@@ -1515,11 +1536,11 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       <div className="space-y-3">
                         <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
                           <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Logged in Devices ({selectedFlat.devices?.length || 0})</span>
+                          <span>Logged in Devices ({getUniqueDevices(selectedFlat.devices).length})</span>
                         </h4>
-                        {selectedFlat.devices && selectedFlat.devices.length > 0 ? (
+                        {getUniqueDevices(selectedFlat.devices).length > 0 ? (
                           <div className="space-y-2">
-                            {selectedFlat.devices.map((device, index) => {
+                            {getUniqueDevices(selectedFlat.devices).map((device: any, index: number) => {
                               const matchMember = selectedFlat.members?.find(m => m.includes(device.phoneNumber || ''));
                               const displayName = matchMember ? matchMember.split('(')[0].trim() : (selectedFlat.phone === device.phoneNumber ? selectedFlat.nameEn : 'Unknown User');
                               return (

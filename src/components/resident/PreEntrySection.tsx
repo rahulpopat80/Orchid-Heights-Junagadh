@@ -568,23 +568,14 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white border border-slate-200 rounded-3xl p-6 shadow-xs gap-4 text-left">
-        <div>
-          <h1 className="font-display font-black text-2xl text-slate-800 tracking-tight flex items-center space-x-2">
-            <QrCode className="w-7 h-7 text-indigo-600" />
-            <span>Pre-Entry Gate Passes</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Generate instantly pre-approved QR codes for guests. Checked in securely on presentation.
-          </p>
-        </div>
-        <button
-          onClick={() => { setRefreshing(true); fetchRecords(true); }}
-          className="flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold gap-2 transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Reload List</span>
-        </button>
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs text-left">
+        <h1 className="font-display font-black text-2xl text-slate-800 tracking-tight flex items-center space-x-2">
+          <QrCode className="w-7 h-7 text-indigo-600" />
+          <span>Pre-Entry Gate Passes</span>
+        </h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Generate instantly pre-approved QR codes for guests. Checked in securely on presentation.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -609,7 +600,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
 
           <form onSubmit={handleCreatePreEntry} className="space-y-5">
             {/* Webcam / Image upload */}
-            <WebcamCapture onPhotoCaptured={setPhotoUrl} value={photoUrl} guestType={guestType} />
+            <WebcamCapture onPhotoCaptured={setPhotoUrl} value={photoUrl} guestType={guestType} allowedTypes={['Guest', 'Other']} />
 
             {/* Guest Name */}
             <div className="space-y-2">
@@ -660,10 +651,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs font-semibold outline-none focus:border-indigo-500 focus:bg-white"
                 >
                   <option value="Guest">👋 Guest / Relative</option>
-                  <option value="Delivery">📦 Delivery Driver</option>
-                  <option value="Electrician">⚡ Electrician / Tech</option>
-                  <option value="Milkman">🥛 Milkman</option>
-                  <option value="Maid">🧹 House Maid</option>
                   <option value="Other">👤 Other Visitor</option>
                 </select>
               </div>
@@ -728,9 +715,19 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                 <p className="text-xs text-slate-500">List of generated Pre-Entries</p>
               </div>
             </div>
-            <span className="bg-indigo-50 text-indigo-700 text-xs font-black px-3 py-1 rounded-full border border-indigo-150">
-              {preEntries.length} Total
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="bg-indigo-50 text-indigo-700 text-xs font-black px-3 py-1 rounded-full border border-indigo-150">
+                {preEntries.length} Total
+              </span>
+              <button
+                type="button"
+                onClick={() => { setRefreshing(true); fetchRecords(true); }}
+                title="Reload List"
+                className="bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 p-2 rounded-xl transition cursor-pointer flex items-center justify-center"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
           </div>
 
           {loading ? (

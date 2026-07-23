@@ -143,12 +143,35 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
 
   const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>(() => {
     try {
+      const flatKey = `orchid_dismissed_notifs_${wing}_${flatNo}`;
+      const savedFlat = localStorage.getItem(flatKey);
+      if (savedFlat) return JSON.parse(savedFlat);
       const saved = localStorage.getItem('orchid_dismissed_notifs');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
+
+  // Sync dismissed notifications from Firestore
+  useEffect(() => {
+    if (!wing || !flatNo) return;
+    const flatKey = `orchid_dismissed_notifs_${wing}_${flatNo}`;
+    const unsub = onSnapshot(doc(db, 'dismissed_notifications', `${wing}_${flatNo}`), (docSnap) => {
+      if (docSnap.exists()) {
+        const remoteIds = docSnap.data()?.ids || [];
+        if (Array.isArray(remoteIds) && remoteIds.length > 0) {
+          setDismissedNotifIds((prev) => {
+            const merged = Array.from(new Set([...prev, ...remoteIds]));
+            localStorage.setItem(flatKey, JSON.stringify(merged));
+            localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(merged));
+            return merged;
+          });
+        }
+      }
+    });
+    return () => unsub();
+  }, [wing, flatNo]);
 
   const displayedPoll = activePoll.filter((v) => !dismissedNotifIds.includes(v.id));
 
@@ -273,7 +296,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [amenityBookings, setAmenityBookings] = useState<AmenityBooking[]>([]);
   const [gymTheatreLogs, setGymTheatreLogs] = useState<GymTheatreLog[]>([]);
   const [dailyHelpers, setDailyHelpers] = useState<DailyHelper[]>([]);
-  const [absenceLogs, setAbsenceLogs] = useState<AbsenceLog[]>([]);
   const [essentialContacts, setEssentialContacts] = useState<EssentialContact[]>([]);
   const [societyNotifications, setSocietyNotifications] = useState<any[]>([]);
 
@@ -375,17 +397,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
       }
     }, (error) => console.error('Error listening to helpers:', error));
 
-    // 4. Absence Logs
-    const qAbsence = query(collection(db, 'absence_logs'), orderBy('createdAt', 'desc'));
-    const unsubAbsences = onSnapshot(qAbsence, (snapshot) => {
-      const list: AbsenceLog[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as AbsenceLog);
-      });
-      setAbsenceLogs(list);
-    }, (error) => console.error('Error listening to absence logs:', error));
-
-    // 5. Essential Contacts
+    // 4. Essential Contacts
     const qContacts = collection(db, 'essential_contacts');
     const unsubContacts = onSnapshot(qContacts, async (snapshot) => {
       if (snapshot.empty) {
@@ -437,7 +449,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
       unsubBookings();
       unsubLogs();
       unsubHelpers();
-      unsubAbsences();
       unsubContacts();
       unsubSocietyNotifs();
     };
@@ -491,15 +502,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [activeCheckInLog, setActiveCheckInLog] = useState<GymTheatreLog | null>(null);
   const [showExitPhotoModal, setShowExitPhotoModal] = useState<boolean>(false);
   const [exitPhotoTimeError, setExitPhotoTimeError] = useState<boolean>(false);
-
-  // Absence form states
-  const [absDateFrom, setAbsDateFrom] = useState<string>('');
-  const [absDateTo, setAbsDateTo] = useState<string>('');
-  const [absMilkRedirect, setAbsMilkRedirect] = useState<string>('');
-  const [absNewspaperRedirect, setAbsNewspaperRedirect] = useState<string>('');
-  const [absParcelRedirect, setAbsParcelRedirect] = useState<string>('');
-  const [absenceError, setAbsenceError] = useState<string>('');
-  const [absenceSuccess, setAbsenceSuccess] = useState<string>('');
 
   // Download 3-month visitor logs as PDF
   const handleDownloadVisitorReport = async () => {
@@ -556,10 +558,45 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
     }
   };
 
-  const handleDismissNotification = (id: string) => {
-    const updated = [...dismissedNotifIds, id];
+  const handleDismissNotification = async (id: string) => {
+    const flatKey = `orchid_dismissed_notifs_${wing}_${flatNo}`;
+    const updated = Array.from(new Set([...dismissedNotifIds, id]));
     setDismissedNotifIds(updated);
+    localStorage.setItem(flatKey, JSON.stringify(updated));
     localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
+
+    try {
+      await setDoc(doc(db, 'dismissed_notifications', `${wing}_${flatNo}`), {
+        ids: updated,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Failed to persist dismissed notification:', e);
+    }
+  };
+
+  const handleDismissAllNotifications = async () => {
+    const allIds = [
+      ...displayedPoll.map(v => v.id),
+      ...activeSocietyNotifs.map(n => n.id),
+      ...announcements.map(a => a.id)
+    ];
+    if (allIds.length === 0) return;
+
+    const flatKey = `orchid_dismissed_notifs_${wing}_${flatNo}`;
+    const updated = Array.from(new Set([...dismissedNotifIds, ...allIds]));
+    setDismissedNotifIds(updated);
+    localStorage.setItem(flatKey, JSON.stringify(updated));
+    localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
+
+    try {
+      await setDoc(doc(db, 'dismissed_notifications', `${wing}_${flatNo}`), {
+        ids: updated,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Failed to persist dismissed all notifications:', e);
+    }
   };
 
   // Vote or Toggle support for a function booking
@@ -709,110 +746,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
       });
     } catch (error) {
       console.error('Failed to update helper flat assignment:', error);
-    }
-  };
-
-  const handleSaveAbsence = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAbsenceSuccess('');
-    setAbsenceError('');
-
-    if (!absDateFrom || !absDateTo) {
-      setAbsenceError('Please choose planned departure and return dates.');
-      return;
-    }
-
-    const flatId = `${wing}-${flatNo}`;
-
-    // Collect redirected flat targets
-    const redirectedFlats = Array.from(new Set([
-      absMilkRedirect.trim().toUpperCase(),
-      absNewspaperRedirect.trim().toUpperCase(),
-      absParcelRedirect.trim().toUpperCase()
-    ])).filter(Boolean);
-
-    // Overlapping absence conflict check
-    for (const rawTarget of redirectedFlats) {
-      const formattedTarget = rawTarget.includes('-') ? rawTarget : `${rawTarget[0]}-${rawTarget.slice(1)}`;
-      const isTargetAbsent = absenceLogs.some((a) => {
-        const aFlat = a.flatId.toUpperCase();
-        if (aFlat === rawTarget || aFlat === formattedTarget) {
-          const newFrom = new Date(absDateFrom).getTime();
-          const newTo = new Date(absDateTo).getTime();
-          const existingFrom = new Date(a.dateFrom).getTime();
-          const existingTo = new Date(a.dateTo).getTime();
-          return newFrom <= existingTo && newTo >= existingFrom;
-        }
-        return false;
-      });
-
-      if (isTargetAbsent) {
-        setAbsenceError(`⚠️ Cannot assign delivery redirection: Flat ${formattedTarget} is also marked absent during these dates.`);
-        return;
-      }
-    }
-
-    const payload: Omit<AbsenceLog, 'id'> = {
-      flatId,
-      dateFrom: absDateFrom,
-      dateTo: absDateTo,
-      milkRedirectFlat: absMilkRedirect.trim() || undefined,
-      newspaperRedirectFlat: absNewspaperRedirect.trim() || undefined,
-      parcelRedirectFlat: absParcelRedirect.trim() || undefined,
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      await addDoc(collection(db, 'absence_logs'), payload);
-      setAbsenceSuccess('Your planned absence vacation calendar block has been registered. The gatekeeper has been automated to bypass alerting your flat.');
-
-      // Push notification to each assigned flat owner
-      for (const rawTarget of redirectedFlats) {
-        const formattedTarget = rawTarget.includes('-') ? rawTarget : `${rawTarget[0]}-${rawTarget.slice(1)}`;
-        const parts = formattedTarget.split('-');
-        if (parts.length === 2) {
-          const targetWing = parts[0];
-          const targetFlatNo = parseInt(parts[1], 10);
-          if (targetWing && !isNaN(targetFlatNo)) {
-            api.createSocietyNotification({
-              type: 'absence_redirection',
-              title: `📦 Delivery Redirection Assigned`,
-              message: `Flat ${flatId} has assigned your flat for delivery redirection from ${absDateFrom} to ${absDateTo}.`,
-              wing: targetWing,
-              flatNo: targetFlatNo
-            }).catch(err => console.warn('Failed to push absence redirect notif:', err));
-
-            sendFCMPushToFlat(targetWing, targetFlatNo, {
-              title: `📦 Delivery Redirection Assigned`,
-              body: `Flat ${flatId} has assigned your flat (${formattedTarget}) for delivery redirection from ${absDateFrom} to ${absDateTo}.`,
-              icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
-              data: { type: 'absence_redirection', fromFlat: flatId }
-            }).catch((err) => console.warn('Failed to send redirection notification:', err));
-          }
-        }
-      }
-
-      setAbsDateFrom('');
-      setAbsDateTo('');
-      setAbsMilkRedirect('');
-      setAbsNewspaperRedirect('');
-      setAbsParcelRedirect('');
-    } catch (err: any) {
-      setAbsenceError(err.message || 'Failed to save planned vacation blocks.');
-    }
-  };
-
-  const handleCancelAbsence = async () => {
-    const flatId = `${wing}-${flatNo}`;
-    const active = absenceLogs.find((a) => a.flatId === flatId);
-    if (!active) return;
-    if (confirm('Cancel your planned absence calendar? This will immediately resume normal daily helper alarms and notifications.')) {
-      try {
-        await deleteDoc(doc(db, 'absence_logs', active.id));
-        setAbsenceSuccess('Absence vacation period canceled. Helper alerts have been re-activated.');
-      } catch (err: any) {
-        setAbsenceError(err.message || 'Failed to delete vacation block.');
-      }
     }
   };
 
@@ -1686,7 +1619,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     directorySearch={directorySearch}
                     setDirectorySearch={setDirectorySearch}
                     dailyHelpers={dailyHelpers}
-                    absenceLogs={absenceLogs}
                     onBack={() => setActiveSubSection('home')}
                   />
                 )}
@@ -2086,22 +2018,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
               newPassword={newPassword}
               setNewPassword={setNewPassword}
               handleSaveGeneral={handleSaveGeneral}
-              absenceLogs={absenceLogs}
               dailyHelpers={dailyHelpers}
-              absDateFrom={absDateFrom}
-              setAbsDateFrom={setAbsDateFrom}
-              absDateTo={absDateTo}
-              setAbsDateTo={setAbsDateTo}
-              absMilkRedirect={absMilkRedirect}
-              setAbsMilkRedirect={setAbsMilkRedirect}
-              absNewspaperRedirect={absNewspaperRedirect}
-              setAbsNewspaperRedirect={setAbsNewspaperRedirect}
-              absParcelRedirect={absParcelRedirect}
-              setAbsParcelRedirect={setAbsParcelRedirect}
-              absenceSuccess={absenceSuccess}
-              absenceError={absenceError}
-              handleSaveAbsence={handleSaveAbsence}
-              handleCancelAbsence={handleCancelAbsence}
             />
           )}
         </motion.div>
@@ -2157,14 +2074,24 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                 <Bell className="w-5 h-5 text-indigo-600" />
                 <h3 className="font-sans font-black text-base text-slate-800 uppercase tracking-tight">Notification Center</h3>
               </div>
-              <button
-                onClick={() => {
-                  setIsNotificationsOpen(false);
-                }}
-                className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                {(displayedPoll.length > 0 || activeSocietyNotifs.length > 0 || announcements.length > 0) && (
+                  <button
+                    onClick={handleDismissAllNotifications}
+                    className="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition cursor-pointer"
+                  >
+                    Clear All / બધું સાફ કરો
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setIsNotificationsOpen(false);
+                  }}
+                  className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* List of active items */}

@@ -115,45 +115,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     }
   };
 
-  const handleQrImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setVerifyingPass(true);
-    setScanResult({ status: null, message: '' });
-
-    try {
-      const html5QrCode = new Html5Qrcode("qr-image-temp");
-      const decodedText = await html5QrCode.scanFile(file, true);
-      
-      let parsedId = decodedText;
-      if (decodedText.includes('Pass ID:')) {
-        const lines = decodedText.split('\n');
-        const idLine = lines.find(l => l.startsWith('Pass ID:'));
-        if (idLine) {
-          parsedId = idLine.replace('Pass ID:', '').trim();
-        }
-      } else if (decodedText.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(decodedText);
-          if (parsed.passId) parsedId = parsed.passId;
-          else if (parsed.id) parsedId = parsed.id;
-        } catch (e) {}
-      }
-
-      handleVerifyPass(parsedId);
-    } catch (err) {
-      console.error("QR Code Image Scan Error:", err);
-      setScanResult({
-        status: 'invalid',
-        message: 'ફોટોમાં QR કોડ મળ્યો નથી અથવા વાંચી શકાય તેમ નથી. કૃપા કરીને ફરી પ્રયાસ કરો. (No readable QR code found in photo)'
-      });
-      playDecisionSound('rejected');
-    } finally {
-      setVerifyingPass(false);
-    }
-  };
-
   // Helper to extract clean 6-digit numeric pass ID from any raw scanner string
   const extractPassIdFromRaw = (rawInput: string): string => {
     if (!rawInput) return '';
@@ -1093,14 +1054,23 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 
               {/* Scan Results Feedback */}
               {scanResult.status && (
-                <div className={`rounded-2xl p-6 border-2 transition-all duration-300 ${
+                <div className={`rounded-2xl p-6 border-2 transition-all duration-300 relative ${
                   scanResult.status === 'success'
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                     : scanResult.status === 'expired'
                     ? 'bg-amber-50 border-amber-300 text-amber-900'
                     : 'bg-red-50 border-red-300 text-red-900'
                 }`}>
-                  <div className="flex items-start gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setScanResult({ status: null, message: '' })}
+                    className="absolute top-4 right-4 p-1.5 hover:bg-black/10 rounded-full transition cursor-pointer"
+                    title="બંધ કરો (Close)"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+
+                  <div className="flex items-start gap-4 pr-8">
                     <div className="mt-1">
                       {scanResult.status === 'success' ? (
                         <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
@@ -1146,6 +1116,17 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-black/10 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setScanResult({ status: null, message: '' })}
+                      className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-2 px-5 rounded-xl text-xs transition shadow cursor-pointer flex items-center space-x-1"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>વિગતો બંધ કરો (Close Details)</span>
+                    </button>
                   </div>
                 </div>
               )}
