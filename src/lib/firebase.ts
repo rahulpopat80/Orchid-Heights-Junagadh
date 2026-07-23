@@ -874,14 +874,14 @@ export async function markVisitorExited(visitorId: string): Promise<{ success: b
 
     try {
       await addDoc(collection(db, 'society_notifications'), {
-        type: 'visitor',
+        type: 'visitor_exit',
         title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
         message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
         wing: currentVisitor.wing,
         flatNo: currentVisitor.flatNo,
         timestamp: exitTime,
         read: false,
-        metadata: { visitorId, exited: true, exitTime, duration }
+        metadata: { visitorId, exited: true, exitTime, duration, isExit: true }
       });
     } catch (e) {
       console.warn('Failed to post exit notification:', e);
@@ -1572,7 +1572,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
         const isGlobal = !data.wing || Number(data.flatNo) === 0;
         const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
         if (isGlobal || isMine) {
-          list.push(data);
+          list.push({ id: docSnap.id, ...data });
         }
       });
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -1665,6 +1665,39 @@ export async function registerFCMToken(wing: string, flatNo: number): Promise<st
   } catch (err) {
     console.warn('Failed to get FCM token:', err);
     return null;
+  }
+}
+
+export async function unregisterFCMToken(wing?: string, flatNo?: number): Promise<void> {
+  try {
+    if (wing && flatNo) {
+      const id = `${wing}-${flatNo}`;
+      const ownerRef = doc(db, 'owners', id);
+      const localToken = localStorage.getItem(`orchid_fcm_token_${wing}_${flatNo}`);
+      if (localToken) {
+        try {
+          const snap = await getDoc(ownerRef);
+          if (snap.exists()) {
+            const ownerData = snap.data();
+            const currentTokens: string[] = (ownerData as any).fcmTokens || [];
+            const updatedTokens = currentTokens.filter((t) => t !== localToken);
+            await setDoc(ownerRef, { fcmTokens: updatedTokens }, { merge: true });
+          }
+        } catch (e) {
+          console.warn('Failed to remove token from Firestore on unregister:', e);
+        }
+        localStorage.removeItem(`orchid_fcm_token_${wing}_${flatNo}`);
+      }
+    }
+    if (messaging) {
+      try {
+        await deleteToken(messaging);
+      } catch (delErr) {
+        console.warn('Failed to delete FCM token:', delErr);
+      }
+    }
+  } catch (err) {
+    console.warn('unregisterFCMToken error:', err);
   }
 }
 

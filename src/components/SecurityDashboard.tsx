@@ -773,7 +773,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           )}
 
           <form onSubmit={handleRegisterVisitor} className="space-y-8">
-            <WebcamCapture onPhotoCaptured={(base64) => setPhotoUrl(base64)} value={photoUrl} guestType={guestType} />
+            <WebcamCapture onPhotoCaptured={(base64) => setPhotoUrl(base64)} value={photoUrl} guestType={guestType} disableUpload={true} />
 
             {isDailyHelperType && (
               <div className="bg-indigo-50 border border-indigo-100 p-5 rounded-2xl space-y-4">

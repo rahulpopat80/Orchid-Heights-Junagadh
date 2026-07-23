@@ -14,7 +14,7 @@ import ResidentDashboard from './components/ResidentDashboard';
 import Directory from './components/Directory';
 import AdminPage from './components/AdminPage';
 import { api, detectServerEnvironment } from './lib/api';
-import { registerFCMToken, subscribeToForegroundMessages } from './lib/firebase';
+import { registerFCMToken, unregisterFCMToken, subscribeToForegroundMessages } from './lib/firebase';
 import firebaseConfig from '../firebase-applet-config.json';
 
 export default function App() {
@@ -330,6 +330,11 @@ export default function App() {
 
   const handleLogout = async () => {
     if (session && session.wing && session.flatNo) {
+      try {
+        await unregisterFCMToken(session.wing, session.flatNo);
+      } catch (err) {
+        console.warn('Failed to unregister FCM token on logout:', err);
+      }
       const flatKey = `${session.wing}_${session.flatNo}`;
       const deviceId = localStorage.getItem('orchid_physical_device_id') || localStorage.getItem(`orchid_device_uuid_${flatKey}`);
       if (deviceId) {

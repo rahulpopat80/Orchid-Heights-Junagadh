@@ -407,14 +407,14 @@ export function markVisitorExitedLocal(visitorId: string): { success: boolean; v
   const notifications = getLocalSocietyNotifications();
   notifications.unshift({
     id: 'exit_notif_' + Date.now(),
-    type: 'visitor',
+    type: 'visitor_exit',
     title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
     message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
     wing: currentVisitor.wing,
     flatNo: currentVisitor.flatNo,
     timestamp: exitTime,
     read: false,
-    metadata: { visitorId, exited: true, exitTime, duration }
+    metadata: { visitorId, exited: true, exitTime, duration, isExit: true }
   });
   saveLocalSocietyNotifications(notifications);
 

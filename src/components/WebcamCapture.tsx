@@ -11,6 +11,7 @@ interface WebcamCaptureProps {
   value?: string;
   guestType?: string; // used to pre-select preset
   allowedTypes?: string[]; // optional filter for preset keys
+  disableUpload?: boolean; // restrict to live capture/presets only
 }
 
 // Custom built-in presets represented as high-quality SVGs converted to Data URIs (or we can use inline color canvas/base64).
@@ -24,7 +25,7 @@ const PRESETS: Record<string, { label: string; svgColor: string; iconLetter: str
   other: { label: 'General Visitor', svgColor: 'from-slate-400 to-slate-600', iconLetter: '👤' }
 };
 
-export default function WebcamCapture({ onPhotoCaptured, value, guestType, allowedTypes }: WebcamCaptureProps) {
+export default function WebcamCapture({ onPhotoCaptured, value, guestType, allowedTypes, disableUpload }: WebcamCaptureProps) {
   const [mode, setMode] = useState<'preset' | 'camera' | 'upload'>('preset');
   const [photo, setPhoto] = useState<string>(value || '');
   const [selectedPreset, setSelectedPreset] = useState<string>('other');
@@ -209,13 +210,15 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType, allow
           >
             Webcam
           </button>
-          <button
-            type="button"
-            onClick={() => { setMode('upload'); stopCamera(); }}
-            className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-          >
-            Upload
-          </button>
+          {!disableUpload && (
+            <button
+              type="button"
+              onClick={() => { setMode('upload'); stopCamera(); }}
+              className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
+            >
+              Upload
+            </button>
+          )}
           {mode === 'camera' && (
             <button
               type="button"
