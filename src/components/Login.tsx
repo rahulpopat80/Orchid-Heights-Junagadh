@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Home, Key, ArrowRight, Eye, EyeOff, AlertCircle, AlertTriangle, Smartphone, Monitor, LogOut } from 'lucide-react';
+import { Shield, Home, Key, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { UserSession, DeviceInfo } from '../types';
 import { api } from '../lib/api';
 
@@ -214,70 +214,46 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
         {/* Form or Blocked Devices view */}
         {isDeviceBlocked && blockedDevices.length > 0 ? (
-          <div className="space-y-4">
-            <div className="text-center space-y-2">
-              <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
-              <h3 className="font-display font-bold text-lg text-slate-800">Device Limit Reached</h3>
-              <p className="text-xs text-slate-500">
-                Your apartment has reached the maximum allowed active devices.
-              </p>
-            </div>
-
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-3">
-              {(() => {
-                // STRICT FILTER: Only show devices that match the entered phone number
-                const activeDevices = blockedDevices;
-                const phone = phoneNumber;
-                const myDevices = activeDevices.filter(d => d.phoneNumber === phone);
-
-                if (myDevices.length === 0) {
-                  return (
-                    <div className="text-center p-4">
-                      <p className="text-xs font-bold text-slate-700 mb-1">No devices found for this number.</p>
-                      <p className="text-[10px] text-slate-500">
-                        The device slots are currently occupied by other family members. For privacy, you cannot log out their devices. Please ask them to log out, or contact the admin.
-                      </p>
-                    </div>
-                  );
-                }
-
-                return (
-                  <>
-                    <div className="flex justify-between items-center pb-2 border-b border-slate-200">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                        Your Active Sessions
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {myDevices.map((device, idx) => (
-                        <div key={device.deviceId || idx} className="bg-white border border-slate-200 p-2.5 rounded-lg flex justify-between items-center shadow-sm">
-                          <div className="text-left">
-                            <p className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                              {device.os === 'Android' || device.os === 'iOS' ? <Smartphone className="w-3.5 h-3.5 text-slate-400" /> : <Monitor className="w-3.5 h-3.5 text-slate-400" />}
-                              <span>{device.browser} on {device.os}</span>
-                            </p>
-                            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                              Number: {device.phoneNumber}
-                            </p>
-                          </div>
-                          <button
-                            type="button"
-                            disabled={loading}
-                            onClick={() => handleRemoteLogout(device.deviceId)}
-                            className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-3 py-1.5 rounded-md text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
-                          >
-                            <LogOut className="w-3 h-3" />
-                            <span>Log Out</span>
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                );
-              })()}
+          <div className="space-y-4 bg-slate-50 border border-slate-200 p-4 md:p-5 rounded-2xl text-left">
+            <div className="flex items-center space-x-2 text-amber-600">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-xs font-bold uppercase tracking-wider">Device limit exceeded ({blockedDevices.length} active)</span>
             </div>
             
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Orchid Heights security limits logins based on household size (max 5 active devices per flat). To log in with this new device, you must log out one of your other devices remotely:
+            </p>
+
+            <div className="space-y-3">
+              {blockedDevices.map((dev, idx) => (
+                <div key={dev.deviceId || idx} className="bg-white border border-slate-200 p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+                  <div className="space-y-1 text-left min-w-0 flex-1">
+                    <p className="font-bold text-slate-800 text-xs flex items-center space-x-1">
+                      <span>{dev.os || 'Unknown Device'}</span>
+                      <span className="text-[10px] text-slate-400">•</span>
+                      <span className="text-slate-600 text-[11px]">{dev.browser || 'Web Browser'}</span>
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono flex flex-wrap gap-x-2">
+                      <span>IP: <span className="text-indigo-600 font-semibold">{dev.ipAddress}</span></span>
+                      {dev.imei && <span>{dev.os === 'Windows' || dev.os === 'MacOS' ? 'S/N' : 'IMEI'}: <span className="text-indigo-600 font-semibold">{dev.imei}</span></span>}
+                    </p>
+                    <p className="text-[9px] text-slate-400 font-medium">
+                      Last Active: {new Date(dev.lastLogin).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
+                    </p>
+                  </div>
+                  
+                  <button
+                    type="button"
+                    disabled={loading}
+                    onClick={() => handleRemoteLogout(dev.deviceId)}
+                    className="bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 font-bold px-3 py-2 rounded-xl text-xs border border-red-200 hover:border-red-300 transition-all cursor-pointer shadow-sm shrink-0 w-full sm:w-auto"
+                  >
+                    {loading ? '...' : 'Log Out'}
+                  </button>
+                </div>
+              ))}
+            </div>
+
             <button
               type="button"
               onClick={() => {
@@ -285,9 +261,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                 setBlockedDevices([]);
                 setError('');
               }}
-              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
+              className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer text-center"
             >
-              Cancel Login
+              ← Cancel & Back to Login
             </button>
           </div>
         ) : (

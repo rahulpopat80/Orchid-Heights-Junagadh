@@ -4,7 +4,6 @@ import { User, Users, Car, Phone, Lock, Eye, EyeOff, Calendar, AlertCircle, Tras
 import { FlatOwner, Vehicle, AbsenceLog, DailyHelper } from '../../types';
 
 interface ProfileSectionProps {
-  session?: any;
   wing: string;
   flatNo: number;
   myOwnerData: FlatOwner | null;
@@ -61,7 +60,6 @@ interface ProfileSectionProps {
 }
 
 export default function ProfileSection({
-  session,
   wing,
   flatNo,
   myOwnerData,
@@ -118,25 +116,6 @@ export default function ProfileSection({
 
   return (
     <div className="space-y-8 text-left">
-      {/* Signed-in Member Identity Card */}
-      {session && (
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold text-lg shrink-0">
-              {session.ownerName ? session.ownerName.charAt(0).toUpperCase() : 'U'}
-            </div>
-            <div>
-              <h3 className="font-bold text-slate-800 text-lg leading-tight">
-                {session.ownerName}
-              </h3>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">
-                Logged in as: +91 {session.phone || 'Unknown Number'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Alert banners */}
       {settingsError && (
         <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-xs">

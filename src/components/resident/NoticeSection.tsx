@@ -13,14 +13,8 @@ export default function NoticeSection({
   flatNo,
   announcements
 }: NoticeSectionProps) {
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-  // Filter announcements matching wing & flatNo target criteria and within 3 months
+  // Filter announcements matching wing & flatNo target criteria
   const filteredNotices = announcements.filter(item => {
-    const itemDate = new Date(item.createdAt || item.timestamp || Date.now());
-    if (itemDate < threeMonthsAgo) return false;
-
     // If target type is all, everyone sees it
     if (item.targetType === 'all') return true;
     

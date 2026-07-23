@@ -148,8 +148,35 @@ export default function App() {
       // Subscribe to foreground FCM messages (when app is OPEN)
       const unsubFCM = subscribeToForegroundMessages((payload) => {
         console.log('[FCM Foreground] Message received:', payload);
-        // Dispatch an event to update in-app UI badges
-        window.dispatchEvent(new CustomEvent('in-app-notification', { detail: payload }));
+        // Show OS notification for foreground messages too (otherwise they only show in-app)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          const data = payload.data || {};
+          const notif = payload.notification || {};
+          const type = data.type || '';
+          const visitorId = data.visitorId;
+          
+          if (navigator.serviceWorker.controller) {
+            // Use service worker to show notification (supports actions like approve/reject)
+            navigator.serviceWorker.ready.then(reg => {
+              const opts: any = {
+                body: notif.body || data.body || '',
+                icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+                badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+                tag: visitorId || type || 'foreground_notif',
+                data: data,
+                requireInteraction: type === 'visitor' || type === 'visitor_request',
+                vibrate: [200, 100, 200]
+              };
+              if (type === 'visitor' || type === 'visitor_request') {
+                opts.actions = [
+                  { action: 'approve', title: '✅ Approve Entry' },
+                  { action: 'reject', title: '❌ Reject' }
+                ];
+              }
+              reg.showNotification(notif.title || 'Orchid Heights', opts);
+            });
+          }
+        }
       });
       return () => unsubFCM();
     }

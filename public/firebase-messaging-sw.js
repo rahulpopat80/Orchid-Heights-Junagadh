@@ -10,7 +10,9 @@
 // allowing us to add custom Approve/Reject buttons reliably.
 
 self.addEventListener('push', (event) => {
+  // STOP the Firebase Messaging SDK from seeing this push event!
   event.stopImmediatePropagation();
+  
   if (!event.data) return;
 
   let payload;
@@ -28,28 +30,27 @@ self.addEventListener('push', (event) => {
   const actualData = msg.data || payload.data || {};
   const actualNotif = msg.notification || payload.notification || {};
 
-  const title = actualNotif.title || actualData.title || 'Orchid Heights';
-  const body = actualNotif.body || actualData.body || actualData.message || 'New notification.';
+  const title = actualNotif.title || actualData.title || '🏢 Orchid Heights';
+  const body = actualNotif.body || actualData.body || actualData.message || 'You have a new notification.';
+  const icon = actualData.icon || actualNotif.image || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
   const type = actualData.type || 'society';
   const visitorId = actualData.visitorId || actualData.id || null;
-
-  // STRICT RULE: Only add Approve/Reject for actual new gate requests
-  const isActionableRequest = type === 'visitor_request' || (type === 'visitor' && !body.toLowerCase().includes('exit') && !body.toLowerCase().includes('pre-entry'));
+  const tag = visitorId || actualData.tag || type || 'orchid_notif';
 
   const notifOptions = {
     body: body,
-    icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png', // Absolute URL
+    icon: icon,
     badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
-    tag: visitorId || type || 'orchid_notif',
-    data: { ...actualData, clickType: type }, // Pass type for routing
-    requireInteraction: isActionableRequest,
+    tag: tag,
+    data: actualData,
+    requireInteraction: type === 'visitor' || type === 'visitor_request',
     vibrate: [200, 100, 200]
   };
 
-  if (isActionableRequest) {
+  if (type === 'visitor' || type === 'visitor_request') {
     notifOptions.actions = [
-      { action: 'approve', title: 'Approve Entry' },
-      { action: 'reject', title: 'Reject' }
+      { action: 'approve', title: '✅ Approve Entry' },
+      { action: 'reject', title: '❌ Reject' }
     ];
   }
 
@@ -149,18 +150,22 @@ self.addEventListener('notificationclick', function(event) {
 
     event.waitUntil(Promise.all([updatePromise, broadcastPromise]));
   } else {
-    // Normal click - focus or open the app with exact routing logic
-    const type = notifData.clickType || notifData.type || '';
+    // Normal click - focus or open the app
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
         let targetPath = '/home';
-
-        if (type.includes('visitor')) targetPath = '/gate-visitors';
-        else if (type === 'notice' || type === 'announcement') targetPath = '/help-desk/noticies';
-        else if (type === 'financial') targetPath = '/help-desk/financial-ledger';
-        else if (type.includes('complaint')) targetPath = '/complaints';
-        else if (type.includes('amenity') || type.includes('gym') || type.includes('movie')) targetPath = '/amenities';
-
+        if (visitorId && visitorId !== 'fcm_notif' && visitorId !== 'society' && visitorId !== 'visitor') {
+          targetPath = '/gate-visitors';
+        } else if (notifData.type === 'visitor' || notifData.type === 'visitor_request') {
+          targetPath = '/gate-visitors';
+        } else if (notifData.type === 'notice' || notifData.type === 'announcement') {
+          targetPath = '/help-desk/noticies';
+        } else if (notifData.type === 'complaint') {
+          targetPath = '/complaints';
+        } else if (notifData.type === 'financial') {
+          targetPath = '/help-desk/financial-ledger';
+        }
+        
         for (const client of clientList) {
           if ('focus' in client) {
             client.navigate(targetPath).catch(() => {});
