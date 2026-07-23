@@ -204,20 +204,21 @@ export default function App() {
           
           // 1. Get or create unique persistent physical device ID and IMEI SYNCHRONOUSLY first!
           // This absolutely prevents any race conditions during asynchronous public IP address lookups.
-          let deviceId = localStorage.getItem('orchid_physical_device_id');
+          const phoneNumber = session.phone || 'default';
+          let deviceId = localStorage.getItem(`orchid_physical_device_id_${phoneNumber}`);
           if (!deviceId) {
             deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
-            localStorage.setItem('orchid_physical_device_id', deviceId);
+            localStorage.setItem(`orchid_physical_device_id_${phoneNumber}`, deviceId);
           }
           
           // Keep a copy in the legacy keys for backward compatibility
           localStorage.setItem(`orchid_device_uuid_${flatKey}`, deviceId);
           localStorage.setItem('orchid_device_uuid', deviceId);
 
-          let imei = localStorage.getItem('orchid_physical_device_imei');
+          let imei = localStorage.getItem(`orchid_physical_device_imei_${phoneNumber}`);
           if (!imei) {
             imei = '358401' + Math.floor(100000 + Math.random() * 900000) + Math.floor(10 + Math.random() * 90);
-            localStorage.setItem('orchid_physical_device_imei', imei);
+            localStorage.setItem(`orchid_physical_device_imei_${phoneNumber}`, imei);
           }
           localStorage.setItem(`orchid_imei_${deviceId}`, imei);
           localStorage.setItem(`orchid_device_imei_${flatKey}`, imei);
@@ -336,7 +337,8 @@ export default function App() {
         console.warn('Failed to unregister FCM token on logout:', err);
       }
       const flatKey = `${session.wing}_${session.flatNo}`;
-      const deviceId = localStorage.getItem('orchid_physical_device_id') || localStorage.getItem(`orchid_device_uuid_${flatKey}`);
+      const phoneNumber = session.phone || 'default';
+      const deviceId = localStorage.getItem(`orchid_physical_device_id_${phoneNumber}`) || localStorage.getItem('orchid_physical_device_id') || localStorage.getItem(`orchid_device_uuid_${flatKey}`);
       if (deviceId) {
         try {
           await (api as any).deregisterDevice(session.wing, session.flatNo, deviceId);
@@ -356,9 +358,10 @@ export default function App() {
       const validateDeviceSession = async () => {
         try {
           const flatKey = `${session.wing}_${session.flatNo}`;
-          let deviceId = localStorage.getItem('orchid_physical_device_id');
+          const phoneNumber = session.phone || 'default';
+          let deviceId = localStorage.getItem(`orchid_physical_device_id_${phoneNumber}`);
           if (!deviceId) {
-            deviceId = localStorage.getItem(`orchid_device_uuid_${flatKey}`) || localStorage.getItem('orchid_device_uuid');
+            deviceId = localStorage.getItem('orchid_physical_device_id') || localStorage.getItem(`orchid_device_uuid_${flatKey}`) || localStorage.getItem('orchid_device_uuid');
           }
           
           if (deviceId) {

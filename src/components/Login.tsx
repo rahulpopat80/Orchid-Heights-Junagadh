@@ -53,21 +53,21 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         const flatKey = `${wing}_${flatNo}`;
         
         // 1. Base deviceId and IMEI firmly and SYNCHRONOUSLY first to prevent any async race conditions
-        let deviceId = localStorage.getItem('orchid_physical_device_id');
+        let deviceId = localStorage.getItem(`orchid_physical_device_id_${phoneNumber}`);
         if (!deviceId) {
           deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
-          localStorage.setItem('orchid_physical_device_id', deviceId);
+          localStorage.setItem(`orchid_physical_device_id_${phoneNumber}`, deviceId);
         }
         
         // Keep a copy in the legacy keys for backward compatibility
         localStorage.setItem(`orchid_device_uuid_${flatKey}`, deviceId);
         localStorage.setItem('orchid_device_uuid', deviceId);
 
-        // Get or create a persistent unique Serial Number / IMEI mapped to this physical device
-        let imei = localStorage.getItem('orchid_physical_device_imei');
+        // Get or create a persistent unique Serial Number / IMEI mapped to this physical device and phone number
+        let imei = localStorage.getItem(`orchid_physical_device_imei_${phoneNumber}`);
         if (!imei) {
           imei = '358401' + Math.floor(100000 + Math.random() * 900000) + Math.floor(10 + Math.random() * 90);
-          localStorage.setItem('orchid_physical_device_imei', imei);
+          localStorage.setItem(`orchid_physical_device_imei_${phoneNumber}`, imei);
         }
         localStorage.setItem(`orchid_imei_${deviceId}`, imei);
         localStorage.setItem(`orchid_device_imei_${flatKey}`, imei);

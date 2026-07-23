@@ -393,7 +393,7 @@ export async function verifyCredentials(role: string, payload: any): Promise<{ s
                 return {
                   success: false,
                   code: 'DEVICE_LIMIT_EXCEEDED',
-                  devices: currentDevices,
+                  devices: currentDevices.filter((d) => d.phoneNumber === payload.phoneNumber),
                   message: `The phone number ${payload.phoneNumber} is already logged in on another device. You must log out of the other device first.`
                 };
               }
