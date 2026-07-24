@@ -1,0 +1,811 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
+import { getInitialOwners } from '../data/ownersData';
+
+// --- Event Subscription & Triggering for Subscriptions ---
+class LocalEventManager {
+  private listeners: Record<string, Set<Function>> = {};
+
+  subscribe(event: string, callback: Function) {
+    if (!this.listeners[event]) this.listeners[event] = new Set();
+    this.listeners[event].add(callback);
+    return () => { this.listeners[event].delete(callback); };
+  }
+
+  emit(event: string, data?: any) {
+    if (this.listeners[event]) {
+      this.listeners[event].forEach(cb => cb(data));
+    }
+  }
+}
+
+export const localEvents = new LocalEventManager();
+
+// --- Storage Accessors ---
+export function getLocalOwners(): FlatOwner[] {
+  const data = localStorage.getItem('orchid_local_owners');
+  if (data) return JSON.parse(data);
+  const initial = getInitialOwners();
+  localStorage.setItem('orchid_local_owners', JSON.stringify(initial));
+  return initial;
+}
+
+export function saveLocalOwners(owners: FlatOwner[]) {
+  localStorage.setItem('orchid_local_owners', JSON.stringify(owners));
+}
+
+export function getLocalPasswords(): Record<string, string> {
+  const data = localStorage.getItem('orchid_local_passwords');
+  if (data) return JSON.parse(data);
+  const initial: Record<string, string> = {};
+  getInitialOwners().forEach(owner => {
+    initial[`${owner.wing}-${owner.flatNo}`] = (owner.wing === 'B' && owner.flatNo === 1104) ? '9898180810' : 'admin@123';
+  });
+  localStorage.setItem('orchid_local_passwords', JSON.stringify(initial));
+  return initial;
+}
+
+export function saveLocalPasswords(passwords: Record<string, string>) {
+  localStorage.setItem('orchid_local_passwords', JSON.stringify(passwords));
+}
+
+export function getLocalVisitors(): Visitor[] {
+  const data = localStorage.getItem('orchid_local_visitors');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalVisitors(visitors: Visitor[]) {
+  localStorage.setItem('orchid_local_visitors', JSON.stringify(visitors));
+  localEvents.emit('all_visitors', visitors);
+  localEvents.emit('visitor_update_trigger', null);
+}
+
+export function getLocalAnnouncements(): Announcement[] {
+  const data = localStorage.getItem('orchid_local_announcements');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalAnnouncements(anns: Announcement[]) {
+  localStorage.setItem('orchid_local_announcements', JSON.stringify(anns));
+  localEvents.emit('announcements_update_trigger', null);
+}
+
+export function getLocalEssentialContacts(): EssentialContact[] {
+  const data = localStorage.getItem('orchid_local_essential_contacts');
+  if (data) return JSON.parse(data);
+  const defaultContacts: EssentialContact[] = [
+    { id: 'ec_1', name: 'Ramesh Patel', category: 'Plumber', phone: '9825012345', active: true },
+    { id: 'ec_2', name: 'Kishore Parmar', category: 'Electrician', phone: '9898022334', active: true },
+    { id: 'ec_3', name: 'Gate 1 Guard Duty', category: 'Security', phone: '9426055667', active: true },
+    { id: 'ec_4', name: 'Orchid Heights Manager', category: 'Manager', phone: '9712033445', active: true },
+    { id: 'ec_5', name: 'Manish Mali', category: 'Gardener', phone: '9033099881', active: true }
+  ];
+  localStorage.setItem('orchid_local_essential_contacts', JSON.stringify(defaultContacts));
+  return defaultContacts;
+}
+
+export function saveLocalEssentialContacts(contacts: EssentialContact[]) {
+  localStorage.setItem('orchid_local_essential_contacts', JSON.stringify(contacts));
+}
+
+export function getLocalComplaints(): Complaint[] {
+  const data = localStorage.getItem('orchid_local_complaints');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalComplaints(complaints: Complaint[]) {
+  localStorage.setItem('orchid_local_complaints', JSON.stringify(complaints));
+}
+
+export function getLocalFinancialReports(): FinancialReport[] {
+  const data = localStorage.getItem('orchid_local_financial_reports');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalFinancialReports(reports: FinancialReport[]) {
+  localStorage.setItem('orchid_local_financial_reports', JSON.stringify(reports));
+}
+
+export function getLocalSocietyNotifications(): any[] {
+  const data = localStorage.getItem('orchid_local_society_notifications');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalSocietyNotifications(notifs: any[]) {
+  localStorage.setItem('orchid_local_society_notifications', JSON.stringify(notifs));
+  localEvents.emit('society_notifications_update_trigger', null);
+}
+
+// --- Implementation Fallbacks ---
+
+export function verifyCredentialsLocal(role: string, payload: any) {
+  if (role === 'security') {
+    if (payload.username === 'admin' && payload.password === 'admin@123') {
+      return { success: true, session: { role: 'security', name: 'Security Guard' } };
+    }
+    return { success: false, message: 'Invalid Security Guard credentials.' };
+  }
+
+  if (role === 'owner' || role === 'admin') {
+    const { wing, flatNo, password, phoneNumber } = payload;
+    if (!wing || !flatNo) return { success: false, message: 'Wing and Flat number are required.' };
+    if (!phoneNumber) return { success: false, message: 'Phone number is required.' };
+    
+    const flatNum = parseInt(flatNo, 10);
+    const id = `${wing}-${flatNum}`;
+    const savedPassword = getLocalPasswords()[id] || 'admin@123';
+
+    if (password === savedPassword) {
+      const owners = getLocalOwners();
+      const ownerData = owners.find(o => o.wing === wing && o.flatNo === flatNum) || null;
+      
+      if (!ownerData) return { success: false, message: 'Flat is empty. No owner registered.' };
+
+      let matchedName = '';
+      if (ownerData.phone === phoneNumber) {
+        matchedName = ownerData.nameEn;
+      } else {
+        const memberMatch = (ownerData.members || []).find(m => m.includes(phoneNumber));
+        if (memberMatch) {
+          matchedName = memberMatch.split('(')[0].trim();
+        } else {
+          return { success: false, message: 'Phone number not registered to this flat.' };
+        }
+      }
+
+      if (ownerData) {
+        const currentDevices = ownerData.devices || [];
+        const device = payload.device;
+        if (device && device.deviceId) {
+          const isRegistered = currentDevices.some((d) => d.deviceId === device.deviceId);
+          
+          // Check if phone number is already active elsewhere
+          if (payload.phoneNumber && !isRegistered) {
+            const isPhoneActiveElsewhere = currentDevices.some((d) => d.phoneNumber === payload.phoneNumber);
+            if (isPhoneActiveElsewhere) {
+              return {
+                success: false,
+                code: 'DEVICE_LIMIT_EXCEEDED',
+                devices: currentDevices,
+                message: `The phone number ${payload.phoneNumber} is already logged in on another device. You must log out of the other device first.`
+              };
+            }
+          }
+
+          const maxDevices = Math.min(5, 1 + (ownerData.members?.length || 0));
+          if (!isRegistered && currentDevices.length >= maxDevices) {
+            return {
+              success: false,
+              code: 'DEVICE_LIMIT_EXCEEDED',
+              devices: currentDevices,
+              maxLimit: maxDevices,
+              message: `${maxDevices} devices are already signed in for this flat - log out from one first.`
+            };
+          }
+        }
+      }
+
+      return {
+        success: true,
+        session: {
+          role: 'owner',
+          wing,
+          flatNo: flatNum,
+          ownerName: matchedName || `Flat ${wing}-${flatNum}`,
+          phone: phoneNumber
+        }
+      };
+    }
+    return { success: false, message: 'Invalid password. Default is admin@123.' };
+  }
+  return { success: false, message: 'Invalid role.' };
+}
+
+export function updateOwnerDetailsLocal(wing: string, flatNo: number, payload: any) {
+  const owners = getLocalOwners();
+  const idx = owners.findIndex(o => o.wing === wing && o.flatNo === flatNo);
+  if (idx === -1) return { success: false, message: 'Flat owner not found.' };
+  
+  const currentOwner = owners[idx];
+  const { nameEn, nameGu, phone, secondaryContact, members, vehicles, password } = payload;
+  const updated = {
+    ...currentOwner,
+    ...(nameEn !== undefined && { nameEn }),
+    ...(nameGu !== undefined && { nameGu }),
+    ...(phone !== undefined && { phone }),
+    ...(secondaryContact !== undefined && { secondaryContact }),
+    ...(members !== undefined && { members: members.slice(0, 2) }),
+    ...(vehicles !== undefined && { vehicles }),
+    ...(payload.notificationsEnabled !== undefined && { notificationsEnabled: payload.notificationsEnabled })
+  };
+  owners[idx] = updated;
+  saveLocalOwners(owners);
+
+  if (password) {
+    const id = `${wing}-${flatNo}`;
+    const passwords = getLocalPasswords();
+    passwords[id] = password;
+    saveLocalPasswords(passwords);
+  }
+  return { success: true, owner: updated };
+}
+
+export function adminChangePasswordLocal(wing: string, flatNo: number, newPassword: string): boolean {
+  const id = `${wing}-${flatNo}`;
+  const passwords = getLocalPasswords();
+  passwords[id] = newPassword;
+  saveLocalPasswords(passwords);
+  return true;
+}
+
+export function resetDatabaseToDefaultLocal(): boolean {
+  localStorage.removeItem('orchid_local_owners');
+  localStorage.removeItem('orchid_local_passwords');
+  localStorage.removeItem('orchid_local_visitors');
+  localStorage.removeItem('orchid_local_announcements');
+  localStorage.removeItem('orchid_local_complaints');
+  localStorage.removeItem('orchid_local_financial_reports');
+  localStorage.removeItem('orchid_local_essential_contacts');
+  localStorage.removeItem('orchid_local_society_notifications');
+  
+  getLocalOwners();
+  getLocalPasswords();
+  getLocalEssentialContacts();
+  
+  localEvents.emit('all_visitors', []);
+  localEvents.emit('visitor_update_trigger', null);
+  localEvents.emit('announcements_update_trigger', null);
+  localEvents.emit('society_notifications_update_trigger', null);
+  return true;
+}
+
+export function registerVisitorLocal(payload: any): Visitor {
+  const { fullName, mobileNumber, email, wing, flatNo, reason, guestType, photoUrl, flatOwnerName, visitorCount } = payload;
+  const visitorId = 'v_' + Math.random().toString(36).substr(2, 9);
+  const count = parseInt(visitorCount, 10) || 1;
+  const newVisitor: Visitor = {
+    id: visitorId,
+    fullName,
+    mobileNumber,
+    email: email || '',
+    wing,
+    flatNo: parseInt(flatNo, 10),
+    reason,
+    guestType,
+    photoUrl: photoUrl || '',
+    status: 'pending',
+    requestTime: new Date().toISOString(),
+    flatOwnerName: flatOwnerName || `Flat ${wing}-${flatNo}`,
+    visitorCount: count
+  };
+
+  const visitors = getLocalVisitors();
+  visitors.push(newVisitor);
+  saveLocalVisitors(visitors);
+
+  createSocietyNotificationLocal({
+    type: 'visitor',
+    title: `🚪 Gate Visitor: ${fullName}`,
+    message: `A visitor (${fullName}, ${guestType}) is requesting entry to Flat ${wing}-${flatNo} for ${reason}.`,
+    wing,
+    flatNo: parseInt(flatNo, 10),
+    metadata: {
+      visitorId,
+      fullName,
+      mobileNumber,
+      guestType,
+      reason,
+      photoUrl: photoUrl || '',
+      visitorCount: count
+    }
+  });
+
+  return newVisitor;
+}
+
+export function getVisitorsListLocal(filters?: { wing?: string; flatNo?: number; limitNo?: number; includeDeleted?: boolean }): Visitor[] {
+  let visitors = getLocalVisitors();
+  if (!filters?.includeDeleted) visitors = visitors.filter((v) => !v.deletedByResident);
+  if (filters?.wing) visitors = visitors.filter((v) => v.wing.toUpperCase() === filters.wing!.toUpperCase());
+  if (filters?.flatNo) visitors = visitors.filter((v) => Number(v.flatNo) === Number(filters.flatNo));
+  
+  visitors.sort((a, b) => new Date(b.requestTime).getTime() - new Date(a.requestTime).getTime());
+  if (filters?.limitNo) visitors = visitors.slice(0, filters.limitNo);
+  return visitors;
+}
+
+export function pollPendingVisitorAlertsLocal(wing: string, flatNo: number): Visitor[] {
+  const visitors = getLocalVisitors();
+  return visitors.filter((v) => v.wing.toUpperCase() === wing.toUpperCase() && Number(v.flatNo) === Number(flatNo) && v.status === 'pending');
+}
+
+export function respondToVisitorRequestLocal(
+  visitorId: string,
+  status: 'approved' | 'rejected' | 'expired',
+  respondedBy?: string,
+  rejectReason?: string
+): { success: boolean; visitor?: Visitor } {
+  const visitors = getLocalVisitors();
+  const idx = visitors.findIndex(v => v.id === visitorId);
+  if (idx === -1) return { success: false };
+  
+  const currentVisitor = visitors[idx];
+  const updated: Visitor = {
+    ...currentVisitor,
+    status,
+    respondedTime: new Date().toISOString(),
+    respondedBy: respondedBy || 'Resident',
+    rejectReason: rejectReason || ''
+  };
+  visitors[idx] = updated;
+  saveLocalVisitors(visitors);
+
+  const notifications = getLocalSocietyNotifications();
+  const notifIdx = notifications.findIndex(n => n.metadata && n.metadata.visitorId === visitorId);
+  if (notifIdx > -1) {
+    const notifData = notifications[notifIdx];
+    const newTitle = `🚪 Gate Visitor: ${currentVisitor.fullName} (${status.toUpperCase()})`;
+    const newMsg = status === 'approved'
+      ? `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) was APPROVED for entry to Flat ${currentVisitor.wing}-${currentVisitor.flatNo} by ${respondedBy || 'Resident'} for ${currentVisitor.reason}.`
+      : `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) was REJECTED for entry to Flat ${currentVisitor.wing}-${currentVisitor.flatNo} by ${respondedBy || 'Resident'}.${rejectReason ? ' Reason: ' + rejectReason : ''}`;
+    
+    notifications[notifIdx] = {
+      ...notifData,
+      title: newTitle,
+      message: newMsg,
+      status: status,
+      metadata: {
+        ...notifData.metadata,
+        status: status,
+        respondedTime: updated.respondedTime,
+        respondedBy: updated.respondedBy,
+        rejectReason: updated.rejectReason
+      }
+    };
+    saveLocalSocietyNotifications(notifications);
+  }
+
+  return { success: true, visitor: updated };
+}
+
+export function calculateDuration(startTimeISO: string, exitTimeISO: string): string {
+  const start = new Date(startTimeISO).getTime();
+  const end = new Date(exitTimeISO).getTime();
+  if (isNaN(start) || isNaN(end) || end <= start) return 'Less than 1 min';
+  const diffMinutes = Math.floor((end - start) / (1000 * 60));
+  if (diffMinutes < 1) return 'Less than 1 min';
+  const hours = Math.floor(diffMinutes / 60);
+  const mins = diffMinutes % 60;
+  if (hours === 0) return `${mins} mins`;
+  if (mins === 0) return `${hours} hr${hours > 1 ? 's' : ''}`;
+  return `${hours} hr${hours > 1 ? 's' : ''} ${mins} mins`;
+}
+
+export function markVisitorExitedLocal(visitorId: string): { success: boolean; visitor?: Visitor } {
+  const visitors = getLocalVisitors();
+  const idx = visitors.findIndex(v => v.id === visitorId);
+  if (idx === -1) return { success: false };
+
+  const currentVisitor = visitors[idx];
+  const exitTime = new Date().toISOString();
+  const duration = calculateDuration(currentVisitor.requestTime, exitTime);
+
+  const updated: Visitor = {
+    ...currentVisitor,
+    exited: true,
+    exitTime,
+    duration,
+    status: 'Entered' // keep status as Entered or exited
+  };
+  visitors[idx] = updated;
+  saveLocalVisitors(visitors);
+
+  const notifications = getLocalSocietyNotifications();
+  notifications.unshift({
+    id: 'exit_notif_' + Date.now(),
+    type: 'visitor',
+    title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
+    message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
+    wing: currentVisitor.wing,
+    flatNo: currentVisitor.flatNo,
+    timestamp: exitTime,
+    read: false,
+    metadata: { visitorId, exited: true, exitTime, duration }
+  });
+  saveLocalSocietyNotifications(notifications);
+
+  return { success: true, visitor: updated };
+}
+
+export function deleteVisitorRequestLocal(visitorId: string): boolean {
+  const visitors = getLocalVisitors();
+  const idx = visitors.findIndex(v => v.id === visitorId);
+  if (idx > -1) {
+    visitors[idx].deletedByResident = true;
+    saveLocalVisitors(visitors);
+    return true;
+  }
+  return false;
+}
+
+export function sendBroadcastAnnouncementLocal(
+  target: 'all' | 'wing' | 'flat',
+  wing: 'A' | 'B' | '',
+  flatNo: number,
+  text: string,
+  sender: string,
+  imageUrl?: string,
+  videoUrl?: string
+): boolean {
+  const id = 'ann_' + Math.random().toString(36).substring(2, 11);
+  const payload: Announcement = {
+    id,
+    target,
+    text,
+    timestamp: new Date().toISOString(),
+    sender,
+    imageUrl: imageUrl || '',
+    videoUrl: videoUrl || '',
+    wing: wing ? (wing as 'A' | 'B') : undefined,
+    flatNo: flatNo || undefined
+  };
+  const anns = getLocalAnnouncements();
+  anns.push(payload);
+  saveLocalAnnouncements(anns);
+  return true;
+}
+
+export function deleteAnnouncementLocal(id: string): boolean {
+  const anns = getLocalAnnouncements();
+  const filtered = anns.filter(a => a.id !== id);
+  if (filtered.length !== anns.length) {
+    saveLocalAnnouncements(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function getAllAnnouncementsLocal(): Announcement[] {
+  const anns = getLocalAnnouncements();
+  anns.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  return anns;
+}
+
+export function saveAnnouncementLocal(ann: Announcement): boolean {
+  const anns = getLocalAnnouncements();
+  const idx = anns.findIndex(a => a.id === ann.id);
+  const cleaned: Announcement = {
+    id: ann.id,
+    target: ann.target || 'all',
+    text: ann.text || '',
+    timestamp: ann.timestamp || new Date().toISOString(),
+    sender: ann.sender || 'Orchid Heights Administration',
+    imageUrl: ann.imageUrl || '',
+    videoUrl: ann.videoUrl || '',
+    pdfUrl: ann.pdfUrl || '',
+    fileName: ann.fileName || '',
+    fileType: ann.fileType || '',
+    attachments: ann.attachments || [],
+    wing: ann.wing,
+    flatNo: ann.flatNo
+  };
+  if (idx > -1) anns[idx] = cleaned;
+  else anns.push(cleaned);
+  saveLocalAnnouncements(anns);
+  return true;
+}
+
+export function registerUserDeviceLocal(wing: string, flatNo: number, device: DeviceInfo) {
+  const owners = getLocalOwners();
+  const idx = owners.findIndex(o => o.wing === wing && o.flatNo === flatNo);
+  if (idx > -1) {
+    const ownerData = owners[idx];
+    const currentDevices = ownerData.devices || [];
+    const filteredDevices = currentDevices.filter(d => {
+      const isSameDevice = d.deviceId === device.deviceId;
+      const isSamePhone = !!(d.phoneNumber && device.phoneNumber && d.phoneNumber === device.phoneNumber);
+      const isSameMember = !!(d.memberId && device.memberId && d.memberId === device.memberId);
+      return !isSameDevice && !isSamePhone && !isSameMember;
+    });
+    
+    const newDevice = { ...device, lastLogin: new Date().toISOString() };
+    filteredDevices.push(newDevice);
+
+    owners[idx].devices = filteredDevices;
+    saveLocalOwners(owners);
+  }
+}
+
+export function deregisterUserDeviceLocal(wing: string, flatNo: number, deviceId: string): boolean {
+  const owners = getLocalOwners();
+  const idx = owners.findIndex(o => o.wing === wing && o.flatNo === flatNo);
+  if (idx > -1) {
+    const ownerData = owners[idx];
+    const currentDevices = ownerData.devices || [];
+    const updatedDevices = currentDevices.filter((d) => d.deviceId !== deviceId);
+    owners[idx].devices = updatedDevices;
+    saveLocalOwners(owners);
+    return true;
+  }
+  return false;
+}
+
+export function getEssentialContactsLocal(): EssentialContact[] {
+  return getLocalEssentialContacts();
+}
+
+export function saveEssentialContactLocal(contact: EssentialContact): boolean {
+  const contacts = getLocalEssentialContacts();
+  const idx = contacts.findIndex(c => c.id === contact.id);
+  if (idx > -1) contacts[idx] = contact;
+  else contacts.push(contact);
+  saveLocalEssentialContacts(contacts);
+  return true;
+}
+
+export function deleteEssentialContactLocal(contactId: string): boolean {
+  const contacts = getLocalEssentialContacts();
+  const filtered = contacts.filter(c => c.id !== contactId);
+  if (filtered.length !== contacts.length) {
+    saveLocalEssentialContacts(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function getComplaintsListLocal(): Complaint[] {
+  const complaints = getLocalComplaints();
+  complaints.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return complaints;
+}
+
+export function createComplaintLocal(payload: any): Complaint {
+  const { id, flatId, wing, flatNo, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
+  const complaintId = id || 'comp_' + Math.random().toString(36).substring(2, 11);
+  const derivedFlatId = flatId || (wing && flatNo ? `${wing}-${flatNo}` : 'B-1104');
+  const newComplaint: Complaint = {
+    id: complaintId,
+    flatId: derivedFlatId,
+    title: title || '',
+    description: description || '',
+    mediaUrl: mediaUrl || '',
+    mediaName: mediaName || '',
+    mediaType: mediaType || '',
+    status: status || 'open',
+    createdAt: createdAt || new Date().toISOString(),
+    resolvedAt: resolvedAt || null,
+    resolvedBy: resolvedBy || null,
+    processNotes: processNotes || '',
+    attachments: attachments || []
+  };
+  const complaints = getLocalComplaints();
+  complaints.push(newComplaint);
+  saveLocalComplaints(complaints);
+  return newComplaint;
+}
+
+export function updateComplaintStatusLocal(
+  complaintId: string,
+  status: 'open' | 'in-progress' | 'resolved',
+  resolvedBy?: string,
+  processNotes?: string
+): boolean {
+  const complaints = getLocalComplaints();
+  const idx = complaints.findIndex(c => c.id === complaintId);
+  if (idx > -1) {
+    const data = complaints[idx];
+    complaints[idx] = {
+      ...data,
+      status,
+      resolvedAt: status === 'resolved' ? new Date().toISOString() : null,
+      resolvedBy: status === 'resolved' ? resolvedBy || 'Secretary' : null,
+      processNotes: processNotes !== undefined ? processNotes : (data.processNotes || '')
+    };
+    saveLocalComplaints(complaints);
+    return true;
+  }
+  return false;
+}
+
+export function deleteComplaintLocal(complaintId: string): boolean {
+  const complaints = getLocalComplaints();
+  const filtered = complaints.filter(c => c.id !== complaintId);
+  if (filtered.length !== complaints.length) {
+    saveLocalComplaints(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function getFinancialReportsListLocal(): FinancialReport[] {
+  const reports = getLocalFinancialReports();
+  reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return reports;
+}
+
+export function createFinancialReportLocal(payload: any): FinancialReport {
+  const { id, month, year, title, description, pdfUrl, fileName, fileType, totalExpense, uploadedBy, reportType, createdAt, attachments } = payload;
+  const reportId = id || 'fin_' + Math.random().toString(36).substring(2, 11);
+  const newReport: FinancialReport = {
+    id: reportId,
+    month: month || new Date().toLocaleString('default', { month: 'long' }),
+    year: parseInt(year, 10) || new Date().getFullYear(),
+    title: title || '',
+    description: description || '',
+    pdfUrl: pdfUrl || '',
+    fileName: fileName || '',
+    fileType: fileType || '',
+    totalExpense: parseFloat(totalExpense) || 0,
+    createdAt: createdAt || new Date().toISOString(),
+    uploadedBy: uploadedBy || 'Rahul Popat (B-1104 / Admin)',
+    reportType: reportType || 'expense',
+    attachments: attachments || []
+  };
+  const reports = getLocalFinancialReports();
+  reports.push(newReport);
+  saveLocalFinancialReports(reports);
+  return newReport;
+}
+
+export function deleteFinancialReportLocal(reportId: string): boolean {
+  const reports = getLocalFinancialReports();
+  const filtered = reports.filter(r => r.id !== reportId);
+  if (filtered.length !== reports.length) {
+    saveLocalFinancialReports(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function getFlatPasswordsLocal(): Record<string, string> {
+  return getLocalPasswords();
+}
+
+export function getLocalPreEntries(): PreEntry[] {
+  const data = localStorage.getItem('orchid_local_pre_entries');
+  if (data) return JSON.parse(data);
+  return [];
+}
+
+export function saveLocalPreEntries(preEntries: PreEntry[]) {
+  localStorage.setItem('orchid_local_pre_entries', JSON.stringify(preEntries));
+}
+
+export function createPreEntryLocal(payload: any): PreEntry {
+  const { fullName, mobileNumber, guestType, reason, visitorCount, photoUrl, wing, flatNo, ownerName, householdMemberName, ipAddress, deviceImei } = payload;
+  
+  // Generate a unique 6-digit numeric pass ID like an OTP
+  const id = Math.floor(100000 + Math.random() * 900000).toString();
+  const createdAt = new Date().toISOString();
+  const expiresAt = new Date(new Date().getTime() + 24 * 60 * 60 * 1000).toISOString();
+  
+  const preEntry: PreEntry = {
+    id,
+    fullName,
+    mobileNumber,
+    guestType,
+    reason,
+    visitorCount: parseInt(visitorCount, 10) || 1,
+    photoUrl: photoUrl || '',
+    wing,
+    flatNo: parseInt(flatNo, 10),
+    ownerName,
+    householdMemberName,
+    createdAt,
+    expiresAt,
+    status: 'Pending',
+    ipAddress: ipAddress || '',
+    deviceImei: deviceImei || ''
+  };
+
+  const list = getLocalPreEntries();
+  list.push(preEntry);
+  saveLocalPreEntries(list);
+  return preEntry;
+}
+
+export function getPreEntriesLocal(wing: string, flatNo: number): PreEntry[] {
+  const list = getLocalPreEntries();
+  return list.filter((p) => p.wing.toUpperCase() === wing.toUpperCase() && p.flatNo === parseInt(String(flatNo), 10));
+}
+
+export function getPreEntryByIdLocal(id: string): PreEntry | null {
+  const list = getLocalPreEntries();
+  return list.find((p) => p.id === id) || null;
+}
+
+export function usePreEntryLocal(id: string): boolean {
+  const list = getLocalPreEntries();
+  const idx = list.findIndex((p) => p.id === id);
+  if (idx === -1) return false;
+  
+  const data = list[idx];
+  if (data.status !== 'Pending') return false;
+  
+  if (new Date() > new Date(data.expiresAt)) {
+    list[idx].status = 'Expired';
+    saveLocalPreEntries(list);
+    return false;
+  }
+  
+  list[idx].status = 'Used';
+  saveLocalPreEntries(list);
+  
+  // Register as Entered in visitor logs
+  const now = new Date();
+  const day = String(now.getDate()).padStart(2, '0');
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const year = now.getFullYear();
+  const entryDate = `${day}/${month}/${year}`;
+  const entryTime = now.toTimeString().split(' ')[0];
+  
+  const visitorId = 'v_' + Math.random().toString(36).substr(2, 9);
+  const newVisitor: Visitor = {
+    id: visitorId,
+    fullName: data.fullName,
+    mobileNumber: data.mobileNumber,
+    email: '',
+    wing: data.wing,
+    flatNo: data.flatNo,
+    reason: data.reason,
+    guestType: data.guestType,
+    photoUrl: data.photoUrl,
+    status: 'Entered',
+    requestTime: now.toISOString(),
+    respondedTime: now.toISOString(),
+    flatOwnerName: data.ownerName,
+    visitorCount: data.visitorCount,
+    respondedBy: data.householdMemberName,
+    householdMemberName: data.householdMemberName,
+    qrStatus: 'Used',
+    entryDate,
+    entryTime,
+    isPreEntry: true,
+    ipAddress: data.ipAddress,
+    deviceImei: data.deviceImei
+  };
+  
+  const visitors = getLocalVisitors();
+  visitors.push(newVisitor);
+  saveLocalVisitors(visitors);
+  
+  createSocietyNotificationLocal({
+    type: 'visitor',
+    title: `🔑 Pre-Entry Scanned: ${data.fullName}`,
+    message: `${data.fullName} entered using QR Code created by ${data.householdMemberName} for Flat ${data.wing}-${data.flatNo}.`,
+    wing: data.wing,
+    flatNo: data.flatNo,
+    metadata: { visitorId, fullName: data.fullName, guestType: data.guestType }
+  });
+  
+  return true;
+}
+
+export function createSocietyNotificationLocal(payload: {
+  type: 'notice' | 'financial' | 'complaint' | 'visitor' | 'amenity_request' | 'movie_schedule' | 'absence_redirection' | 'visitor_request';
+  title: string;
+  message: string;
+  wing?: string;
+  flatNo?: number;
+  metadata?: any;
+}): boolean {
+  const id = 'notif_' + Math.random().toString(36).substring(2, 11);
+  const newNotif = {
+    id,
+    type: payload.type,
+    title: payload.title,
+    message: payload.message,
+    wing: payload.wing || '',
+    flatNo: payload.flatNo || 0,
+    timestamp: new Date().toISOString(),
+    metadata: payload.metadata || {}
+  };
+  const notifs = getLocalSocietyNotifications();
+  notifs.push(newNotif);
+  saveLocalSocietyNotifications(notifs);
+  return true;
+}
