@@ -117,6 +117,15 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await api.login(payload);
 
       if (data.success && data.session) {
+        // Request push notification permission immediately on login (needed for FCM background push)
+        if ('Notification' in window && Notification.permission === 'default') {
+          try {
+            const perm = await Notification.requestPermission();
+            console.log('[Login] Notification permission:', perm);
+          } catch (permErr) {
+            console.warn('[Login] Notification permission request failed:', permErr);
+          }
+        }
         onLoginSuccess(data.session);
       } else if ((data as any).code === 'DEVICE_LIMIT_EXCEEDED') {
         setIsDeviceBlocked(true);
