@@ -1091,60 +1091,76 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 </div>
               </div>
 
-              {/* Scan Results Feedback */}
+              {/* Scan Results Feedback Modal */}
               {scanResult.status && (
-                <div className={`rounded-2xl p-6 border-2 transition-all duration-300 ${
-                  scanResult.status === 'success'
-                    ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                    : scanResult.status === 'expired'
-                    ? 'bg-amber-50 border-amber-300 text-amber-900'
-                    : 'bg-red-50 border-red-300 text-red-900'
-                }`}>
-                  <div className="flex items-start gap-4">
-                    <div className="mt-1">
-                      {scanResult.status === 'success' ? (
-                        <CheckCircle2 className="w-8 h-8 text-emerald-600 shrink-0" />
-                      ) : (
-                        <AlertCircle className="w-8 h-8 text-rose-600 shrink-0" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl w-full max-w-md relative space-y-5">
+                    {/* CLOSE BUTTON IN PASS VISITOR DETAILS */}
+                    <button
+                      onClick={() => setScanResult({ status: null, message: '' })}
+                      className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer flex items-center justify-center"
+                      title="Close Visitor Details"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+
+                    <div className="text-center space-y-1 pr-8">
+                      <span className={`${
+                        scanResult.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                      } text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase`}>
+                        {scanResult.status === 'success' ? 'Verified Pass Details' : 'Pass Declined'}
+                      </span>
+                      <h3 className="text-lg font-black text-slate-800 uppercase mt-1">
+                        {scanResult.data?.fullName || 'Unknown Visitor'}
+                      </h3>
+                      {scanResult.data && (
+                        <p className="text-xs text-slate-500 font-medium">
+                          Visiting Flat {scanResult.data.wing}-{scanResult.data.flatNo} ({scanResult.data.flatOwnerName || 'Resident'})
+                        </p>
                       )}
                     </div>
-                    <div className="space-y-3 flex-1 text-left">
-                      <h4 className="text-lg font-black tracking-tight leading-snug">
-                        {scanResult.status === 'success' ? 'પાસ મંજૂર (Pass Approved!)' : 'પાસ અસ્વીકાર (Pass Declined!)'}
-                      </h4>
-                      <p className="font-bold text-base leading-relaxed">{scanResult.message}</p>
-                      
-                      {scanResult.data && (
-                        <div className="flex flex-col md:flex-row gap-4 items-start bg-white/80 backdrop-blur border border-slate-200/50 rounded-xl p-4">
-                          {scanResult.data.photoUrl ? (
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg overflow-hidden border border-indigo-100 shadow-sm bg-slate-100 flex items-center justify-center">
-                              <img
-                                src={scanResult.data.photoUrl}
-                                alt="Visitor"
-                                className="w-full h-full object-cover"
-                                referrerPolicy="no-referrer"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-lg bg-slate-100 border border-slate-200 flex flex-col items-center justify-center text-slate-400 p-2 text-center">
-                              <Camera className="w-6 h-6 mb-1 text-slate-300" />
-                              <span className="text-[10px] font-semibold leading-tight">ફોટો નથી<br />(No Photo)</span>
-                            </div>
-                          )}
-                          <div className="space-y-1.5 text-sm text-slate-700 font-mono flex-1 text-left">
-                            <p><strong>મુલાકાતી (Visitor):</strong> {scanResult.data.fullName}</p>
-                            <p><strong>મોબાઇલ (Mobile):</strong> {scanResult.data.mobileNumber}</p>
-                            <p><strong>મુલાકાતીનો પ્રકાર (Type):</strong> {scanResult.data.guestType}</p>
-                            <p><strong>વિગત (Reason):</strong> {scanResult.data.reason || '-'}</p>
-                            <p><strong>ફ્લેટ નંબર (Flat):</strong> Wing {scanResult.data.wing} - {scanResult.data.flatNo}</p>
-                            <p><strong>બનાવનાર (Created By):</strong> {scanResult.data.householdMemberName || 'Resident'}</p>
-                            <p><strong>માનક સમય (Valid Until):</strong> {new Date(scanResult.data.expiresAt).toLocaleString('en-IN')}</p>
-                            <p><strong>સ્થિતિ (Status):</strong> <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                              scanResult.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                            }`}>{scanResult.status === 'success' ? 'મંજૂર (Approved)' : (scanResult.data.status || 'Declined')}</span></p>
-                          </div>
+
+                    <div className="text-center font-bold text-sm text-slate-700 my-2">
+                      {scanResult.message}
+                    </div>
+
+                    {scanResult.data?.photoUrl && (
+                      <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+                        <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
+                    {scanResult.data && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Guest Type:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
                         </div>
-                      )}
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Mobile:</span>
+                          <span className="font-mono font-bold text-slate-800">+91 {scanResult.data.mobileNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Reason:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.reason || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Status:</span>
+                          <span className={`font-bold ${
+                            scanResult.status === 'success' ? 'text-emerald-600' : 'text-red-600'
+                          }`}>{scanResult.status === 'success' ? 'Approved' : (scanResult.data.status || 'Declined')}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      {/* CLOSE BUTTON AT BOTTOM OF SECTION */}
+                      <button
+                        onClick={() => setScanResult({ status: null, message: '' })}
+                        className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                      >
+                        Close
+                      </button>
                     </div>
                   </div>
                 </div>

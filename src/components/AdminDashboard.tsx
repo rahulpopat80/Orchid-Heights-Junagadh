@@ -27,6 +27,24 @@ interface AdminDashboardProps {
 
 type AdminTab = 'home' | 'flats' | 'notices' | 'complaints' | 'finance' | 'address-book' | 'system' | 'amenities' | 'visitors' | 'local-services';
 
+// Device Deduplication Utility
+const deduplicateDevices = (devices: any[] = []) => {
+  const map = new Map<string, any>();
+  
+  devices.forEach((dev) => {
+    // Key strictly by deviceId and phoneNumber to keep multiple household devices separate
+    const key = `${dev.deviceId}_${dev.phoneNumber || 'no_phone'}`;
+    const existing = map.get(key);
+    
+    // Keep the most recent session timestamp
+    if (!existing || new Date(dev.lastLogin).getTime() > new Date(existing.lastLogin).getTime()) {
+      map.set(key, dev);
+    }
+  });
+  
+  return Array.from(map.values());
+};
+
 export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<AdminTab>('home');
   const [localSubTab, setLocalSubTab] = useState<'menu' | 'local' | 'building'>('menu');
@@ -1519,8 +1537,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                         </h4>
                         {selectedFlat.devices && selectedFlat.devices.length > 0 ? (
                           <div className="space-y-2">
-                            {selectedFlat.devices.map((device, index) => {
-                              const matchMember = selectedFlat.members?.find(m => m.includes(device.phoneNumber || ''));
+                            {(() => {
+                              const uniqueDevices = deduplicateDevices(selectedFlat.devices);
+                              return uniqueDevices.map((device, index) => {
+                                const matchMember = selectedFlat.members?.find(m => m.includes(device.phoneNumber || ''));
                               const displayName = matchMember ? matchMember.split('(')[0].trim() : (selectedFlat.phone === device.phoneNumber ? selectedFlat.nameEn : 'Unknown User');
                               return (
                                 <div key={device.deviceId || index} className="border border-slate-200 rounded-xl p-3 bg-slate-50/50 flex justify-between items-start gap-4">
@@ -1545,7 +1565,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                   </button>
                                 </div>
                               );
-                            })}</div>
+                            });
+                            })()}</div>
                         ) : (
                           <div className="text-center py-6 border border-dashed border-slate-200 rounded-xl bg-slate-50 text-slate-400">
                             <p className="text-xs">No active devices registered for this flat.</p></div>

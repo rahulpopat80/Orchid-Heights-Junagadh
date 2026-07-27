@@ -206,13 +206,12 @@ export default function App() {
           // This absolutely prevents any race conditions during asynchronous public IP address lookups.
           let deviceId = localStorage.getItem('orchid_physical_device_id');
           if (!deviceId) {
-            deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
+            deviceId = `dev_${Math.random().toString(36).substring(2, 11)}_${Date.now()}`;
             localStorage.setItem('orchid_physical_device_id', deviceId);
           }
           
-          // Keep a copy in the legacy keys for backward compatibility
+          // Ensure unique key per flat and session phone
           localStorage.setItem(`orchid_device_uuid_${flatKey}`, deviceId);
-          localStorage.setItem('orchid_device_uuid', deviceId);
 
           let imei = localStorage.getItem('orchid_physical_device_imei');
           if (!imei) {
@@ -366,7 +365,7 @@ export default function App() {
               
               if (!isDeviceRegistered) {
                 console.warn('[Session Security] This device has been signed out.');
-                alert('Your session has expired or this device was signed out. Please log in again.');
+                alert('Your Session is completed and this device was signed out automatically.');
                 handleLogout();
               }
             }

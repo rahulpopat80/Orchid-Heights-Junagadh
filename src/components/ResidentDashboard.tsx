@@ -141,16 +141,16 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [sosHoldProgress, setSosHoldProgress] = useState<number>(0);
   const [isHoldingSos, setIsHoldingSos] = useState<boolean>(false);
 
-  const [dismissedNotifIds, setDismissedNotifIds] = useState<string[]>(() => {
+  const [dismissedNotifs, setDismissedNotifs] = useState<string[]>(() => {
     try {
-      const saved = localStorage.getItem('orchid_dismissed_notifs');
+      const saved = localStorage.getItem(`dismissed_notifs_${session?.wing}_${session?.flatNo}`);
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
 
-  const displayedPoll = activePoll.filter((v) => !dismissedNotifIds.includes(v.id));
+  const displayedPoll = activePoll.filter((v) => !dismissedNotifs.includes(v.id));
 
   const holdStartTimeRef = useRef<number>(0);
   const holdAnimationRef = useRef<number | null>(null);
@@ -557,9 +557,12 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   };
 
   const handleDismissNotification = (id: string) => {
-    const updated = [...dismissedNotifIds, id];
-    setDismissedNotifIds(updated);
-    localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
+    setDismissedNotifs(prev => {
+      if (prev.includes(id)) return prev;
+      const updated = [...prev, id];
+      localStorage.setItem(`dismissed_notifs_${session?.wing}_${session?.flatNo}`, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   // Vote or Toggle support for a function booking
@@ -1234,7 +1237,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const firstName = fullName.split(' ')[0] || 'Rahul';
   const nameGu = myOwnerData?.nameGu || 'રાહુલ જશવંતરાય પોપટ';
   const flatStr = `Flat ${wing}-${flatNo}`;
-  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id));
+  const activeSocietyNotifs = societyNotifications.filter((n) => !dismissedNotifs.includes(n.id));
 
   return (
     <div className="space-y-6 text-slate-800 pb-24 text-left">
@@ -1602,7 +1605,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                   >
                     <div className="w-14 h-14 rounded-none bg-[#EF4444] text-white flex items-center justify-center shrink-0 shadow-sm relative mb-3 group-hover:scale-105 transition-transform duration-300">
                       <Bell className="w-7 h-7" />
-                      {societyNotifications.filter((n) => !dismissedNotifIds.includes(n.id)).length > 0 && (
+                      {societyNotifications.filter((n) => !dismissedNotifs.includes(n.id)).length > 0 && (
                         <span className="absolute -top-1 -right-1 w-3.5 h-3.5 border-2 border-white bg-rose-600 rounded-none animate-ping" />
                       )}
                     </div>
@@ -1825,9 +1828,11 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                       <button
                         onClick={() => {
                           const allIds = societyNotifications.map((n) => n.id);
-                          const updated = Array.from(new Set([...dismissedNotifIds, ...allIds]));
-                          setDismissedNotifIds(updated);
-                          localStorage.setItem('orchid_dismissed_notifs', JSON.stringify(updated));
+                          setDismissedNotifs(prev => {
+                            const updated = Array.from(new Set([...prev, ...allIds]));
+                            localStorage.setItem(`dismissed_notifs_${session?.wing}_${session?.flatNo}`, JSON.stringify(updated));
+                            return updated;
+                          });
                         }}
                         className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg shrink-0"
                       >
@@ -1856,7 +1861,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                       return (
                         <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                           {filteredNotifs.map((notif) => {
-                            const isDismissed = dismissedNotifIds.includes(notif.id);
+                            const isDismissed = dismissedNotifs.includes(notif.id);
                             
                             // Determine background, border, text and badge colors based on notification type and status
                             let colorClasses = 'bg-slate-50/70 border-slate-200 text-slate-500';
@@ -2273,7 +2278,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                   })}
 
                   {/* Recent Society Announcements */}
-                  {announcements.filter(a => !dismissedNotifIds.includes(a.id)).slice(0, 5).map((notice) => {
+                  {announcements.filter(a => !dismissedNotifs.includes(a.id)).slice(0, 5).map((notice) => {
                     const noticeTitle = notice.title || notice.text?.slice(0, 40) || 'Society Notice';
                     const noticeMessage = notice.message || notice.content || notice.text || '';
                     const noticeDate = notice.createdAt || notice.timestamp || new Date().toISOString();

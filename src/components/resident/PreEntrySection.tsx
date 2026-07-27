@@ -578,13 +578,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
             Generate instantly pre-approved QR codes for guests. Checked in securely on presentation.
           </p>
         </div>
-        <button
-          onClick={() => { setRefreshing(true); fetchRecords(true); }}
-          className="flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-xs font-bold gap-2 transition"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          <span>Reload List</span>
-        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -660,10 +653,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs font-semibold outline-none focus:border-indigo-500 focus:bg-white"
                 >
                   <option value="Guest">👋 Guest / Relative</option>
-                  <option value="Delivery">📦 Delivery Driver</option>
-                  <option value="Electrician">⚡ Electrician / Tech</option>
-                  <option value="Milkman">🥛 Milkman</option>
-                  <option value="Maid">🧹 House Maid</option>
                   <option value="Other">👤 Other Visitor</option>
                 </select>
               </div>
@@ -728,9 +717,18 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                 <p className="text-xs text-slate-500">List of generated Pre-Entries</p>
               </div>
             </div>
-            <span className="bg-indigo-50 text-indigo-700 text-xs font-black px-3 py-1 rounded-full border border-indigo-150">
-              {preEntries.length} Total
-            </span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setRefreshing(true); fetchRecords(true); }}
+                className="bg-slate-100 hover:bg-slate-200 text-slate-600 p-2 rounded-lg transition"
+                title="Reload List"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+              </button>
+              <span className="bg-indigo-50 text-indigo-700 text-xs font-black px-3 py-1 rounded-full border border-indigo-150">
+                {preEntries.length} Total
+              </span>
+            </div>
           </div>
 
           {loading ? (
