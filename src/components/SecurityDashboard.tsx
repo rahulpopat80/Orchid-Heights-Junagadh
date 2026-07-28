@@ -4,7 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
@@ -53,6 +54,7 @@ interface SecurityDashboardProps {
 }
 
 export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityDashboardProps) {
+  const navigate = useNavigate();
   const [dailyHelpers, setDailyHelpers] = useState<DailyHelper[]>([]);
   const [selectedHelperId, setSelectedHelperId] = useState<string | null>(null);
 
@@ -658,8 +660,19 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     });
   };
 
-  const pendingVisitors = visitors.filter((v) => v.status === 'pending' && !v.deletedByResident);
-  const resolvedVisitors = visitors.filter((v) => v.status !== 'pending' && !v.deletedByResident);
+  const pendingVisitors = visitors.filter((v) => {
+    if (v.status === 'pending' && !v.deletedByResident) {
+      const diffMins = (new Date().getTime() - new Date(v.requestTime).getTime()) / 60000;
+      return diffMins <= 15;
+    }
+    return false;
+  });
+  const resolvedVisitors = visitors.filter((v) => {
+    if (v.deletedByResident) return false;
+    if (v.status !== 'pending') return true;
+    const diffMins = (new Date().getTime() - new Date(v.requestTime).getTime()) / 60000;
+    return diffMins > 15;
+  });
 
   const filteredLogs = resolvedVisitors.filter((v) => {
     const q = logsSearch.toLowerCase().trim();
@@ -690,6 +703,14 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           <p className="text-sm text-slate-500 mt-1">રહેવાસીઓની પરવાનગી મેળવવા માટેની લાઈવ સુરક્ષા સિસ્ટમ.</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 sm:ml-auto">
+          <button
+            type="button"
+            onClick={() => navigate('/directory')}
+            className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+          >
+            <Users className="w-5 h-5" />
+            <span>રેસિડેન્ટ ડિરેક્ટરી</span>
+          </button>
           <button
             type="button"
             onClick={handleManualRefresh}
@@ -1188,20 +1209,39 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             </div>
           ) : (
             <div className="space-y-6 max-h-[400px] overflow-y-auto pr-2">
-              {pendingVisitors.map((v) => (
-                <div key={v.id} className="bg-amber-50 border-l-8 border-amber-500 p-5 rounded-2xl relative animate-fade-in">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <img src={v.photoUrl} className="w-20 h-20 rounded-xl object-cover bg-slate-200 border-2 border-white shadow-sm" />
+              {pendingVisitors.map((v) => {
+                const owner = owners.find(o => o.wing === v.wing && o.flatNo === v.flatNo);
+                return (
+                  <div key={v.id} className="bg-amber-50 border-l-8 border-amber-500 p-5 rounded-2xl relative animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
-                      <span className="text-xl font-bold text-slate-900">{v.fullName}</span>
-                      <p className="text-lg text-slate-600 font-bold">ફ્લેટ {v.wing}-{v.flatNo}</p>
+                      <div className="flex items-center space-x-4 mb-4">
+                        <img src={v.photoUrl} className="w-20 h-20 rounded-xl object-cover bg-slate-200 border-2 border-white shadow-sm" />
+                        <div>
+                          <span className="text-xl font-bold text-slate-900">{v.fullName}</span>
+                          <p className="text-lg text-slate-600 font-bold">ફ્લેટ {v.wing}-{v.flatNo}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2 text-sm text-amber-700 font-bold bg-amber-200 py-2 px-4 rounded-xl w-max animate-pulse">
+                        <span>રાહ જુઓ...</span>
+                      </div>
                     </div>
+                    {owner && (
+                      <div className="flex flex-col gap-2 min-w-[200px]">
+                        <a href={`tel:${owner.phone}`} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
+                          <Phone className="w-5 h-5" />
+                          <span>Call Owner</span>
+                        </a>
+                        {owner.secondaryContact && (
+                          <a href={`tel:${owner.secondaryContact}`} className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
+                            <Phone className="w-5 h-5" />
+                            <span>Call Alternate</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center space-x-2 text-sm text-amber-700 font-bold bg-amber-200 py-2 px-4 rounded-xl w-max animate-pulse">
-                    <span>રાહ જુઓ...</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -1244,11 +1284,13 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   return new Date(v.requestTime).toDateString() === todayStr;
                 }).map((v) => {
                   const isApprovedEntry = v.status === 'approved' || v.status === 'Entered' || v.isPreEntry;
+                  const isExpired = v.status === 'pending';
                   return (
                     <div 
                       key={v.id} 
                       className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm ${
-                        isApprovedEntry ? 'border-emerald-200 bg-emerald-50/30' : 'border-red-200 bg-red-50/30'
+                        isApprovedEntry ? 'border-emerald-200 bg-emerald-50/30' : 
+                        isExpired ? 'border-amber-200 bg-amber-50/30' : 'border-red-200 bg-red-50/30'
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
@@ -1275,9 +1317,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       </div>
                       <div className="shrink-0 flex items-center justify-between sm:justify-end gap-2 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200/60">
                         <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${
-                          isApprovedEntry ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                          isApprovedEntry ? 'bg-emerald-100 text-emerald-800' : 
+                          v.status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
                         }`}>
-                          {isApprovedEntry ? 'મંજૂર' : 'અસ્વીકાર'}
+                          {isApprovedEntry ? 'મંજૂર' : v.status === 'pending' ? 'EXPIRED' : 'અસ્વીકાર'}
                         </span>
 
                         {isApprovedEntry && !v.exited && (

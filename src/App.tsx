@@ -443,15 +443,16 @@ export default function App() {
                     transition={{ duration: 0.2 }}
                     className="w-full h-full"
                   >
-                    {session.role === 'security' ? (
-                      <SecurityDashboard
-                        owners={owners}
-                        onRefreshOwners={loadOwners}
-                      />
-                    ) : location.pathname === '/directory' ? (
+                    {location.pathname === '/directory' ? (
                       <Directory
                         owners={owners}
                         session={session}
+                        onBack={() => navigate('/')}
+                      />
+                    ) : session.role === 'security' ? (
+                      <SecurityDashboard
+                        owners={owners}
+                        onRefreshOwners={loadOwners}
                       />
                     ) : (
                       <ResidentDashboard
