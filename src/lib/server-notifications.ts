@@ -261,7 +261,7 @@ async function sendFCMPushServer(
                 link: "/?activeTab=resident"
               },
               headers: {
-                urgency: "high",
+                Urgency: "high",
                 TTL: "86400"
               }
             },

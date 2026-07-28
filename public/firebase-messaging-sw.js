@@ -3,13 +3,61 @@
  * Orchid Heights Apartment Management System
  */
 
-// ─── NOTIFICATION CLICK HANDLER (Attach FIRST) ──────────────────────────────
-// Attach before Firebase SDK to ensure we catch action buttons
+// ─── NOTIFICATION PUSH HANDLER (Attach FIRST) ──────────────────────────────
+self.addEventListener('push', function(event) {
+  // Stop Firebase SDK from handling this push to avoid duplicates
+  event.stopImmediatePropagation();
+  
+  if (!event.data) return;
+
+  let payload = {};
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    console.error('[SW] Push event data is not JSON:', e);
+    return;
+  }
+
+  console.log('[SW] Push received:', payload);
+
+  const data = payload.data || {};
+  const notification = payload.notification || {};
+  
+  const title = notification.title || data.title || '🏢 Orchid Heights';
+  const body = notification.body || data.body || 'New notification received.';
+  const icon = notification.icon || data.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
+  
+  const type = data.type || 'society';
+  const visitorId = data.visitorId || data.id || null;
+  const tag = notification.tag || visitorId || type || 'orchid_notif';
+
+  const options = {
+    body: body,
+    icon: icon,
+    badge: notification.badge || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+    tag: tag,
+    data: data,
+    requireInteraction: type === 'visitor' || type === 'visitor_request' || type === 'sos',
+    vibrate: [200, 100, 200]
+  };
+
+  if (type === 'visitor' || type === 'visitor_request') {
+    options.actions = [
+      { action: 'approve', title: '✅ Approve Entry' },
+      { action: 'reject', title: '❌ Reject' }
+    ];
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// ─── NOTIFICATION CLICK HANDLER ──────────────────────────────
 self.addEventListener('notificationclick', function(event) {
   event.stopImmediatePropagation();
   event.notification.close();
   
-  // Extract data (FCM SDK nests the data under FCM_MSG when generating notifications)
   const fcmData = event.notification.data?.FCM_MSG?.data || {};
   const notifData = Object.keys(fcmData).length > 0 ? fcmData : (event.notification.data || {});
   
@@ -26,16 +74,9 @@ self.addEventListener('notificationclick', function(event) {
 
     const updatePromise = db.runTransaction((transaction) => {
       return transaction.get(visitorRef).then((visitorDoc) => {
-        if (!visitorDoc.exists) {
-          console.warn('[SW] Visitor document not found:', visitorId);
-          return;
-        }
-
+        if (!visitorDoc.exists) return;
         const visitorData = visitorDoc.data();
-        if (visitorData.status !== 'pending') {
-          console.log(`[SW] Visitor already responded (${visitorData.status}). Skipping.`);
-          return;
-        }
+        if (visitorData.status !== 'pending') return;
 
         const respondedTime = new Date().toISOString();
         const respondedBy = 'Resident (Notification)';
@@ -54,8 +95,6 @@ self.addEventListener('notificationclick', function(event) {
           respondedBy: respondedBy
         }, { merge: true });
       });
-    }).then(() => {
-      console.log(`[SW] Successfully updated visitor ${visitorId} → ${status}`);
     }).catch(err => {
       console.error('[SW] Transaction failed:', err);
     });
@@ -68,7 +107,6 @@ self.addEventListener('notificationclick', function(event) {
 
     event.waitUntil(Promise.all([updatePromise, broadcastPromise]));
   } else {
-    // Normal click - focus or open the app
     event.waitUntil(
       clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
         let targetPath = '/home';
