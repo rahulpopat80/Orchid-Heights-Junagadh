@@ -3,13 +3,27 @@
  * Orchid Heights Apartment Management System
  */
 
-// ─── NOTIFICATION PUSH HANDLER (Attach FIRST) ──────────────────────────────
-self.addEventListener('push', function(event) {
-  // Stop Firebase SDK from handling this push to avoid duplicates
-  event.stopImmediatePropagation();
-  
-  if (!event.data) return;
+// 1. LOAD FIREBASE SDKS AT THE VERY TOP
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
 
+firebase.initializeApp({
+  apiKey: "AIzaSyAHHKnOR_UkAjDQ8wFdBpVALYrY1rPK3Es",
+  authDomain: "orchidheights-d46f2.firebaseapp.com",
+  projectId: "orchidheights-d46f2",
+  storageBucket: "orchidheights-d46f2.firebasestorage.app",
+  messagingSenderId: "408063641296",
+  appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
+});
+
+const messaging = firebase.messaging();
+// DO NOT initialize Firestore here to ensure fast cold-boots for push events.
+
+// NOTIFICATION PUSH HANDLER
+self.addEventListener('push', function(event) {
+  if (!event.data) return;
+  
   let payload = {};
   try {
     payload = event.data.json();
@@ -18,15 +32,23 @@ self.addEventListener('push', function(event) {
     return;
   }
 
-  console.log('[SW] Push received:', payload);
-
   const data = payload.data || {};
   const notification = payload.notification || {};
+  const title = notification.title || data.title;
+
+  // CRITICAL FIX: Only stop propagation if it's a real user notification.
+  // This allows Firebase's internal silent pings (token refresh) to succeed!
+  if (title || notification.body || data.body) {
+    event.stopImmediatePropagation();
+  } else {
+    return; // Let Firebase handle silent internal pings
+  }
+
+  console.log('[SW] Push received:', payload);
   
-  const title = notification.title || data.title || '🏢 Orchid Heights';
+  const finalTitle = title || 'Orchid Heights';
   const body = notification.body || data.body || 'New notification received.';
   const icon = notification.icon || data.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
-  
   const type = data.type || 'society';
   const visitorId = data.visitorId || data.id || null;
   const tag = notification.tag || visitorId || type || 'orchid_notif';
@@ -43,24 +65,23 @@ self.addEventListener('push', function(event) {
 
   if (type === 'visitor' || type === 'visitor_request') {
     options.actions = [
-      { action: 'approve', title: '✅ Approve Entry' },
-      { action: 'reject', title: '❌ Reject' }
+      { action: 'approve', title: 'Approve Entry' },
+      { action: 'reject', title: 'Reject' }
     ];
   }
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(finalTitle, options)
   );
 });
 
-// ─── NOTIFICATION CLICK HANDLER ──────────────────────────────
+// NOTIFICATION CLICK HANDLER
 self.addEventListener('notificationclick', function(event) {
   event.stopImmediatePropagation();
   event.notification.close();
   
   const fcmData = event.notification.data?.FCM_MSG?.data || {};
   const notifData = Object.keys(fcmData).length > 0 ? fcmData : (event.notification.data || {});
-  
   const visitorId = notifData.visitorId || notifData.id || event.notification.tag;
   const action = event.action;
 
@@ -70,6 +91,8 @@ self.addEventListener('notificationclick', function(event) {
     const status = action === 'approve' ? 'approved' : 'rejected';
     console.log(`[SW] Processing visitor ${action} for ID: ${visitorId}`);
 
+    // LAZY LOAD FIRESTORE: Only initialize database when a user actually clicks a button
+    const db = firebase.firestore();
     const visitorRef = db.collection('visitors').doc(visitorId);
 
     const updatePromise = db.runTransaction((transaction) => {
@@ -121,7 +144,7 @@ self.addEventListener('notificationclick', function(event) {
         } else if (notifData.type === 'financial') {
           targetPath = '/help-desk/financial-ledger';
         }
-        
+                 
         for (const client of clientList) {
           if ('focus' in client) {
             client.navigate(targetPath).catch(() => {});
@@ -133,26 +156,6 @@ self.addEventListener('notificationclick', function(event) {
     );
   }
 });
-
-// ─── 1. LOAD FIREBASE SDKS ─────────────────────────
-
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyAHHKnOR_UkAjDQ8wFdBpVALYrY1rPK3Es",
-  authDomain: "orchidheights-d46f2.firebaseapp.com",
-  projectId: "orchidheights-d46f2",
-  storageBucket: "orchidheights-d46f2.firebasestorage.app",
-  messagingSenderId: "408063641296",
-  appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
-});
-
-const messaging = firebase.messaging();
-const db = firebase.firestore();
-
-// ─── INSTALL & ACTIVATE ──────────────────────────────────────────────────────
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing new service worker version...');
