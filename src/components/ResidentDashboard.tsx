@@ -2162,14 +2162,31 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                 <Bell className="w-5 h-5 text-indigo-600" />
                 <h3 className="font-sans font-black text-base text-slate-800 uppercase tracking-tight">Notification Center</h3>
               </div>
-              <button
-                onClick={() => {
-                  setIsNotificationsOpen(false);
-                }}
-                className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => {
+                    const allIds = [
+                      ...societyNotifications.map(n => n.id),
+                      ...announcements.map(a => a.id),
+                      ...activePoll.map(p => p.id)
+                    ];
+                    setDismissedNotifs(prev => {
+                      const updated = Array.from(new Set([...prev, ...allIds]));
+                      localStorage.setItem(`dismissed_notifs_${session?.wing}_${session?.flatNo}`, JSON.stringify(updated));
+                      return updated;
+                    });
+                  }}
+                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1.5 rounded-lg shrink-0 transition cursor-pointer"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={() => setIsNotificationsOpen(false)}
+                  className="p-1.5 hover:bg-slate-200 rounded-full text-slate-400 hover:text-slate-600 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* List of active items */}

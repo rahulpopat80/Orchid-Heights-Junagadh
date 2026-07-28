@@ -873,14 +873,12 @@ export async function markVisitorExited(visitorId: string): Promise<{ success: b
     await setDoc(doc(db, 'notifications', visitorId), { exited: true, exitTime, duration, status: 'Exited' }, { merge: true });
 
     try {
-      await addDoc(collection(db, 'society_notifications'), {
+      await createSocietyNotification({
         type: 'visitor',
         title: `🏃 Exit Alert: ${currentVisitor.fullName}`,
         message: `Visitor ${currentVisitor.fullName} (${currentVisitor.guestType}) has exited Flat ${currentVisitor.wing}-${currentVisitor.flatNo}. Duration stayed: ${duration}.`,
         wing: currentVisitor.wing,
         flatNo: currentVisitor.flatNo,
-        timestamp: exitTime,
-        read: false,
         metadata: { visitorId, exited: true, exitTime, duration }
       });
     } catch (e) {
@@ -1572,7 +1570,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
         const isGlobal = !data.wing || Number(data.flatNo) === 0;
         const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
         if (isGlobal || isMine) {
-          list.push(data);
+          list.push({ id: docSnap.id, ...data });
         }
       });
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

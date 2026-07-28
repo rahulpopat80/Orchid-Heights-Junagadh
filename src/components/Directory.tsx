@@ -246,7 +246,7 @@ export default function Directory({ owners, session, onEditTrigger, onBack }: Di
                       </div>
                       
                       {/* Secondary Contact (Only residents can see secondary contact info, security can't as per rules) */}
-                      {session.role !== 'security' && owner.secondaryContact && (
+                      {owner.secondaryContact && (
                         <div className="flex items-center space-x-1.5">
                           <Phone className="w-3.5 h-3.5 text-slate-300 shrink-0" />
                           <a
@@ -262,7 +262,7 @@ export default function Directory({ owners, session, onEditTrigger, onBack }: Di
                   )}
 
                   {/* Registered Members List (Only visible to residents/admins, security can just see name & vehicles & phone) */}
-                  {session.role !== 'security' && owner.members && owner.members.length > 0 && (
+                  {owner.members && owner.members.length > 0 && (
                     <div className="border-t border-slate-100 pt-3 text-xs">
                       <span className="font-semibold text-slate-400 uppercase tracking-wider text-[10px]">Family Members:</span>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
