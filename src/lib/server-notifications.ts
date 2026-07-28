@@ -261,9 +261,12 @@ async function sendFCMPushServer(
                 link: "/?activeTab=resident"
               },
               headers: {
-                Urgency: "high",
+                urgency: "high",
                 TTL: "86400"
               }
+            },
+            android: {
+              priority: "high"
             }
           }
         };

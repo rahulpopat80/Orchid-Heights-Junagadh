@@ -3,98 +3,16 @@
  * Orchid Heights Apartment Management System
  */
 
-// ─── 1. INTERCEPT NATIVE PUSH EVENT FIRST ──────────────────────────────────
-// We attach this BEFORE importing Firebase SDKs so it fires first.
-// We then call stopImmediatePropagation() to PREVENT the Firebase SDK from
-// hijacking the notification. This gives us 100% control over the display,
-// allowing us to add custom Approve/Reject buttons reliably.
-
-self.addEventListener('push', (event) => {
-  // STOP the Firebase Messaging SDK from seeing this push event!
-  event.stopImmediatePropagation();
-  
-  if (!event.data) return;
-
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch (e) {
-    try {
-      payload = { notification: { title: 'Orchid Heights', body: event.data.text() }, data: {} };
-    } catch (e2) {
-      return;
-    }
-  }
-
-  const msg = payload.message || payload;
-  const actualData = msg.data || payload.data || {};
-  const actualNotif = msg.notification || payload.notification || {};
-
-  const title = actualNotif.title || actualData.title || '🏢 Orchid Heights';
-  const body = actualNotif.body || actualData.body || actualData.message || 'You have a new notification.';
-  const icon = actualData.icon || actualNotif.image || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
-  const type = actualData.type || 'society';
-  const visitorId = actualData.visitorId || actualData.id || null;
-  const tag = visitorId || actualData.tag || type || 'orchid_notif';
-
-  const notifOptions = {
-    body: body,
-    icon: icon,
-    badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
-    tag: tag,
-    data: actualData,
-    requireInteraction: type === 'visitor' || type === 'visitor_request',
-    vibrate: [200, 100, 200]
-  };
-
-  if (type === 'visitor' || type === 'visitor_request') {
-    notifOptions.actions = [
-      { action: 'approve', title: '✅ Approve Entry' },
-      { action: 'reject', title: '❌ Reject' }
-    ];
-  }
-
-  event.waitUntil(
-    self.registration.showNotification(title, notifOptions)
-  );
-});
-
-// ─── 2. LOAD FIREBASE SDKS (AFTER PUSH LISTENER) ─────────────────────────
-
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyAHHKnOR_UkAjDQ8wFdBpVALYrY1rPK3Es",
-  authDomain: "orchidheights-d46f2.firebaseapp.com",
-  projectId: "orchidheights-d46f2",
-  storageBucket: "orchidheights-d46f2.firebasestorage.app",
-  messagingSenderId: "408063641296",
-  appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
-});
-
-const messaging = firebase.messaging();
-const db = firebase.firestore();
-
-// ─── INSTALL & ACTIVATE ──────────────────────────────────────────────────────
-
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing new service worker version...');
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Service worker activated. Taking control of all clients...');
-  event.waitUntil(clients.claim());
-});
-
-// ─── NOTIFICATION CLICK HANDLER ──────────────────────────────────────────────
-
+// ─── NOTIFICATION CLICK HANDLER (Attach FIRST) ──────────────────────────────
+// Attach before Firebase SDK to ensure we catch action buttons
 self.addEventListener('notificationclick', function(event) {
+  event.stopImmediatePropagation();
   event.notification.close();
   
-  const notifData = event.notification.data || {};
+  // Extract data (FCM SDK nests the data under FCM_MSG when generating notifications)
+  const fcmData = event.notification.data?.FCM_MSG?.data || {};
+  const notifData = Object.keys(fcmData).length > 0 ? fcmData : (event.notification.data || {});
+  
   const visitorId = notifData.visitorId || notifData.id || event.notification.tag;
   const action = event.action;
 
@@ -176,4 +94,34 @@ self.addEventListener('notificationclick', function(event) {
       })
     );
   }
+});
+
+// ─── 1. LOAD FIREBASE SDKS ─────────────────────────
+
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+
+firebase.initializeApp({
+  apiKey: "AIzaSyAHHKnOR_UkAjDQ8wFdBpVALYrY1rPK3Es",
+  authDomain: "orchidheights-d46f2.firebaseapp.com",
+  projectId: "orchidheights-d46f2",
+  storageBucket: "orchidheights-d46f2.firebasestorage.app",
+  messagingSenderId: "408063641296",
+  appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
+});
+
+const messaging = firebase.messaging();
+const db = firebase.firestore();
+
+// ─── INSTALL & ACTIVATE ──────────────────────────────────────────────────────
+
+self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new service worker version...');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Service worker activated. Taking control of all clients...');
+  event.waitUntil(clients.claim());
 });
