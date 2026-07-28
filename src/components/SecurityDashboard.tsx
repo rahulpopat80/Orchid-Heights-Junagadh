@@ -709,7 +709,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
           >
             <Users className="w-5 h-5" />
-            <span>રેસિડેન્ટ ડિરેક્ટરી</span>
+            <span>ફ્લેટ ધારકો ની વિગત</span>
           </button>
           <button
             type="button"
@@ -768,7 +768,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               }`}
             >
               <Shield className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              <span>નવી એન્ટ્રી (New Entry)</span>
+              <span>નવી એન્ટ્રી</span>
             </button>
             <button
               type="button"
@@ -783,7 +783,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               }`}
             >
               <QrCode className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              <span>QR કોડ સ્કેનર (QR Scanner)</span>
+              <span>QR કોડ સ્કેનર</span>
             </button>
           </div>
 
@@ -1227,14 +1227,14 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     </div>
                     {owner && (
                       <div className="flex flex-col gap-2 min-w-[200px]">
-                        <a href={`tel:${owner.phone}`} className="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
+                        <a href={`tel:${owner.phone}`} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm">
                           <Phone className="w-5 h-5" />
-                          <span>Call Owner</span>
+                          <span>કોલ કરો</span>
                         </a>
                         {owner.secondaryContact && (
-                          <a href={`tel:${owner.secondaryContact}`} className="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
+                          <a href={`tel:${owner.secondaryContact}`} className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
                             <Phone className="w-5 h-5" />
-                            <span>Call Alternate</span>
+                            <span>કોલ કરો</span>
                           </a>
                         )}
                       </div>

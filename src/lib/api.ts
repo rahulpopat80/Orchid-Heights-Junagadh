@@ -304,3 +304,7 @@ export const api = {
     return usePreEntry(id);
   }
 };
+
+export const clearAllSocietyNotifications = async (): Promise<boolean> => {
+  return (await import('./firebase')).clearAllSocietyNotifications();
+};

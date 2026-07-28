@@ -18,6 +18,7 @@ import {
   limit as rawLimit,
   onSnapshot as rawOnSnapshot,
   where as rawWhere,
+  writeBatch,
   orderBy as rawOrderBy,
   arrayUnion as rawArrayUnion
 } from 'firebase/firestore';
@@ -2062,3 +2063,23 @@ service cloud.firestore {
 
 
 
+
+export async function clearAllSocietyNotifications(): Promise<boolean> {
+  if (isQuotaExceeded) return true; // Just ignore in fallback
+  try {
+    const snap = await getDocs(collection(db, 'society_notifications'));
+    const batch = writeBatch(db);
+    snap.forEach((docSnap) => {
+      batch.delete(doc(db, 'society_notifications', docSnap.id));
+    });
+    await batch.commit();
+    return true;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return true;
+    }
+    handleFirestoreError(error, OperationType.WRITE, 'society_notifications');
+    return false;
+  }
+}

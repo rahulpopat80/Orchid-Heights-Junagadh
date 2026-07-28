@@ -8,7 +8,7 @@ import {
   Key, Edit3, Trash2, Database, AlertTriangle, ShieldCheck, Check, 
   RefreshCw, X, Search, Phone, Megaphone, Plus, Smartphone, FileText, 
   ClipboardList, BookOpen, Eye, EyeOff, Upload, Download, Image, User, 
-  LogOut, Mail, Clock, ShieldAlert, FileSpreadsheet, Dumbbell, Sparkles, Film, CheckSquare, Calendar, ArrowLeft, Grid
+  Bell, LogOut, Mail, Clock, ShieldAlert, FileSpreadsheet, Dumbbell, Sparkles, Film, CheckSquare, Calendar, ArrowLeft, Grid
 } from 'lucide-react';
 import { FlatOwner, Announcement, Complaint, FinancialReport, EssentialContact, Visitor, AmenityBooking, GymTheatreLog } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -2862,6 +2862,39 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   Reset Database to Factory Defaults
                 </button>
               )}
+
+              {/* ===== CLEAR NOTIFICATIONS ===== */}
+              <div className="mt-6 pt-6 border-t border-slate-200">
+                <h4 className="font-bold text-sm text-amber-700 flex items-center space-x-2 mb-2">
+                  <Bell className="w-4 h-4" />
+                  <span>Clear All Society Notifications</span>
+                </h4>
+                <p className="text-xs text-slate-600 leading-relaxed mb-4">
+                  Delete all society notifications (including Exit Alerts, Notices, and Updates) from the live database. Residents will no longer see old notifications.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const ok = window.confirm("Are you sure you want to delete all society notifications globally?");
+                    if (!ok) return;
+                    setResetLoading(true);
+                    try {
+                      await api.clearAllSocietyNotifications();
+                      setResetSuccess('✅ Society notifications cleared successfully.');
+                      setTimeout(() => setResetSuccess(''), 3000);
+                    } catch(e) {
+                      setResetError('Failed to clear notifications.');
+                    } finally {
+                      setResetLoading(false);
+                    }
+                  }}
+                  disabled={resetLoading}
+                  className="bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 px-4 rounded-xl text-xs font-bold transition flex items-center space-x-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>Clear All Notifications</span>
+                </button>
+              </div>
 
               {/* ===== WIPE ALL TRANSACTIONAL DATA ===== */}
               <div className="mt-6 pt-6 border-t border-slate-200">

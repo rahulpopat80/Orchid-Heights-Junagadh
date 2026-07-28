@@ -1,9 +1,4 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, RefreshCw, Check, AlertCircle, Image as ImageIcon, FlipHorizontal } from 'lucide-react';
 
 interface WebcamCaptureProps {
@@ -12,82 +7,44 @@ interface WebcamCaptureProps {
   guestType?: string; // used to pre-select preset
 }
 
-// Custom built-in presets represented as high-quality SVGs converted to Data URIs (or we can use inline color canvas/base64).
-// Let's create beautiful SVG string assets representing each guest type.
 const PRESETS: Record<string, { label: string; svgColor: string; iconLetter: string }> = {
   delivery: { label: 'Delivery Driver', svgColor: 'from-amber-400 to-orange-500', iconLetter: '📦' },
   guest: { label: 'Guest / Relative', svgColor: 'from-indigo-400 to-indigo-600', iconLetter: '👋' },
   electrician: { label: 'Technician / Repair', svgColor: 'from-blue-400 to-blue-600', iconLetter: '⚡' },
-  milkman: { label: 'Milkman / Dairy', svgColor: 'from-sky-300 to-slate-200', iconLetter: '🥛' },
+  milkman: { label: 'Milkman / Daily', svgColor: 'from-sky-400 to-sky-600', iconLetter: '🥛' },
   maid: { label: 'Household Help', svgColor: 'from-emerald-400 to-emerald-600', iconLetter: '🧹' },
   other: { label: 'General Visitor', svgColor: 'from-slate-400 to-slate-600', iconLetter: '👤' }
 };
 
 export default function WebcamCapture({ onPhotoCaptured, value, guestType }: WebcamCaptureProps) {
-  const [mode, setMode] = useState<'preset' | 'camera' | 'upload'>('preset');
+  const [mode, setMode] = useState<'camera' | 'upload'>('upload');
   const [photo, setPhoto] = useState<string>(value || '');
-  const [selectedPreset, setSelectedPreset] = useState<string>('other');
   
-  // Camera states
   const [cameraActive, setCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string>('');
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  // Auto-apply preset when guestType changes
-  useEffect(() => {
-    if (guestType) {
-      const typeLower = guestType.toLowerCase();
-      if (typeLower.includes('milk')) setSelectedPreset('milkman');
-      else if (typeLower.includes('guest') || typeLower.includes('relative')) setSelectedPreset('guest');
-      else if (typeLower.includes('delivery') || typeLower.includes('courier')) setSelectedPreset('delivery');
-      else if (typeLower.includes('electrician') || typeLower.includes('plumber') || typeLower.includes('repair')) setSelectedPreset('electrician');
-      else if (typeLower.includes('maid') || typeLower.includes('laundry')) setSelectedPreset('maid');
-      else setSelectedPreset('other');
-    }
-  }, [guestType]);
-
-  // Clean up camera on unmount
-  useEffect(() => {
-    return () => {
-      stopCamera();
-    };
-  }, []);
-
   const generatePresetDataUri = (key: string) => {
     const preset = PRESETS[key] || PRESETS.other;
-    // Create canvas snapshot of this preset
     const canvas = document.createElement('canvas');
     canvas.width = 300;
     canvas.height = 300;
     const ctx = canvas.getContext('2d');
+    
     if (ctx) {
-      // Draw background gradient
-      const grad = ctx.createLinearGradient(0, 0, 300, 300);
-      if (key === 'delivery') { grad.addColorStop(0, '#f59e0b'); grad.addColorStop(1, '#ea580c'); }
-      else if (key === 'guest') { grad.addColorStop(0, '#f472b6'); grad.addColorStop(1, '#db2777'); }
-      else if (key === 'electrician') { grad.addColorStop(0, '#60a5fa'); grad.addColorStop(1, '#2563eb'); }
-      else if (key === 'milkman') { grad.addColorStop(0, '#7dd3fc'); grad.addColorStop(1, '#cbd5e1'); }
-      else if (key === 'maid') { grad.addColorStop(0, '#34d399'); grad.addColorStop(1, '#059669'); }
-      else { grad.addColorStop(0, '#94a3b8'); grad.addColorStop(1, '#475569'); }
-
-      ctx.fillStyle = grad;
+      const gradient = ctx.createLinearGradient(0, 0, 300, 300);
+      gradient.addColorStop(0, '#f1f5f9');
+      gradient.addColorStop(1, '#cbd5e1');
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, 300, 300);
 
-      // Draw avatar circle
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      ctx.beginPath();
-      ctx.arc(150, 150, 110, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Draw text letter / emoji
       ctx.font = '96px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(preset.iconLetter, 150, 150);
 
-      // Label
       ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
       ctx.font = 'bold 20px sans-serif';
       ctx.fillText(preset.label.toUpperCase(), 150, 260);
@@ -97,55 +54,52 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
     return '';
   };
 
-  const selectPreset = (key: string) => {
-    setSelectedPreset(key);
+  useEffect(() => {
+    let key = 'other';
+    if (guestType) {
+      const typeLower = guestType.toLowerCase();
+      if (typeLower.includes('milk')) key = 'milkman';
+      else if (typeLower.includes('guest') || typeLower.includes('relative')) key = 'guest';
+      else if (typeLower.includes('tech') || typeLower.includes('electr')) key = 'electrician';
+      else if (typeLower.includes('maid') || typeLower.includes('help')) key = 'maid';
+      else if (typeLower.includes('deliv')) key = 'delivery';
+    }
     const base64 = generatePresetDataUri(key);
     setPhoto(base64);
     onPhotoCaptured(base64);
-  };
+  }, [guestType]);
 
-  // Auto-generate initial photo if in preset mode and empty
-  useEffect(() => {
-    if (mode === 'preset' && !photo) {
-      selectPreset(selectedPreset);
-    }
-  }, [mode, selectedPreset]);
-
-  // Sync photo with value prop when value changes
   useEffect(() => {
     if (value !== undefined) {
       setPhoto(value);
     }
   }, [value]);
 
-  const startCamera = async (currentFacingMode = facingMode) => {
+  const startCamera = async (newMode: 'user' | 'environment' = 'user') => {
     setCameraError('');
-    setCameraActive(false);
     try {
       if (streamRef.current) {
-        stopCamera();
+        streamRef.current.getTracks().forEach(t => t.stop());
       }
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 400, height: 300, facingMode: currentFacingMode },
-        audio: false
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: newMode, width: { ideal: 640 }, height: { ideal: 480 } },
+        audio: false 
       });
-
-      streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        setCameraActive(true);
       }
+      streamRef.current = stream;
+      setCameraActive(true);
+      setFacingMode(newMode);
     } catch (err: any) {
-      console.error('Camera access error:', err);
-      setCameraError('Could not access camera. Please make sure camera permissions are allowed.');
+      setCameraError('કેમેરાની પરવાનગી નથી અથવા કેમેરો મળતો નથી (Camera access denied).');
+      setCameraActive(false);
     }
   };
 
   const flipCamera = () => {
-    const newFacingMode = facingMode === 'user' ? 'environment' : 'user';
-    setFacingMode(newFacingMode);
-    startCamera(newFacingMode);
+    const nextMode = facingMode === 'user' ? 'environment' : 'user';
+    startCamera(nextMode);
   };
 
   const stopCamera = () => {
@@ -189,17 +143,16 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
     <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl">
       <div className="flex justify-between items-center mb-3">
         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-          Visitor Photo <span className="text-red-500">*</span>
+          મુલાકાતી નો ફોટો (Visitor Photo) <span className="text-red-500">*</span>
         </label>
         
-        {/* Sub-modes selector */}
         <div className="flex bg-slate-200 p-0.5 rounded-lg text-[10px] font-semibold">
           <button
             type="button"
-            onClick={() => { setMode('preset'); stopCamera(); }}
-            className={`px-2.5 py-1 rounded-md transition ${mode === 'preset' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
+            onClick={() => { setMode('upload'); stopCamera(); }}
+            className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
           >
-            Presets
+            Upload
           </button>
           <button
             type="button"
@@ -207,13 +160,6 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
             className={`px-2.5 py-1 rounded-md transition ${mode === 'camera' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
           >
             Webcam
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMode('upload'); stopCamera(); }}
-            className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-          >
-            Upload
           </button>
           {mode === 'camera' && (
             <button
@@ -227,9 +173,7 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
         </div>
       </div>
 
-      {/* Main interface card */}
       <div className="flex flex-col md:flex-row items-center gap-4">
-        {/* Photo Canvas Preview */}
         <div className="w-full md:w-48 h-36 bg-slate-200 border border-slate-300 rounded-xl overflow-hidden relative shadow-inner flex items-center justify-center shrink-0">
           {photo ? (
             <img src={photo} alt="Captured visitor" className="w-full h-full object-cover" />
@@ -246,36 +190,7 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
           )}
         </div>
 
-        {/* Action controllers per mode */}
         <div className="flex-1 w-full text-left">
-          {mode === 'preset' && (
-            <div>
-              <p className="text-[11px] text-slate-500 mb-2">
-                Click to generate a clean preset profile image for this type of guest:
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {Object.keys(PRESETS).map((key) => {
-                  const p = PRESETS[key];
-                  return (
-                    <button
-                      type="button"
-                      key={key}
-                      onClick={() => selectPreset(key)}
-                      className={`py-1.5 px-2 rounded-lg border text-xs font-semibold flex items-center justify-center space-x-1.5 transition text-left cursor-pointer ${
-                        selectedPreset === key
-                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700 shadow-sm'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
-                      }`}
-                    >
-                      <span>{p.iconLetter}</span>
-                      <span className="truncate">{p.label.split(' ')[0]}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
           {mode === 'camera' && (
             <div className="space-y-2">
               {cameraError ? (
@@ -299,7 +214,6 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
                   )}
                 </div>
               )}
-
               <div className="flex gap-2 justify-center">
                 {cameraActive ? (
                   <button
@@ -313,7 +227,7 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
                 ) : (
                   <button
                     type="button"
-                    onClick={startCamera}
+                    onClick={() => startCamera(facingMode)}
                     className="bg-slate-700 hover:bg-slate-800 text-white py-1.5 px-3.5 rounded-lg text-xs font-semibold flex items-center space-x-1 shadow transition cursor-pointer"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
