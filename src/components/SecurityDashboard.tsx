@@ -702,27 +702,48 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </h1>
           <p className="text-sm text-slate-500 mt-1">રહેવાસીઓની પરવાનગી મેળવવા માટેની લાઈવ સુરક્ષા સિસ્ટમ.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-4 sm:ml-auto">
+        <div className="flex flex-wrap items-center gap-3 sm:ml-auto">
           <button
             type="button"
-            onClick={() => navigate('/directory')}
-            className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+            onClick={() => {
+              setActiveSecTab('register');
+              setIsCameraActive(false);
+            }}
+            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${
+              activeSecTab === 'register' 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' 
+                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Shield className="w-5 h-5" />
+            <span>નવી એન્ટ્રી</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveSecTab('qr_scan');
+              setIsCameraActive(true);
+            }}
+            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${
+              activeSecTab === 'qr_scan' 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' 
+                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <QrCode className="w-5 h-5" />
+            <span>QR સ્કેનર</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => window.open('/directory', '_blank')}
+            className="w-full sm:w-auto bg-slate-100 border border-slate-200 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
           >
             <Users className="w-5 h-5" />
             <span>ફ્લેટ ધારકો ની વિગત</span>
           </button>
-          <button
-            type="button"
-            onClick={handleManualRefresh}
-            disabled={isRefreshing}
-            className="w-full sm:w-auto bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
-          >
-            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
-            <span>{isRefreshing ? 'લોડ થાય છે...' : 'રીફ્રેશ કરો'}</span>
-          </button>
         </div>
       </div>
-      
+
       {showStatusAlert && (
         <div className={`fixed inset-x-0 top-16 z-50 p-4 border-b animate-bounce ${
           showStatusAlert.status === 'approved' 
@@ -753,40 +774,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8 items-start">
         
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left">
-          {/* Sub-tabs for Security Actions */}
-          <div className="flex border-b border-slate-200 mb-4 sm:mb-8 font-display">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSecTab('register');
-                setIsCameraActive(false);
-              }}
-              className={`flex-1 pb-2 sm:pb-4 text-center font-bold text-xs sm:text-sm md:text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-1 sm:space-x-2 ${
-                activeSecTab === 'register'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              <span>નવી એન્ટ્રી</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveSecTab('qr_scan');
-                setIsCameraActive(true);
-              }}
-              className={`flex-1 pb-2 sm:pb-4 text-center font-bold text-xs sm:text-sm md:text-base border-b-2 transition-all duration-200 flex items-center justify-center space-x-1 sm:space-x-2 ${
-                activeSecTab === 'qr_scan'
-                  ? 'border-indigo-600 text-indigo-600'
-                  : 'border-transparent text-slate-400 hover:text-slate-600'
-              }`}
-            >
-              <QrCode className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              <span>QR કોડ સ્કેનર</span>
-            </button>
-          </div>
-
           {activeSecTab === 'register' ? (
             <>
               <div className="flex items-center space-x-4 mb-8 border-b border-slate-100 pb-5">
@@ -857,7 +844,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતીનું નામ <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતી નું નામ <span className="text-red-500">*</span></label>
                 <input
                   type="text"
                   required
@@ -883,7 +870,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતીનો પ્રકાર <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતી નો પ્રકાર <span className="text-red-500">*</span></label>
                 <select
                   value={guestType}
                   onChange={(e) => setGuestType(e.target.value)}
@@ -914,7 +901,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">FLAT નંબર <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">ફ્લેટ નંબર <span className="text-red-500">*</span></label>
                   <select
                     value={flatNo}
                     onChange={(e) => setFlatNo(parseInt(e.target.value, 10))}
@@ -936,7 +923,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               >
                 <div className="flex items-center space-x-3">
                   <Layers className="w-6 h-6 text-indigo-600" />
-                  <span>ટાર્ગેટ ફ્લેટ પસંદ કરો (મલ્ટી-સિલેક્ટ)</span>
+                  <span>ફ્લેટ ની પસંદગી કરો</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <span className="bg-indigo-200 text-indigo-800 px-3 py-1 rounded-full text-sm">{selectedFlats.length} પસંદ કરેલ</span>
@@ -1010,7 +997,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             {!isDailyHelperType && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાત લેવાનું કારણ <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાત નું કારણ <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
@@ -1020,7 +1007,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતીઓની સંખ્યા <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">મુલાકાતીઓ ની સંખ્યા <span className="text-red-500">*</span></label>
                   <input
                     type="number"
                     min="1"
@@ -1036,17 +1023,14 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-5 px-6 rounded-2xl text-xl shadow-lg transition flex items-center justify-center space-x-3"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg text-base shadow-sm transition flex items-center justify-center space-x-2"
             >
               {submitting ? (
-                <span className="inline-block border-4 border-white border-t-transparent rounded-full w-8 h-8 animate-spin"></span>
+                <span className="inline-block border-2 border-white border-t-transparent rounded-full w-5 h-5 animate-spin"></span>
               ) : (
-                <>
-                  <Plus className="w-8 h-8" />
-                  <span>
-                    {selectedHelperId && selectedHelperId !== 'new' ? 'નોંધણી કરો અને પ્રવેશ મંજૂર કરો' : 'રહેવાસીને પરવાનગી માટે મોકલો'}
-                  </span>
-                </>
+                <span>
+                  {selectedHelperId && selectedHelperId !== 'new' ? 'પ્રવેશ મંજૂર કરો' : 'રહેવાસીને પરવાનગી માટે મોકલો'}
+                </span>
               )}
             </button>
           </form>
@@ -1092,7 +1076,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 
               {/* Manual Entry */}
               <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm space-y-4 text-left">
-                <label className="block text-sm font-bold text-slate-700">મેન્યુઅલ પાસ આઈડી (Manual Pass ID)</label>
+                <label className="block text-sm font-bold text-slate-700">મેન્યુઅલ પાસ આઈડી</label>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"

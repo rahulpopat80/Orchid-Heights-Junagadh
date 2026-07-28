@@ -17,12 +17,11 @@ const PRESETS: Record<string, { label: string; svgColor: string; iconLetter: str
 };
 
 export default function WebcamCapture({ onPhotoCaptured, value, guestType }: WebcamCaptureProps) {
-  const [mode, setMode] = useState<'camera' | 'upload'>('upload');
   const [photo, setPhoto] = useState<string>(value || '');
-  
   const [cameraActive, setCameraActive] = useState<boolean>(false);
   const [cameraError, setCameraError] = useState<string>('');
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -55,18 +54,21 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
   };
 
   useEffect(() => {
-    let key = 'other';
-    if (guestType) {
-      const typeLower = guestType.toLowerCase();
-      if (typeLower.includes('milk')) key = 'milkman';
-      else if (typeLower.includes('guest') || typeLower.includes('relative')) key = 'guest';
-      else if (typeLower.includes('tech') || typeLower.includes('electr')) key = 'electrician';
-      else if (typeLower.includes('maid') || typeLower.includes('help')) key = 'maid';
-      else if (typeLower.includes('deliv')) key = 'delivery';
+    // Only auto-generate preset if the camera isn't actively being used or a photo isn't manually taken
+    if (!cameraActive) {
+      let key = 'other';
+      if (guestType) {
+        const typeLower = guestType.toLowerCase();
+        if (typeLower.includes('milk')) key = 'milkman';
+        else if (typeLower.includes('guest') || typeLower.includes('relative')) key = 'guest';
+        else if (typeLower.includes('tech') || typeLower.includes('electr')) key = 'electrician';
+        else if (typeLower.includes('maid') || typeLower.includes('help')) key = 'maid';
+        else if (typeLower.includes('deliv')) key = 'delivery';
+      }
+      const base64 = generatePresetDataUri(key);
+      setPhoto(base64);
+      onPhotoCaptured(base64);
     }
-    const base64 = generatePresetDataUri(key);
-    setPhoto(base64);
-    onPhotoCaptured(base64);
   }, [guestType]);
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
       setCameraActive(true);
       setFacingMode(newMode);
     } catch (err: any) {
-      setCameraError('કેમેરાની પરવાનગી નથી અથવા કેમેરો મળતો નથી (Camera access denied).');
+      setCameraError('કેમેરાની પરવાનગી નથી (Camera error)');
       setCameraActive(false);
     }
   };
@@ -126,136 +128,77 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setPhoto(base64);
-        onPhotoCaptured(base64);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
     <div className="bg-slate-50 border border-slate-200 p-4 rounded-2xl">
       <div className="flex justify-between items-center mb-3">
         <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-          મુલાકાતી નો ફોટો (Visitor Photo) <span className="text-red-500">*</span>
+          મુલાકાતી નો ફોટો <span className="text-red-500">*</span>
         </label>
-        
-        <div className="flex bg-slate-200 p-0.5 rounded-lg text-[10px] font-semibold">
+        {cameraActive && (
           <button
             type="button"
-            onClick={() => { setMode('upload'); stopCamera(); }}
-            className={`px-2.5 py-1 rounded-md transition ${mode === 'upload' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
+            onClick={flipCamera}
+            className="px-2.5 py-1 rounded-md transition text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 text-[10px] font-bold"
           >
-            Upload
+            <FlipHorizontal className="w-3 h-3" /> ફેરવો (Flip)
           </button>
-          <button
-            type="button"
-            onClick={() => { setMode('camera'); startCamera(facingMode); }}
-            className={`px-2.5 py-1 rounded-md transition ${mode === 'camera' ? 'bg-white text-slate-950 shadow-sm' : 'text-slate-500'}`}
-          >
-            Webcam
-          </button>
-          {mode === 'camera' && (
-            <button
-              type="button"
-              onClick={flipCamera}
-              className="px-2.5 py-1 rounded-md transition text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-1 ml-1"
-            >
-              <FlipHorizontal className="w-3 h-3" /> Flip
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="flex flex-col md:flex-row items-center gap-4">
-        <div className="w-full md:w-48 h-36 bg-slate-200 border border-slate-300 rounded-xl overflow-hidden relative shadow-inner flex items-center justify-center shrink-0">
-          {photo ? (
-            <img src={photo} alt="Captured visitor" className="w-full h-full object-cover" />
+        {/* Photo Display / Camera View */}
+        <div className="w-full md:w-48 h-36 bg-slate-900 rounded-xl overflow-hidden relative shadow-inner flex items-center justify-center shrink-0 border-2 border-slate-300">
+          {cameraActive ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className="w-full h-full object-cover transform"
+              style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
+            />
+          ) : photo ? (
+            <img src={photo} alt="Visitor" className="w-full h-full object-cover" />
           ) : (
-            <div className="text-slate-400 text-center flex flex-col items-center">
-              <ImageIcon className="w-8 h-8 mb-1" />
-              <span className="text-[10px]">No photo added</span>
-            </div>
+            <ImageIcon className="w-8 h-8 text-slate-500" />
           )}
-          {photo && (
+
+          {!cameraActive && photo && (
             <div className="absolute bottom-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow">
               <Check className="w-3 h-3" />
             </div>
           )}
         </div>
 
-        <div className="flex-1 w-full text-left">
-          {mode === 'camera' && (
-            <div className="space-y-2">
-              {cameraError ? (
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded-lg text-[10px] flex items-start space-x-1.5 leading-relaxed">
-                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
-                  <span>{cameraError}</span>
-                </div>
-              ) : (
-                <div className="relative bg-slate-950 rounded-xl overflow-hidden aspect-[4/3] max-w-[200px] mx-auto border border-slate-800 shadow">
-                  <video
-                    ref={videoRef}
-                    autoPlay
-                    playsInline
-                    className="w-full h-full object-cover transform"
-                    style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
-                  />
-                  {!cameraActive && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-900/80 text-white text-xs font-medium">
-                      Starting camera...
-                    </div>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-2 justify-center">
-                {cameraActive ? (
-                  <button
-                    type="button"
-                    onClick={capturePhoto}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white py-1.5 px-3.5 rounded-lg text-xs font-semibold flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                    <span>Snap Photo</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => startCamera(facingMode)}
-                    className="bg-slate-700 hover:bg-slate-800 text-white py-1.5 px-3.5 rounded-lg text-xs font-semibold flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Retry Camera</span>
-                  </button>
-                )}
-              </div>
+        {/* Controls */}
+        <div className="flex-1 w-full text-center md:text-left space-y-2">
+          {cameraError && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg text-xs flex items-center gap-1.5 justify-center md:justify-start">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{cameraError}</span>
             </div>
           )}
 
-          {mode === 'upload' && (
-            <div className="space-y-2">
-              <p className="text-[11px] text-slate-500 leading-relaxed mb-1.5">
-                તમારા ડિવાઇસમાંથી મુલાકાતીનો ફોટો પસંદ કરો (Upload visitor photo):
-              </p>
-              <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-3 bg-white hover:bg-indigo-50 hover:border-indigo-400 transition cursor-pointer">
-                <ImageIcon className="w-6 h-6 text-indigo-500 mb-1" />
-                <span className="text-[11px] font-bold text-slate-700">ફોટો અપલોડ કરો (Choose Photo)</span>
-                <span className="text-[9px] text-slate-400">JPEG, PNG up to 5MB</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
+          <div className="flex flex-col gap-2">
+            {cameraActive ? (
+              <button
+                type="button"
+                onClick={capturePhoto}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 shadow cursor-pointer transition w-full md:w-auto"
+              >
+                <Camera className="w-4 h-4" />
+                <span>ફોટો પાડો (Snap)</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => startCamera()}
+                className="bg-slate-700 hover:bg-slate-800 text-white py-2 px-4 rounded-xl text-sm font-bold flex items-center justify-center space-x-2 shadow cursor-pointer transition w-full md:w-auto"
+              >
+                <Camera className="w-4 h-4" />
+                <span>{photo ? 'ફરીથી ફોટો પાડો (Retake)' : 'કેમેરા ચાલુ કરો (Start Camera)'}</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
