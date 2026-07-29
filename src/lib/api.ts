@@ -72,9 +72,6 @@ export async function detectServerEnvironment(): Promise<boolean> {
 
 // Unified API Interface matching backend endpoints exactly but powered 100% by live Firestore
 export const api = {
-  clearAllSocietyNotifications: async (): Promise<boolean> => {
-    return (await import('./firebase')).clearAllSocietyNotifications();
-  },
   // Login Authentication
   login: async (payload: any): Promise<{ success: boolean; session?: UserSession; message?: string }> => {
     return verifyCredentials(payload.role, payload);
@@ -305,6 +302,9 @@ export const api = {
   },
   usePreEntry: async (id: string): Promise<boolean> => {
     return usePreEntry(id);
+  },
+  clearAllSocietyNotifications: async (): Promise<boolean> => {
+    return (await import('./firebase')).clearAllSocietyNotifications();
   }
 };
 

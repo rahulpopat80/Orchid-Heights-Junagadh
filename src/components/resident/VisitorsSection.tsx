@@ -79,7 +79,7 @@ export default function VisitorsSection({
                 className="bg-slate-900/90 border border-white/20 p-5 rounded-2xl flex flex-col md:flex-row items-center gap-6 text-left"
               >
                 <div className="w-28 h-28 bg-slate-800 rounded-xl overflow-hidden border-2 border-white/40 shadow-inner shrink-0">
-                  <img src={visitor.photoUrl} alt={visitor.fullName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  <img src={visitor.photoUrl} alt={visitor.fullName} className="w-full h-full object-contain bg-slate-100" referrerPolicy="no-referrer" />
                 </div>
 
                 <div className="flex-1 space-y-2 min-w-0">
@@ -204,7 +204,7 @@ export default function VisitorsSection({
 
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3 pr-6 text-left">
-                    <img src={log.photoUrl} alt={log.fullName} className="w-11 h-11 rounded-lg object-cover border bg-slate-200 shrink-0" referrerPolicy="no-referrer" />
+                    <img src={log.photoUrl} alt={log.fullName} className="w-11 h-11 rounded-lg object-contain bg-slate-100 border bg-slate-200 shrink-0" referrerPolicy="no-referrer" />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-bold text-slate-800 truncate uppercase block">{log.fullName}</span>
                       <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{log.mobileNumber} • {log.guestType}</p>
