@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+const fs = require('fs');
+let content = `import React, { useState, useEffect, useRef } from 'react';
 import { Camera, RefreshCw, Check, AlertCircle, Image as ImageIcon, FlipHorizontal } from 'lucide-react';
 
 interface WebcamCaptureProps {
@@ -146,3 +147,5 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
     </div>
   );
 }
+`;
+fs.writeFileSync('src/components/WebcamCapture.tsx', content);
