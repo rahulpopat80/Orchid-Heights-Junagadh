@@ -329,7 +329,20 @@ export default function AmenitiesSection({
             </h4>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Sub-Block 1: Gym & Movie Theatre Access Gate */}
+            <div
+              onClick={() => navigateToRoute('/amenities/gym-theatre', 'gym_theatre')}
+              className="bg-white rounded-none p-6 border shadow-sm flex flex-col items-center justify-center min-h-[140px] text-center hover:shadow-md transition cursor-pointer relative group border-slate-200/60"
+            >
+              <div className="w-14 h-14 rounded-none bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm mb-3 group-hover:scale-105 transition-transform duration-300">
+                <Dumbbell className="w-7 h-7" />
+              </div>
+              <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
+                Gym & Theatre Access
+              </h4>
+            </div>
+
             {/* Sub-Block 2: Movie Theatre Schedule */}
             <div
               onClick={() => navigateToRoute('/amenities/movie', 'movies')}
@@ -355,6 +368,182 @@ export default function AmenitiesSection({
                 Function Hall Bookings
               </h4>
             </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* ==================== SCREEN: GYM & THEATRE GATE ACCESS ==================== */}
+      {activeSub === 'gym_theatre' && (
+        <motion.div key="gym" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-5">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <button
+              onClick={() => navigateToRoute('/amenities', 'menu')}
+              className="flex items-center space-x-2 text-sm font-black text-indigo-700 hover:text-indigo-900 cursor-pointer transition select-none bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-5 py-2.5 rounded-full shadow-sm active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4 -ml-1" />
+              <span className="uppercase tracking-widest text-[10px]">Back</span>
+            </button>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
+              Live Gateway Gate
+            </span>
+          </div>
+
+          <div>
+            <h3 className="font-display font-black text-slate-800 text-base">Gym & Mini Theatre Access Gate</h3>
+            <p className="text-[10px] text-slate-400 font-medium mt-0.5 font-sans">
+              Enter entrance (Aagman) on departure, verify exit verification selfie snapshots (Vidaay).
+            </p>
+          </div>
+
+          {gymTheatreError && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-xl text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <span>{gymTheatreError}</span>
+            </div>
+          )}
+
+          {gymTheatreSuccess && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-xl text-xs flex items-center gap-2 font-bold">
+              <Check className="w-4 h-4 text-emerald-500" />
+              <span>{gymTheatreSuccess}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Gym Access Box */}
+            <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between text-center hover:border-slate-300 transition">
+              <div className="space-y-2">
+                <span className="inline-flex w-11 h-11 bg-indigo-50 text-indigo-600 rounded-full items-center justify-center border border-indigo-100 shadow-xs text-xl">
+                  🏋️
+                </span>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 uppercase tracking-tight">Society Fitness Gym</h4>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Live Occupancy Gate Tracking</p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                {activeGym ? (
+                  <div className="space-y-2">
+                    <div className="bg-indigo-50/60 border border-indigo-100 p-2.5 rounded-xl text-left">
+                      <p className="text-[8px] font-mono font-bold text-slate-400 uppercase leading-none">Checked In At</p>
+                      <p className="text-xs font-black text-slate-800 mt-1 font-mono">
+                        {new Date(activeGym.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleCheckOutGymTheatreFlow(activeGym)}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-4 rounded-xl text-[10px] uppercase cursor-pointer transition shadow-xs"
+                    >
+                      Vidaay (Exit Checkout)
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleCheckInGymTheatre('Gym')}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2 px-4 rounded-xl text-[10px] uppercase cursor-pointer transition shadow-xs"
+                  >
+                    Aagman (Enter Gym)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Theatre Access Box */}
+            <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-5 flex flex-col justify-between text-center hover:border-slate-300 transition">
+              <div className="space-y-2">
+                <span className="inline-flex w-11 h-11 bg-indigo-50 text-indigo-600 rounded-full items-center justify-center border border-indigo-100 shadow-xs text-xl">
+                  🎬
+                </span>
+                <div>
+                  <h4 className="font-bold text-xs text-slate-800 uppercase tracking-tight">Mini Movie Theatre</h4>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Society Screening Room Admissions</p>
+                </div>
+              </div>
+
+              <div className="mt-5">
+                {activeTheatre ? (
+                  <div className="space-y-2">
+                    <div className="bg-indigo-50/60 border border-indigo-100 p-2.5 rounded-xl text-left">
+                      <p className="text-[8px] font-mono font-bold text-slate-400 uppercase leading-none">Checked In At</p>
+                      <p className="text-xs font-black text-slate-800 mt-1 font-mono">
+                        {new Date(activeTheatre.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleCheckOutGymTheatreFlow(activeTheatre)}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-black py-2 px-4 rounded-xl text-[10px] uppercase cursor-pointer transition shadow-xs"
+                    >
+                      Vidaay (Exit Checkout)
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleCheckInGymTheatre('Theatre')}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-2 px-4 rounded-xl text-[10px] uppercase cursor-pointer transition shadow-xs"
+                  >
+                    Aagman (Enter Theatre)
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Access Logs List (Filtered 1 Month) */}
+          <div className="space-y-2.5 border-t border-slate-100 pt-4">
+            <h4 className="font-display font-black text-[10px] uppercase tracking-wider text-slate-500">Access Logbook (Past 30 Days)</h4>
+            
+            {filteredLogs.length === 0 ? (
+              <p className="text-[11px] text-slate-400 py-2">No logs registered in the past 30 days.</p>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                {filteredLogs.map((log) => (
+                  <div key={log.id} className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[11px] gap-3">
+                    <div className="text-left min-w-0 flex-1">
+                      <p className="font-bold text-slate-800 uppercase text-[10px] truncate">
+                        {log.amenity === 'Gym' ? '🏋️ Gym' : '🎭 Theatre'} ({log.flatId})
+                      </p>
+                      {log.memberName && (
+                        <p className="text-[10px] font-bold text-indigo-700 mt-0.5">
+                          Member: {log.memberName}
+                        </p>
+                      )}
+                      {log.memberPhone && (
+                        <p className="text-[9px] text-indigo-600 font-bold truncate">
+                          Phone: {log.memberPhone}
+                        </p>
+                      )}
+                      <p className="text-[8px] text-slate-400 font-mono mt-0.5">
+                        In: {new Date(log.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} 
+                        {log.checkOutTime && ` • Out: ${new Date(log.checkOutTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      {log.checkOutTime ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-[7px] bg-emerald-50 text-emerald-800 border border-emerald-100 px-1 py-0.5 rounded font-mono font-bold uppercase">
+                            {log.durationMinutes}m
+                          </span>
+                          {log.exitPhotoUrl && (
+                            <div className="w-6 h-6 rounded border border-slate-200 overflow-hidden shrink-0">
+                              {log.exitPhotoUrl.startsWith('file_') ? (
+                                <ChunkedMedia fileId={log.exitPhotoUrl} type="image/jpeg" fallbackName="exit verification" />
+                              ) : (
+                                <img src={log.exitPhotoUrl} className="w-full h-full object-cover" alt="exit Verification" referrerPolicy="no-referrer" />
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[7px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-1.5 py-0.5 rounded font-mono font-black uppercase tracking-wider animate-pulse">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       )}

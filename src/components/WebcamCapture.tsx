@@ -147,17 +147,17 @@ export default function WebcamCapture({ onPhotoCaptured, value, guestType }: Web
 
       <div className="flex flex-col md:flex-row items-center gap-4">
         {/* Photo Display / Camera View */}
-        <div className="w-32 h-32 mx-auto bg-slate-900 rounded-xl overflow-hidden relative shadow-inner flex items-center justify-center shrink-0 border-2 border-slate-300">
+        <div className="w-full md:w-48 h-36 bg-slate-900 rounded-xl overflow-hidden relative shadow-inner flex items-center justify-center shrink-0 border-2 border-slate-300">
           {cameraActive ? (
             <video
               ref={videoRef}
               autoPlay
               playsInline
-              className="w-full h-full object-contain transform"
+              className="w-full h-full object-cover transform"
               style={{ transform: facingMode === 'user' ? 'scaleX(-1)' : 'none' }}
             />
           ) : photo ? (
-            <img src={photo} alt="Visitor" className="w-full h-full object-contain" />
+            <img src={photo} alt="Visitor" className="w-full h-full object-cover" />
           ) : (
             <ImageIcon className="w-8 h-8 text-slate-500" />
           )}

@@ -762,7 +762,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                       <img 
                         src={entry.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} 
                         alt="visitor" 
-                        className="w-12 h-12 rounded-xl object-contain bg-slate-100 bg-slate-200 shrink-0 shadow-xs border border-slate-200"
+                        className="w-12 h-12 rounded-xl object-cover bg-slate-200 shrink-0 shadow-xs border border-slate-200"
                         referrerPolicy="no-referrer"
                       />
                       <div className="min-w-0">
@@ -843,7 +843,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   <img 
                     src={selectedPass.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} 
                     alt="visitor" 
-                    className="w-14 h-14 rounded-xl object-contain bg-slate-100 bg-slate-200 border shadow-xs"
+                    className="w-14 h-14 rounded-xl object-cover bg-slate-200 border shadow-xs"
                     referrerPolicy="no-referrer"
                   />
                   <div>
@@ -943,7 +943,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   <img 
                     src={showSuccessModal.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} 
                     alt="visitor" 
-                    className="w-10 h-10 rounded-lg object-contain bg-slate-100 bg-slate-200"
+                    className="w-10 h-10 rounded-lg object-cover bg-slate-200"
                     referrerPolicy="no-referrer"
                   />
                   <div>

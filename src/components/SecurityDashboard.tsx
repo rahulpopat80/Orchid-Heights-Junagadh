@@ -4,13 +4,12 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell, ArrowLeft } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { FlatOwner, Visitor, DailyHelper, GymTheatreLog } from '../types';
-import Directory from './Directory';
+import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
-import { collection, onSnapshot, doc, setDoc, updateDoc, addDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
+import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 
 const playDecisionSound = (status: string) => {
@@ -93,17 +92,8 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
 
   // Pre-Entry QR Scanner states
-  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan' | 'gym_entry' | 'directory'>('register');
+  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan'>('register');
   const [manualPassId, setManualPassId] = useState<string>('');
-  
-  // Gym Entry States
-  const [gymLogs, setGymLogs] = useState<GymTheatreLog[]>([]);
-  const [gymWing, setGymWing] = useState<'A' | 'B'>('A');
-  const [gymFlatNo, setGymFlatNo] = useState<number>(101);
-  const [gymMemberName, setGymMemberName] = useState<string>('');
-  const [gymError, setGymError] = useState<string>('');
-  const [gymSubmitting, setGymSubmitting] = useState<boolean>(false);
-  
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'expired' | 'used' | 'invalid' | null;
     message: string;
@@ -364,19 +354,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       });
       setAbsenceLogs(list);
     });
-    
-    const unsubscribeGym = onSnapshot(collection(db, 'gym_theatre_logs'), (snapshot) => {
-      const list: GymTheatreLog[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as GymTheatreLog);
-      });
-      setGymLogs(list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-    });
 
     return () => {
       unsubscribeHelpers();
       unsubscribeAbsence();
-      unsubscribeGym();
     };
   }, []);
 
@@ -710,73 +691,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     return fId.toLowerCase().includes(flatSearchQuery.toLowerCase().trim());
   });
 
-  const handleGymCheckIn = async () => {
-    setGymError('');
-    if (!gymMemberName) {
-      setGymError('Please select a household member.');
-      return;
-    }
-    setGymSubmitting(true);
-    try {
-      const flatId = `${gymWing}-${gymFlatNo}`;
-      
-      const activeSession = gymLogs.find(l => l.flatId === flatId && l.amenity === 'Gym' && l.memberName === gymMemberName && !l.checkOutTime);
-      if (activeSession) {
-        setGymError('આ સભ્ય પહેલેથી જ જીમ માં છે.');
-        setGymSubmitting(false);
-        return;
-      }
-
-      const payload: Omit<GymTheatreLog, 'id'> = {
-        flatId,
-        amenity: 'Gym',
-        memberName: gymMemberName,
-        memberPhone: '',
-        checkInTime: new Date().toISOString(),
-        createdAt: new Date().toISOString()
-      };
-      
-      const owner = owners.find(o => o.wing === gymWing && o.flatNo === gymFlatNo);
-      if (owner) payload.memberPhone = owner.phone;
-      
-      await addDoc(collection(db, 'gym_theatre_logs'), payload);
-      setGymMemberName('');
-      setGymError('');
-    } catch (e: any) {
-      setGymError('Failed to check in: ' + e.message);
-    } finally {
-      setGymSubmitting(false);
-    }
-  };
-
-  const handleGymCheckOut = async (logId: string, checkInTime: string) => {
-    try {
-      const now = new Date();
-      const inTime = new Date(checkInTime);
-      const diffMs = now.getTime() - inTime.getTime();
-      const durationMinutes = Math.round(diffMs / 60000);
-      await updateDoc(doc(db, 'gym_theatre_logs', logId), {
-        checkOutTime: now.toISOString(),
-        durationMinutes
-      });
-    } catch (e: any) {
-      console.error('Failed to checkout:', e);
-    }
-  };
-
-  if (activeSecTab === 'directory') {
-    return (
-      <div className="bg-slate-50 min-h-screen">
-        <div className="max-w-4xl mx-auto p-4 sm:p-8">
-          <button onClick={() => setActiveSecTab('register')} className="mb-4 flex items-center space-x-2 text-indigo-600 font-bold hover:text-indigo-800 transition">
-            <ArrowLeft className="w-4 h-4" /> <span>પાછા જાઓ (Back to Dashboard)</span>
-          </button>
-          <Directory owners={owners} session={{ role: 'security' }} onBack={() => setActiveSecTab('register')} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-8">
       
@@ -819,26 +733,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             <QrCode className="w-5 h-5" />
             <span>QR સ્કેનર</span>
           </button>
-
           <button
             type="button"
-            onClick={() => {
-              setActiveSecTab('gym_entry');
-              setIsCameraActive(false);
-            }}
-            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${
-              activeSecTab === 'gym_entry' 
-                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' 
-                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            <Dumbbell className="w-5 h-5" />
-            <span>જીમ એન્ટ્રી</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveSecTab('directory')}
-            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${activeSecTab === 'directory' ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' : 'bg-slate-100 border border-slate-200 hover:bg-slate-200 active:bg-slate-300 text-slate-700'}`}
+            onClick={() => window.open('/directory', '_blank')}
+            className="w-full sm:w-auto bg-slate-100 border border-slate-200 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
           >
             <Users className="w-5 h-5" />
             <span>ફ્લેટ ધારકો ની વિગત</span>
@@ -1137,7 +1035,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             </button>
           </form>
           </>
-          ) : activeSecTab === 'qr_scan' ? (
+          ) : (
             <div className="space-y-6">
               <div className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200/60 text-center space-y-4">
                 <h3 className="text-xl font-bold text-slate-800">પ્રી-એન્ટ્રી પાસ સ્કેન કરો (Scan Pre-Entry Pass)</h3>
@@ -1233,7 +1131,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 
                     {scanResult.data?.photoUrl && (
                       <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
-                        <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-contain bg-slate-100" />
+                        <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-cover" />
                       </div>
                     )}
 
@@ -1273,113 +1171,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 </div>
               )}
             </div>
-          ) : activeSecTab === 'gym_entry' ? (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-4 mb-8 border-b border-slate-100 pb-5">
-                <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-700">
-                  <Dumbbell className="w-8 h-8" />
-                </div>
-                <div>
-                  <h2 className="font-display font-bold text-2xl text-slate-800">જીમ એન્ટ્રી (Gym Entry)</h2>
-                  <p className="text-base text-slate-500">જીમ મુલાકાતીઓની એન્ટ્રી અને એક્ઝિટ.</p>
-                </div>
-              </div>
-              
-              {gymError && (
-                <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 font-bold mb-6">
-                  {gymError}
-                </div>
-              )}
-              
-              <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200">
-                <h3 className="font-bold text-lg text-slate-700 mb-4">નવી એન્ટ્રી (Check In)</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">વિંગ (Wing) *</label>
-                    <select
-                      value={gymWing}
-                      onChange={(e) => setGymWing(e.target.value as 'A' | 'B')}
-                      className="w-full bg-white border border-slate-300 px-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-lg"
-                    >
-                      <option value="A">વિંગ A</option>
-                      <option value="B">વિંગ B</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-2">ફ્લેટ નંબર (Flat Number) *</label>
-                    <input
-                      type="number"
-                      value={gymFlatNo}
-                      onChange={(e) => setGymFlatNo(parseInt(e.target.value) || 101)}
-                      className="w-full bg-white border border-slate-300 px-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-lg"
-                      min="101"
-                    />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">સભ્યનું નામ (Member Name) *</label>
-                  <select
-                    value={gymMemberName}
-                    onChange={(e) => setGymMemberName(e.target.value)}
-                    className="w-full bg-white border border-slate-300 px-4 py-3 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium text-lg"
-                  >
-                    <option value="">સભ્ય પસંદ કરો</option>
-                    {owners.filter(o => o.wing === gymWing && o.flatNo === gymFlatNo).map(owner => (
-                      <React.Fragment key={owner.flatNo}>
-                        <option value={owner.nameGu || owner.nameEn}>{owner.nameGu || owner.nameEn} (માલિક)</option>
-                        {owner.members?.map((m, idx) => (
-                          <option key={idx} value={m}>{m} (સભ્ય)</option>
-                        ))}
-                      </React.Fragment>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={handleGymCheckIn}
-                  disabled={gymSubmitting || !gymMemberName}
-                  className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-lg transition disabled:opacity-50"
-                >
-                  ચેક ઇન કરો (Check In)
-                </button>
-              </div>
-
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <h3 className="font-bold text-lg text-slate-700 mb-4">ચાલુ જીમ મુલાકાતીઓ (Active Gym Visitors)</h3>
-                {gymLogs.filter(l => l.amenity === 'Gym' && (new Date().getTime() - new Date(l.checkInTime).getTime() < 24 * 60 * 60 * 1000)).length === 0 ? (
-                  <p className="text-slate-500 italic">કોઈ મુલાકાતી જીમમાં નથી.</p>
-                ) : (
-                  <div className="space-y-4">
-                    {gymLogs.filter(l => l.amenity === 'Gym' && (new Date().getTime() - new Date(l.checkInTime).getTime() < 24 * 60 * 60 * 1000)).map(log => (
-                      <div key={log.id} className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                          <p className="font-bold text-slate-800 text-lg">{log.memberName}</p>
-                          <p className="text-slate-500 text-sm font-medium">ફ્લેટ: {log.flatId}</p>
-                          <p className="text-indigo-600 text-sm font-mono mt-1">એન્ટ્રી સમય: {new Date(log.checkInTime).toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
-                        <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
-                          {log.memberPhone && (
-                            <a
-                              href={`tel:${log.memberPhone}`}
-                              className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-4 py-2 rounded-lg font-bold transition text-sm"
-                            >
-                              <Phone className="w-4 h-4" />
-                              <span>કોલ કરો</span>
-                            </a>
-                          )}
-                          <button
-                            onClick={() => handleGymCheckOut(log.id, log.checkInTime)}
-                            className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold transition text-sm whitespace-nowrap"
-                          >
-                            ચેક આઉટ (Check Out)
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : null}
+          )}
         </div>
 
         <div id="active-tracker" className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left h-full">
@@ -1407,7 +1199,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   <div key={v.id} className="bg-amber-50 border-l-8 border-amber-500 p-5 rounded-2xl relative animate-fade-in flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                       <div className="flex items-center space-x-4 mb-4">
-                        <img src={v.photoUrl} className="w-20 h-20 rounded-xl object-contain bg-slate-100 bg-slate-200 border-2 border-white shadow-sm" />
+                        <img src={v.photoUrl} className="w-20 h-20 rounded-xl object-cover bg-slate-200 border-2 border-white shadow-sm" />
                         <div>
                           <span className="text-xl font-bold text-slate-900">{v.fullName}</span>
                           <p className="text-lg text-slate-600 font-bold">ફ્લેટ {v.wing}-{v.flatNo}</p>
@@ -1486,7 +1278,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       }`}
                     >
                       <div className="flex items-center space-x-3 min-w-0">
-                        <img src={v.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} className="w-12 h-12 rounded-lg object-contain bg-slate-100 bg-slate-200 shrink-0" />
+                        <img src={v.photoUrl || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png'} className="w-12 h-12 rounded-lg object-cover bg-slate-200 shrink-0" />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="font-bold text-slate-800 truncate">{v.fullName}</p>
@@ -1541,62 +1333,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </div>
 
         </div>
-
-        <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left h-full">
-          <div className="flex items-center justify-between mb-8 pb-5 border-b border-slate-100">
-            <div>
-              <h3 className="font-display font-bold text-2xl text-slate-800">આજ ની જીમ ની એન્ટ્રી</h3>
-              <p className="text-base text-slate-500 mt-1">આજના જીમ મુલાકાતીઓનું લિસ્ટ.</p>
-            </div>
-            <span className="bg-indigo-100 text-indigo-800 border border-indigo-300 text-lg font-bold px-4 py-2 rounded-full flex items-center space-x-2">
-              <span className="w-3 h-3 bg-indigo-500 rounded-full animate-ping"></span>
-              <span>{gymLogs.filter(l => l.amenity === 'Gym' && !l.checkOutTime).length} હાજર</span>
-            </span>
-          </div>
-
-          {gymLogs.filter(l => !l.checkOutTime && l.amenity === 'Gym').length === 0 ? (
-            <div className="py-10 text-center text-slate-400">
-              <Dumbbell className="w-16 h-16 text-indigo-200 mx-auto mb-4" />
-              <p className="text-xl font-bold text-slate-700">કોઈ મુલાકાતી જીમમાં નથી.</p>
-            </div>
-          ) : (
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2">
-              {gymLogs.filter(l => !l.checkOutTime && l.amenity === 'Gym').map(log => (
-                <div key={log.id} className="bg-white border border-slate-200 p-4 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                  <div>
-                    <p className="font-bold text-slate-800 text-lg">{log.memberName}</p>
-                    <p className="text-slate-500 text-sm font-medium">ફ્લેટ: {log.flatId}</p>
-                    <p className="text-indigo-600 text-sm font-mono mt-1">એન્ટ્રી સમય: {new Date(log.checkInTime).toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                  </div>
-                  <div className="flex flex-row sm:flex-col gap-2 w-full sm:w-auto">
-                    {log.memberPhone && (
-                      <a
-                        href={`tel:${log.memberPhone}`}
-                        className="flex-1 sm:flex-none flex items-center justify-center space-x-2 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 px-4 py-2 rounded-lg font-bold transition text-sm"
-                      >
-                        <Phone className="w-4 h-4" />
-                        <span>કોલ કરો</span>
-                      </a>
-                    )}
-                    {!log.checkOutTime ? (
-                      <button
-                        onClick={() => handleGymCheckOut(log.id, log.checkInTime)}
-                        className="flex-1 sm:flex-none bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-bold transition text-sm whitespace-nowrap"
-                      >
-                        ચેક આઉટ
-                      </button>
-                    ) : (
-                      <div className="flex-1 sm:flex-none bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 rounded-lg font-bold text-sm text-center whitespace-nowrap">
-                        બહાર ગયા: {new Date(log.checkOutTime).toLocaleTimeString('gu-IN', { hour: '2-digit', minute: '2-digit' })} ({log.durationMinutes} મિનિટ)
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
       </div>
     </div>
   );

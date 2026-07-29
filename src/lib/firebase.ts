@@ -2070,7 +2070,7 @@ export async function clearAllSocietyNotifications(): Promise<boolean> {
     const snap = await getDocs(collection(db, 'society_notifications'));
     const batch = writeBatch(db);
     snap.forEach((docSnap) => {
-      batch.delete(doc(db, 'society_notifications', docSnap.id) as any);
+      batch.delete(doc(db, 'society_notifications', docSnap.id));
     });
     await batch.commit();
     return true;

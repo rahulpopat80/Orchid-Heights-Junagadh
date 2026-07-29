@@ -224,7 +224,6 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [showConfirmReset, setShowConfirmReset] = useState<boolean>(false);
   const [resetSuccess, setResetSuccess] = useState<string>('');
   const [resetLoading, setResetLoading] = useState<boolean>(false);
-  const [resetError, setResetError] = useState<string>("");
 
   // Inline Owner Edit State
   const [editOwner, setEditOwner] = useState<FlatOwner | null>(null);

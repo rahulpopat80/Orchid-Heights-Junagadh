@@ -302,9 +302,6 @@ export const api = {
   },
   usePreEntry: async (id: string): Promise<boolean> => {
     return usePreEntry(id);
-  },
-  clearAllSocietyNotifications: async (): Promise<boolean> => {
-    return (await import('./firebase')).clearAllSocietyNotifications();
   }
 };
 

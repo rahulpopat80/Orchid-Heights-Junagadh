@@ -292,7 +292,7 @@ export default function LocalServicesSection({
                         <div className="flex items-center space-x-3">
                           <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 overflow-hidden">
                             {helperPhoto ? (
-                              <img src={helperPhoto} alt="Helper" className="w-full h-full object-contain bg-slate-100" />
+                              <img src={helperPhoto} alt="Helper" className="w-full h-full object-cover" />
                             ) : (
                               <User className="w-5 h-5 text-slate-400" />
                             )}
@@ -358,7 +358,7 @@ export default function LocalServicesSection({
                     <div className="flex items-center space-x-2.5 min-w-0">
                       <span className="text-xl bg-white border border-slate-100 p-2 rounded-xl shrink-0 shadow-xs flex items-center justify-center">
                         {helper.photoUrl ? (
-                          <img src={helper.photoUrl} alt="Helper" className="w-8 h-8 object-contain bg-slate-100 rounded-lg" />
+                          <img src={helper.photoUrl} alt="Helper" className="w-8 h-8 object-cover rounded-lg" />
                         ) : helper.role === 'Maid' ? '🧹' : helper.role === 'Milkman' ? '🥛' : helper.role === 'Car Cleaner' ? '🚗' : helper.role === 'Newspaper Guy' ? '📰' : helper.role === 'Care Taker' ? '🧑‍⚕️' : helper.role === 'Cook' ? '👨‍🍳' : '🛠'}
                       </span>
                       <div className="min-w-0">
