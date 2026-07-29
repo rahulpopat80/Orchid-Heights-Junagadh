@@ -271,7 +271,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
 
   // New persistent states
   const [amenityBookings, setAmenityBookings] = useState<AmenityBooking[]>([]);
-  const [gymTheatreLogs, setGymTheatreLogs] = useState<GymTheatreLog[]>([]);
+  
   const [dailyHelpers, setDailyHelpers] = useState<DailyHelper[]>([]);
   const [absenceLogs, setAbsenceLogs] = useState<AbsenceLog[]>([]);
   const [essentialContacts, setEssentialContacts] = useState<EssentialContact[]>([]);
@@ -332,21 +332,9 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
       setAmenityBookings(list);
     }, (error) => console.error('Error listening to bookings:', error));
 
-    // 2. Gym and Theatre Logs
-    const qLogs = query(collection(db, 'gym_theatre_logs'), orderBy('createdAt', 'desc'));
-    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
-      const list: GymTheatreLog[] = [];
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      
-      snapshot.forEach((doc) => {
-        const data = doc.data() as GymTheatreLog;
-        if (new Date(data.createdAt || data.checkInTime || new Date().toISOString()) >= oneMonthAgo) {
-          list.push({ id: doc.id, ...data });
-        }
-      });
-      setGymTheatreLogs(list);
-    }, (error) => console.error('Error listening to logs:', error));
+    
+    
+    
 
     // 3. Daily Helpers and Seeding
     const qHelpers = collection(db, 'daily_helpers');
@@ -435,8 +423,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
 
     return () => {
       unsubBookings();
-      unsubLogs();
-      unsubHelpers();
+            unsubHelpers();
       unsubAbsences();
       unsubContacts();
       unsubSocietyNotifs();
@@ -484,13 +471,13 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
   const [amenityBookingSuccess, setAmenityBookingSuccess] = useState<string>('');
 
   // Gym / Theatre logs form states
-  const [gymTheatreSuccess, setGymTheatreSuccess] = useState<string>('');
-  const [gymTheatreError, setGymTheatreError] = useState<string>('');
-  const [exitPhotoBase64, setExitPhotoBase64] = useState<string>('');
-  const [exitPhotoFile, setExitPhotoFile] = useState<File | null>(null);
-  const [activeCheckInLog, setActiveCheckInLog] = useState<GymTheatreLog | null>(null);
-  const [showExitPhotoModal, setShowExitPhotoModal] = useState<boolean>(false);
-  const [exitPhotoTimeError, setExitPhotoTimeError] = useState<boolean>(false);
+  
+  
+  
+  
+  
+  
+  
 
   // Absence form states
   const [absDateFrom, setAbsDateFrom] = useState<string>('');
@@ -584,112 +571,6 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
       });
     } catch (error) {
       console.error('Failed to vote booking:', error);
-    }
-  };
-
-  // Check In to Gym / Theatre
-  const handleCheckInGymTheatre = async (amenity: 'Gym' | 'Theatre') => {
-    setGymTheatreSuccess('');
-    setGymTheatreError('');
-    const flatId = `${wing}-${flatNo}`;
-    
-    // Check if flat is already checked in and hasn't checked out
-    const activeSession = gymTheatreLogs.find(l => l.flatId === flatId && l.amenity === amenity && !l.checkOutTime);
-    if (activeSession) {
-      setGymTheatreError(`Your flat is already checked into ${amenity}. Please check out first.`);
-      return;
-    }
-
-    const payload: Omit<GymTheatreLog, 'id'> = {
-      flatId,
-      amenity,
-      memberName: session.ownerName,
-      memberPhone: session.phone,
-      checkInTime: new Date().toISOString(),
-      createdAt: new Date().toISOString()
-    };
-
-    try {
-      await addDoc(collection(db, 'gym_theatre_logs'), payload);
-      setGymTheatreSuccess(`Checked in to ${amenity} successfully!`);
-    } catch (err: any) {
-      setGymTheatreError(err.message || 'Check-in failed.');
-    }
-  };
-
-  // Check Out Gym / Theatre Flow initiator
-  const handleCheckOutGymTheatreFlow = (log: GymTheatreLog) => {
-    setGymTheatreError('');
-    setGymTheatreSuccess('');
-    setActiveCheckInLog(log);
-    setExitPhotoBase64('');
-    setExitPhotoTimeError(false);
-    setShowExitPhotoModal(true);
-  };
-
-  // Handle Photo input conversion
-  const handleExitPhotoChange = (file: File) => {
-    if (!file) return;
-    if (file.size > 8 * 1024 * 1024) {
-      setGymTheatreError('Exit Photo size exceeds 8MB maximum limit.');
-      return;
-    }
-
-    setExitPhotoFile(file);
-    setExitPhotoTimeError(false);
-    setGymTheatreError('');
-
-    // Compress the selfie image to keep database payload lightweight
-    compressImage(file, 500, 500, 0.5)
-      .then((compressedBase64) => {
-        setExitPhotoBase64(compressedBase64);
-        setGymTheatreError('');
-      })
-      .catch((err) => {
-        console.error('Exit photo compression failed:', err);
-        setGymTheatreError('Failed to process image. Please try another photo.');
-      });
-  };
-
-
-  // Confirm Check Out with Image upload
-  const handleConfirmCheckOut = async () => {
-    if (!activeCheckInLog) return;
-    if (!exitPhotoBase64) {
-      setGymTheatreError('An exit checkout selfie snapshot is required to proceed.');
-      return;
-    }
-
-    const checkInTime = new Date(activeCheckInLog.checkInTime).getTime();
-    const now = new Date();
-    const nowTime = now.getTime();
-    const elapsedMs = nowTime - checkInTime;
-    const elapsedMinutes = Math.max(1, Math.floor(elapsedMs / 60000));
-
-    try {
-      setGymTheatreSuccess('');
-      setGymTheatreError('Uploading verification snapshot in progress...');
-      
-      let finalPhotoUrl = exitPhotoBase64;
-      if (exitPhotoFile) {
-        // Upload exit photo file in chunks to completely bypass firestore size limits!
-        const meta = await uploadFileInChunks(exitPhotoFile);
-        finalPhotoUrl = meta.fileId;
-      }
-
-      await updateDoc(doc(db, 'gym_theatre_logs', activeCheckInLog.id), {
-        checkOutTime: now.toISOString(),
-        exitPhotoUrl: finalPhotoUrl,
-        durationMinutes: elapsedMinutes
-      });
-      setGymTheatreSuccess(`Checked out of ${activeCheckInLog.amenity} successfully! Total session: ${elapsedMinutes} minutes.`);
-      setShowExitPhotoModal(false);
-      setActiveCheckInLog(null);
-      setExitPhotoBase64('');
-      setExitPhotoFile(null);
-      setExitPhotoTimeError(false);
-    } catch (err: any) {
-      setGymTheatreError(err.message || 'Check-out failed.');
     }
   };
 
@@ -1699,19 +1580,19 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     wing={wing}
                     flatNo={flatNo}
                     amenityBookings={amenityBookings}
-                    gymTheatreLogs={gymTheatreLogs}
+                    
                     handleAddAmenityBooking={handleAddAmenityBooking}
                     handleVoteAmenityBooking={handleVoteAmenityBooking}
-                    handleCheckInGymTheatre={handleCheckInGymTheatre}
-                    handleCheckOutGymTheatreFlow={handleCheckOutGymTheatreFlow}
-                    showExitPhotoModal={showExitPhotoModal}
-                    setShowExitPhotoModal={setShowExitPhotoModal}
-                    exitPhotoBase64={exitPhotoBase64}
-                    handleExitPhotoChange={handleExitPhotoChange}
-                    handleConfirmCheckOut={handleConfirmCheckOut}
-                    exitPhotoTimeError={exitPhotoTimeError}
-                    gymTheatreSuccess={gymTheatreSuccess}
-                    gymTheatreError={gymTheatreError}
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     amenityBookingSuccess={amenityBookingSuccess}
                     amenityBookingError={amenityBookingError}
                     fPropertyName={fPropertyName}
@@ -1726,8 +1607,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     setFStuffNeeded={setFStuffNeeded}
                     fParkingRequest={fParkingRequest}
                     setFParkingRequest={setFParkingRequest}
-                    activeCheckInLog={activeCheckInLog}
-                    role={session.role}
+                    
+                    
                   />
                 )}
 

@@ -6,10 +6,10 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { FlatOwner, Visitor, DailyHelper } from '../types';
+import { FlatOwner, Visitor, DailyHelper, GymTheatreLog } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
-import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
+import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc, query, orderBy, addDoc } from '../lib/firebase';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
 
 const playDecisionSound = (status: string) => {
@@ -67,6 +67,29 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [guestType, setGuestType] = useState<string>('Delivery');
   const [photoUrl, setPhotoUrl] = useState<string>('');
 
+  
+  useEffect(() => {
+    // Fetch all owners for Gym Entry
+    api.getOwners().then(owners => setAllOwners(owners));
+
+    // Listen to Gym Logs
+    const qLogs = query(collection(db, 'gym_theatre_logs'), orderBy('createdAt', 'desc'));
+    const unsubLogs = onSnapshot(qLogs, (snapshot) => {
+      const list: GymTheatreLog[] = [];
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      snapshot.forEach((doc) => {
+        const data = doc.data() as GymTheatreLog;
+        if (new Date(data.createdAt || data.checkInTime) >= today || !data.checkOutTime) {
+          list.push({ id: doc.id, ...data });
+        }
+      });
+      setGymLogs(list);
+    });
+
+    return () => unsubLogs();
+  }, []);
+
   useEffect(() => {
     switch(guestType) {
       case 'Delivery': setReason('To deliver products'); break;
@@ -92,7 +115,20 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
 
   // Pre-Entry QR Scanner states
-  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan'>('register');
+  
+  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan' | 'gym_entry'>('register');
+
+  // === Gym Entry States ===
+  const [gymLogs, setGymLogs] = useState<GymTheatreLog[]>([]);
+  const [gymWing, setGymWing] = useState<'A' | 'B'>('A');
+  const [gymFlatNo, setGymFlatNo] = useState<number>(101);
+  const [gymMembers, setGymMembers] = useState<string[]>([]);
+  const [selectedGymMember, setSelectedGymMember] = useState<string>('');
+  const [allOwners, setAllOwners] = useState<FlatOwner[]>([]);
+  const [gymSubmitting, setGymSubmitting] = useState<boolean>(false);
+  const [gymSuccess, setGymSuccess] = useState<string>('');
+  const [gymError, setGymError] = useState<string>('');
+
   const [manualPassId, setManualPassId] = useState<string>('');
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'expired' | 'used' | 'invalid' | null;
@@ -360,6 +396,73 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       unsubscribeAbsence();
     };
   }, []);
+
+
+  useEffect(() => {
+    if (activeSecTab === 'gym_entry') {
+      const owner = allOwners.find(o => o.wing === gymWing && o.flatNo === gymFlatNo);
+      if (owner) {
+        const members = [owner.ownerName, ...(owner.householdMembers || [])].filter(Boolean);
+        setGymMembers(members);
+        if (members.length > 0 && !members.includes(selectedGymMember)) {
+          setSelectedGymMember(members[0]);
+        }
+      } else {
+        setGymMembers([]);
+        setSelectedGymMember('');
+      }
+    }
+  }, [gymWing, gymFlatNo, allOwners, activeSecTab]);
+
+  const handleGymCheckIn = async () => {
+    if (!selectedGymMember) {
+      setGymError('કૃપા કરીને સભ્ય પસંદ કરો (Please select member)');
+      return;
+    }
+    setGymSubmitting(true);
+    setGymError('');
+    setGymSuccess('');
+    
+    const flatId = `${gymWing}-${gymFlatNo}`;
+    
+    // Check if member already checked in
+    const activeSession = gymLogs.find(l => l.flatId === flatId && l.memberName === selectedGymMember && !l.checkOutTime && l.amenity === 'Gym');
+    
+    if (activeSession) {
+      setGymError('આ સભ્ય પહેલેથી જ જીમમાં છે (Member already in gym)');
+      setGymSubmitting(false);
+      return;
+    }
+    
+    const payload: Omit<GymTheatreLog, 'id'> = {
+      flatId,
+      amenity: 'Gym',
+      memberName: selectedGymMember,
+      checkInTime: new Date().toISOString(),
+      createdAt: new Date().toISOString()
+    };
+    
+    try {
+      await addDoc(collection(db, 'gym_theatre_logs'), payload);
+      setGymSuccess('સફળતાપૂર્વક ચેક ઇન કર્યું (Checked in successfully)!');
+    } catch (err: any) {
+      setGymError(err.message || 'Check-in failed');
+    } finally {
+      setGymSubmitting(false);
+    }
+  };
+
+  const handleGymCheckOut = async (logId: string) => {
+    try {
+      const now = new Date();
+      await updateDoc(doc(db, 'gym_theatre_logs', logId), {
+        checkOutTime: now.toISOString()
+      });
+      setGymSuccess('સફળતાપૂર્વક ચેક આઉટ કર્યું (Checked out successfully)!');
+    } catch (err: any) {
+      setGymError(err.message || 'Check-out failed');
+    }
+  };
 
   const handleManualRefresh = async () => {
     setIsRefreshing(true);
@@ -735,6 +838,22 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </button>
           <button
             type="button"
+            onClick={() => {
+              setActiveSecTab('gym_entry');
+              setIsCameraActive(false);
+            }}
+            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${
+              activeSecTab === 'gym_entry' 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' 
+                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <span className="text-xl">🏋️</span>
+            <span>જીમ એન્ટ્રી</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => window.open('/directory', '_blank')}
             className="w-full sm:w-auto bg-slate-100 border border-slate-200 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
           >
@@ -1023,7 +1142,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-md text-sm shadow-sm transition flex items-center justify-center"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg text-base shadow-sm transition flex items-center justify-center space-x-2"
             >
               {submitting ? (
                 <span className="inline-block border-2 border-white border-t-transparent rounded-full w-5 h-5 animate-spin"></span>

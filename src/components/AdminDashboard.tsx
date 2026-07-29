@@ -2883,7 +2883,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       setResetSuccess('✅ Society notifications cleared successfully.');
                       setTimeout(() => setResetSuccess(''), 3000);
                     } catch(e) {
-                      setResetError('Failed to clear notifications.');
+                      console.error('Failed to clear notifications.');
                     } finally {
                       setResetLoading(false);
                     }
