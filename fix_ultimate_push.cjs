@@ -345,8 +345,9 @@ export function startServerNotificationService() {
   });
 
 }
-`;
+`; // Added backtick here
 
+if (!fs.existsSync('api')) fs.mkdirSync('api');
 fs.writeFileSync('src/lib/server-notifications.ts', serverNotifsJs);
 console.log('✅ src/lib/server-notifications.ts written. Global Event Engine Active.');
 

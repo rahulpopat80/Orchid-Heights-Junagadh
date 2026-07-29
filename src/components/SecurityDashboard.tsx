@@ -1023,7 +1023,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg text-base shadow-sm transition flex items-center justify-center space-x-2"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-md text-sm shadow-sm transition flex items-center justify-center"
             >
               {submitting ? (
                 <span className="inline-block border-2 border-white border-t-transparent rounded-full w-5 h-5 animate-spin"></span>

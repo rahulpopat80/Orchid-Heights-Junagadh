@@ -24,8 +24,8 @@ export default async function handler(req, res) {
 
     if (!accessToken) return res.status(500).json({ error: 'Missing OAuth token' });
 
-    // CRITICAL: Force Data-Only Payload with High Priority WebPush Headers 
-    // to break through Android Doze Mode
+    // CRITICAL FIX: DATA-ONLY PAYLOAD. 
+    // Do NOT use the 'notification' object here, otherwise Android blocks background execution!
     const fcmMessage = {
       token: payload.token,
       topic: payload.topic,
@@ -37,12 +37,7 @@ export default async function handler(req, res) {
         icon: String(payload.icon || payload.notification?.icon || "https://i.ibb.co/zT5tpcdY/1000296229-1.png")
       },
       android: { priority: "high" },
-      webpush: { 
-        headers: { 
-          Urgency: "high", 
-          TTL: "86400" 
-        } 
-      }
+      webpush: { headers: { Urgency: "high", TTL: "86400" } }
     };
 
     if (!fcmMessage.token) delete fcmMessage.token;
