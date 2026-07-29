@@ -1,27 +1,12 @@
-/**
- * Firebase Messaging Service Worker
- */
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
-
-firebase.initializeApp({
-  apiKey: "AIzaSyAHHKnOR_UkAjDQ8wFdBpVALYrY1rPK3Es",
-  authDomain: "orchidheights-d46f2.firebaseapp.com",
-  projectId: "orchidheights-d46f2",
-  storageBucket: "orchidheights-d46f2.firebasestorage.app",
-  messagingSenderId: "408063641296",
-  appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
-});
-
 self.addEventListener('push', function(event) {
   if (!event.data) return;
+  
   let payload = {};
   try { payload = event.data.json(); } catch(e) { return; }
 
-  const data = payload.data || {};
+  // Extract data payload (Data-only payloads bypass Firebase swallowing)
+  const data = payload.data || payload.notification || {};
   
-  // Prevent visual notifications for internal Firebase tokens
   if (!data.title && !data.body) return;
 
   const options = {
@@ -31,9 +16,10 @@ self.addEventListener('push', function(event) {
     tag: data.visitorId || data.type || Date.now().toString(),
     data: data,
     requireInteraction: true,
-    vibrate: [300, 100, 300, 100, 300]
+    vibrate: [300, 100, 300, 100, 300] // Aggressive vibration pattern
   };
 
+  // Add Action buttons only for gate requests
   if (data.type === 'visitor' || data.type === 'visitor_request') {
     options.actions = [
       { action: 'approve', title: '✅ Approve Entry' },
@@ -41,6 +27,7 @@ self.addEventListener('push', function(event) {
     ];
   }
 
+  // Wakes the screen and shows notification instantly
   event.waitUntil(self.registration.showNotification(data.title || 'Orchid Heights', options));
 });
 
@@ -52,21 +39,34 @@ self.addEventListener('notificationclick', function(event) {
 
   if ((action === 'approve' || action === 'reject') && visitorId) {
     const status = action === 'approve' ? 'approved' : 'rejected';
-    const db = firebase.firestore();
-    const visitorRef = db.collection('visitors').doc(visitorId);
+    
+    // 🔥 VANILLA FIRESTORE REST API 🔥
+    // Zero SDK needed. Updates the database instantly in milliseconds.
+    const projectId = 'orchidheights-d46f2';
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/visitors/${visitorId}?updateMask.fieldPaths=status&updateMask.fieldPaths=respondedTime&updateMask.fieldPaths=respondedBy`;
+    
+    const payload = {
+      fields: {
+        status: { stringValue: status },
+        respondedTime: { stringValue: new Date().toISOString() },
+        respondedBy: { stringValue: "Resident (Quick Action)" }
+      }
+    };
 
     event.waitUntil(
-      db.runTransaction(t => t.get(visitorRef).then(doc => {
-        if (doc.exists && doc.data().status === 'pending') {
-          t.update(visitorRef, { status, respondedTime: new Date().toISOString(), respondedBy: 'Resident (Quick Action)' });
-        }
-      })).then(() => clients.matchAll({ type: 'window' })).then(clientList => {
-        clientList.forEach(c => c.postMessage({ type: 'VISITOR_ACTION', visitorId, status }));
-      })
+      fetch(url, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(() => clients.matchAll({ type: 'window', includeUncontrolled: true }))
+        .then(clientList => {
+          clientList.forEach(c => c.postMessage({ type: 'VISITOR_ACTION', visitorId, status }));
+        }).catch(err => console.error('SW Error:', err))
     );
   } else {
+    // Normal click - open the app
     event.waitUntil(
-      clients.matchAll({ type: 'window' }).then(clientList => {
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
         for (const client of clientList) {
           if ('focus' in client) {
             client.navigate('/home').catch(()=>{});
@@ -79,5 +79,6 @@ self.addEventListener('notificationclick', function(event) {
   }
 });
 
+// Force immediate activation
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (e) => e.waitUntil(clients.claim()));
