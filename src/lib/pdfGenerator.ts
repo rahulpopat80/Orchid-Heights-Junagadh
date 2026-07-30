@@ -625,7 +625,7 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
   const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 15;
   const contentWidth = pageWidth - margin * 2;
-  const logsPerPage = 8;
+  const logsPerPage = 7;
   const cardHeight = 30;
   const cardSpacing = 5;
 

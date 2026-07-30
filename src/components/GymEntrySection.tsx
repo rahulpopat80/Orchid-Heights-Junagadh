@@ -135,8 +135,8 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
           <div>
              <label className="block text-sm font-bold text-slate-700 mb-2">સભ્યનું નામ</label>
              <select value={member} onChange={(e) => setMember(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold">
-                {flatMembers.map(m => (
-                  <option key={m} value={m}>{m} {currentOwner?.phone ? `(${currentOwner.phone})` : ''}</option>
+                {flatMembers.map((m, idx) => (
+                  <option key={m} value={m}>{m} {idx === 0 && currentOwner?.phone ? `(${currentOwner.phone})` : ''}</option>
                 ))}
              </select>
           </div>
