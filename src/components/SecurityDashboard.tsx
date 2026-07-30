@@ -4,13 +4,14 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
 import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
 import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import GymEntrySection from './GymEntrySection';
 
 const playDecisionSound = (status: string) => {
   if (status === 'expired') return;
@@ -92,7 +93,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
 
   // Pre-Entry QR Scanner states
-  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan'>('register');
+  const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan' | 'gym_entry'>('register');
   const [manualPassId, setManualPassId] = useState<string>('');
   const [scanResult, setScanResult] = useState<{
     status: 'success' | 'expired' | 'used' | 'invalid' | null;
@@ -735,6 +736,21 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </button>
           <button
             type="button"
+            onClick={() => {
+              setActiveSecTab('gym_entry');
+              setIsCameraActive(false);
+            }}
+            className={`w-full sm:w-auto px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm ${
+              activeSecTab === 'gym_entry' 
+                ? 'bg-indigo-600 text-white hover:bg-indigo-700 border border-transparent' 
+                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            <Dumbbell className="w-5 h-5" />
+            <span>GYM એન્ટ્રી</span>
+          </button>
+          <button
+            type="button"
             onClick={() => window.open('/directory', '_blank')}
             className="w-full sm:w-auto bg-slate-100 border border-slate-200 hover:bg-slate-200 active:bg-slate-300 text-slate-700 px-6 py-3 rounded-xl text-lg font-bold flex items-center justify-center space-x-2 transition shadow-sm"
           >
@@ -774,7 +790,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8 items-start">
         
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left">
-          {activeSecTab === 'register' ? (
+          {activeSecTab === 'register' && (
             <>
               <div className="flex items-center space-x-4 mb-8 border-b border-slate-100 pb-5">
             <div className="bg-indigo-100 p-3 rounded-2xl text-indigo-700">
@@ -1034,8 +1050,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
               )}
             </button>
           </form>
-          </>
-          ) : (
+            </>
+          )}
+
+          {activeSecTab === 'qr_scan' && (
             <div className="space-y-6">
               <div className="bg-slate-50 rounded-2xl p-4 sm:p-6 border border-slate-200/60 text-center space-y-4">
                 <h3 className="text-xl font-bold text-slate-800">પ્રી-એન્ટ્રી પાસ સ્કેન કરો (Scan Pre-Entry Pass)</h3>
@@ -1171,6 +1189,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 </div>
               )}
             </div>
+          )}
+
+          {activeSecTab === 'gym_entry' && (
+            <GymEntrySection owners={owners} />
           )}
         </div>
 

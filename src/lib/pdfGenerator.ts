@@ -618,3 +618,88 @@ export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, 
   doc.save(`Orchid_Heights_Amenities_${new Date().getTime()}.pdf`);
 };
 
+
+export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: string) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  const logsPerPage = 8;
+  const cardHeight = 30;
+  const cardSpacing = 5;
+
+  let currentLogIndex = 0;
+
+  while (currentLogIndex < logs.length) {
+    if (currentLogIndex > 0) doc.addPage();
+    await drawPDFHeader(doc, title, subtitle, pageWidth);
+
+    let startY = 43;
+
+    for (let i = 0; i < logsPerPage && currentLogIndex < logs.length; i++) {
+      const log = logs[currentLogIndex];
+      
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin, startY, contentWidth, cardHeight, 3, 3, 'FD');
+
+      const textX = margin + 5;
+      let currY = startY + 10;
+
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(sanitizeText(log.memberName).toUpperCase(), textX, currY);
+
+      currY += 6;
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Flat: ${log.flatId}`, textX, currY);
+      
+      if (log.memberPhone) {
+          currY += 5;
+          doc.text(`Phone: ${log.memberPhone}`, textX, currY);
+      }
+
+      const rightX = pageWidth - margin - 5;
+      currY = startY + 10;
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(9);
+      doc.text('CHECK IN:', rightX, currY, { align: 'right' });
+      
+      currY += 5;
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text(new Date(log.checkInTime).toLocaleString('en-IN'), rightX, currY, { align: 'right' });
+
+      currY += 6;
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text('CHECK OUT:', rightX, currY, { align: 'right' });
+      
+      currY += 5;
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text(log.checkOutTime ? new Date(log.checkOutTime).toLocaleString('en-IN') : 'PENDING', rightX, currY, { align: 'right' });
+
+      startY += cardHeight + cardSpacing;
+      currentLogIndex++;
+    }
+
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Page ${doc.internal.pages.length - 1}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+  }
+
+  if (logs.length === 0) {
+    await drawPDFHeader(doc, title, subtitle, pageWidth);
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(12);
+    doc.text('No gym records found.', pageWidth / 2, 80, { align: 'center' });
+  }
+
+  doc.save(`Orchid_Heights_Gym_${new Date().getTime()}.pdf`);
+};

@@ -14,9 +14,9 @@ import { FlatOwner, Announcement, Complaint, FinancialReport, EssentialContact, 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { api } from '../lib/api';
-import { db, collection, doc, query, onSnapshot, orderBy, updateDoc, deleteDoc, getDocs } from '../lib/firebase';
+import { db, collection, doc, query, onSnapshot, orderBy, updateDoc, deleteDoc, getDocs, clearAllSocietyNotifications } from '../lib/firebase';
 import AdminVisitorRecords from './admin/AdminVisitorRecords';
-import { generateGymTheatrePDF, generateAmenityPDF, generateMoviePDF } from '../lib/pdfGenerator';
+import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF } from '../lib/pdfGenerator';
 import AdminLocalServices from './admin/AdminLocalServices';
 
 interface AdminDashboardProps {
@@ -642,12 +642,12 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadGymTheatreLogsPDF = async () => {
+  const handleDownloadGymLogsPDF = async () => {
     if (gymTheatreLogs.length === 0) {
-      alert('No gym or movie theatre logs to export.');
+      alert('No gym logs to export.');
       return;
     }
-    await generateGymTheatrePDF(gymTheatreLogs, "GYM & THEATRE MASTER LOG", "All Flat Access Records", true, owners);
+    await generateGymEntryPDF(gymTheatreLogs, "GYM MASTER LOG", "All Flat Access Records");
   };
 
 
@@ -2499,11 +2499,11 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <span>Export Amenities Logs (PDF)</span>
                 </button>
                 <button
-                  onClick={handleDownloadGymTheatreLogsPDF}
+                  onClick={handleDownloadGymLogsPDF}
                   className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow transition cursor-pointer self-start md:self-auto shrink-0 animate-fadeIn"
                 >
                   <Download className="w-4 h-4" />
-                  <span>Export Gym & Theatre Logs (PDF)</span>
+                  <span>Export Gym Logs (PDF)</span>
                 </button>
               </div>
             </div>
@@ -2879,11 +2879,11 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     if (!ok) return;
                     setResetLoading(true);
                     try {
-                      await api.clearAllSocietyNotifications();
+                      await clearAllSocietyNotifications();
                       setResetSuccess('✅ Society notifications cleared successfully.');
                       setTimeout(() => setResetSuccess(''), 3000);
                     } catch(e) {
-                      setResetError('Failed to clear notifications.');
+                      alert('Failed to clear notifications.');
                     } finally {
                       setResetLoading(false);
                     }
