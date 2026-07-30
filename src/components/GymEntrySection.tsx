@@ -87,6 +87,19 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
   const activeLogs = logs.filter(l => !l.checkOutTime);
   const checkedOutLogs = logs.filter(l => l.checkOutTime);
 
+  const formatDateTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDuration = (checkIn: string, checkOut: string) => {
+    const diffMs = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const hrs = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
+  };
+
   return (
     <div className="space-y-6 text-left">
       <div className="bg-white rounded-2xl p-6 border border-slate-200">
@@ -101,14 +114,14 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">વિંગ</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">વિંગ (Wing)</label>
               <select value={wing} onChange={(e) => setWing(e.target.value as 'A' | 'B')} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold">
                 <option value="A">Wing A</option>
                 <option value="B">Wing B</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">ફ્લેટ નંબર</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">ફ્લેટ નંબર (Flat)</label>
               <select value={flatNo} onChange={(e) => setFlatNo(parseInt(e.target.value))} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold">
                 {Array.from({ length: 12 }, (_, i) => i + 1).flatMap(floor => 
                   Array.from({ length: 4 }, (_, j) => floor * 100 + (j + 1))
@@ -117,7 +130,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
             </div>
           </div>
           <div>
-             <label className="block text-sm font-bold text-slate-700 mb-2">Household Member</label>
+             <label className="block text-sm font-bold text-slate-700 mb-2">સભ્યનું નામ (Member Name)</label>
              <select value={member} onChange={(e) => setMember(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold">
                 {flatMembers.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -126,8 +139,12 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
           </div>
         </div>
         
-        <button onClick={handleCheckIn} className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition">
-          Check In Member
+        <p className="text-xs text-slate-500 font-medium mt-4 bg-indigo-50 text-indigo-800 p-3 rounded-lg border border-indigo-100">
+          ℹ️ Security Instructions: After clicking Check In, please hand over the GYM Key to the member. When they return the key, click on Check Out.
+        </p>
+
+        <button onClick={handleCheckIn} className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-md">
+          Check In Member & Give Key
         </button>
       </div>
 
@@ -144,7 +161,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
                   <p className="text-xs text-slate-500 font-medium">Flat: {log.flatId}</p>
                   <p className="text-xs text-indigo-600 font-bold mt-1">
                     <Clock className="w-3 h-3 inline mr-1" />
-                    In: {new Date(log.checkInTime).toLocaleTimeString()}
+                    In: {formatDateTime(log.checkInTime)}
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -175,10 +192,17 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
                  <div>
                    <p className="font-bold text-slate-700 text-sm">{log.memberName} (Flat {log.flatId})</p>
                    <p className="text-[10px] text-slate-500 mt-0.5 font-mono">
-                     In: {new Date(log.checkInTime).toLocaleTimeString()} • 
-                     Out: {log.checkOutTime ? new Date(log.checkOutTime).toLocaleTimeString() : 'N/A'}
+                     In: {formatDateTime(log.checkInTime)} • 
+                     Out: {log.checkOutTime ? formatDateTime(log.checkOutTime) : 'N/A'}
                    </p>
                  </div>
+                 {log.checkOutTime && (
+                   <div className="text-right">
+                     <span className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-bold font-mono">
+                       {formatDuration(log.checkInTime, log.checkOutTime)}
+                     </span>
+                   </div>
+                 )}
                </div>
              ))}
           </div>
