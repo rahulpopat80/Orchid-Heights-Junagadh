@@ -899,6 +899,8 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   <option value="Maid">🧹 ઘરઘાટી / કામવાળા</option>
                   <option value="Vehicle Cleaner">🚗 ગાડી સાફ કરવાવાળા</option>
                   <option value="Newspaper">📰 પેપરવાળો</option>
+                  <option value="Care Taker">🤝 કેર ટેકર (Care Taker)</option>
+                  <option value="Cook">🍳 રસોઇયા (Cook)</option>
                   <option value="Cabinet">🛠️ સર્વિસ એજન્ટ</option>
                   <option value="Other">👤 અન્ય મુલાકાતી</option>
                 </select>
