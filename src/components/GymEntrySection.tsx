@@ -28,7 +28,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
 
   const currentOwner = owners.find(o => o.wing === wing && o.flatNo === flatNo);
   const flatMembers = currentOwner ? [
-    currentOwner.nameGu || currentOwner.nameEn || `ફ્લેટ (Flat) ${wing}-${flatNo}`,
+    `${currentOwner.nameGu || currentOwner.nameEn || `ફ્લેટ (Flat) ${wing}-${flatNo}`}${currentOwner.phone ? ` (${currentOwner.phone})` : ''}`,
     ...(currentOwner.members || [])
   ] : [];
 
@@ -48,9 +48,21 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
       return;
     }
     
+    let extractedPhone = '';
+    let cleanMemberName = member;
+    const phoneMatch = member.match(/\(([\d\s\+\-]+)\)$/);
+    if (phoneMatch) {
+      extractedPhone = phoneMatch[1].replace(/[\s\+\-]/g, '');
+      cleanMemberName = member.replace(/\s*\([\d\s\+\-]+\)$/, '').trim();
+    } else {
+      if (member === flatMembers[0]) {
+         extractedPhone = currentOwner?.phone || '';
+      }
+    }
+    
     const flatId = `${wing}-${flatNo}`;
     
-    const isAlreadyIn = logs.some(l => l.flatId === flatId && l.memberName === member && !l.checkOutTime);
+    const isAlreadyIn = logs.some(l => l.flatId === flatId && l.memberName === cleanMemberName && !l.checkOutTime);
     if (isAlreadyIn) {
       setError('આ સભ્ય પહેલેથી જ જીમમાં છે (Member already in Gym).');
       return;
@@ -60,8 +72,8 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
       await addDoc(collection(db, 'gym_theatre_logs'), {
         flatId,
         amenity: 'Gym',
-        memberName: member,
-        memberPhone: currentOwner?.phone || '',
+        memberName: cleanMemberName,
+        memberPhone: extractedPhone,
         checkInTime: new Date().toISOString(),
         createdAt: new Date().toISOString()
       });
@@ -166,13 +178,13 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
                     પ્રવેશ (In): {formatDateTime(log.checkInTime)}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
                   {log.memberPhone && (
-                    <a href={`tel:${log.memberPhone}`} className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2.5 rounded-xl transition shrink-0">
+                    <a href={`tel:${log.memberPhone}`} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl transition shrink-0 flex items-center justify-center">
                       <Phone className="w-5 h-5" />
                     </a>
                   )}
-                  <button onClick={() => handleCheckOut(log.id!)} className="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-1 shrink-0">
+                  <button onClick={() => handleCheckOut(log.id!)} className="flex-1 sm:flex-none sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-1 shrink-0">
                     <LogOut className="w-4 h-4" />
                     <span>ચેક આઉટ (Check Out)</span>
                   </button>
