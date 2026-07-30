@@ -787,7 +787,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         </div>
       )}
 
-      <div className={`grid grid-cols-1 ${activeSecTab !== 'gym_entry' ? 'xl:grid-cols-2' : ''} gap-6 xl:gap-8 items-start`}>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 xl:gap-8 items-start">
         
         <div className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left">
           {activeSecTab === 'register' && (
@@ -1196,7 +1196,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           )}
         </div>
 
-        {activeSecTab !== 'gym_entry' && (
         <div id="active-tracker" className="bg-white border border-slate-200 rounded-3xl shadow-sm p-4 sm:p-6 md:p-8 text-left h-full">
           <div className="flex items-center justify-between mb-8 pb-5 border-b border-slate-100">
             <div>
@@ -1356,7 +1355,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </div>
 
         </div>
-        )}
       </div>
     </div>
   );
