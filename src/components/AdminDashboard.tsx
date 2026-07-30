@@ -72,6 +72,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [moviesSchedule, setMoviesSchedule] = useState<any[]>([]);
 
   // Listen to amenities real-time updates in admin panel
+  const formatDuration = (checkIn: string, checkOut: string) => {
+    const diffMs = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const hrs = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
+  };
+
   useEffect(() => {
     const qBookings = query(collection(db, 'amenities_bookings'), orderBy('createdAt', 'desc'));
     const unsubBookings = onSnapshot(qBookings, (snapshot) => {
@@ -624,7 +633,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         `"${inTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}"`,
         `"${outTime ? outTime.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}"`,
         `"${outTime ? outTime.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) : 'ACTIVE SESSION'}"`,
-        `"${log.durationMinutes || 'N/A'}"`,
+        `"${outTime ? formatDuration(log.checkInTime, log.checkOutTime!) : 'N/A'}"`,
         `"${log.checkOutTime ? 'COMPLETED' : 'ACTIVE'}"`,
         `"${log.exitPhotoUrl ? 'Verified ✓' : 'None'}"`
       ].join(','));
@@ -647,7 +656,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       alert('No gym logs to export.');
       return;
     }
-    await generateGymEntryPDF(gymTheatreLogs, "GYM MASTER LOG", "All Flat Access Records");
+    await generateGymEntryPDF(gymTheatreLogs, "GYM MASTER LOG", "All Flat Access Records", owners);
   };
 
 
@@ -2636,7 +2645,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                               In: {new Date(log.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • Out: {new Date(log.checkOutTime!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                             <span className="inline-block text-[8px] bg-slate-250 text-slate-800 border border-slate-350 px-1.5 py-0.5 rounded font-mono font-bold uppercase leading-none">
-                              {log.durationMinutes} Mins
+                              {formatDuration(log.checkInTime, log.checkOutTime!)}
                             </span></div>
 
                           {log.exitPhotoUrl && (

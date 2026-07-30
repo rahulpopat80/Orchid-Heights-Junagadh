@@ -619,7 +619,7 @@ export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, 
 };
 
 
-export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: string) => {
+export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: string, owners: any[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -631,6 +631,15 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
 
   let currentLogIndex = 0;
 
+  const formatDuration = (checkIn: string, checkOut: string) => {
+    const diffMs = new Date(checkOut).getTime() - new Date(checkIn).getTime();
+    const diffMins = Math.round(diffMs / 60000);
+    const hrs = Math.floor(diffMins / 60);
+    const mins = diffMins % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    return `${mins}m`;
+  };
+
   while (currentLogIndex < logs.length) {
     if (currentLogIndex > 0) doc.addPage();
     await drawPDFHeader(doc, title, subtitle, pageWidth);
@@ -639,6 +648,8 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
 
     for (let i = 0; i < logsPerPage && currentLogIndex < logs.length; i++) {
       const log = logs[currentLogIndex];
+      const ownerMatch = owners.find((o: any) => `${o.wing}-${o.flatNo}` === log.flatId);
+      const ownerName = ownerMatch ? ownerMatch.nameEn : 'Resident';
       
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 232, 240);
@@ -656,7 +667,7 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
       doc.setTextColor(71, 85, 105);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Flat: ${log.flatId}`, textX, currY);
+      doc.text(`Flat: ${log.flatId} (${sanitizeText(ownerName)})`, textX, currY);
       
       if (log.memberPhone) {
           currY += 5;
@@ -677,12 +688,11 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
       currY += 6;
       doc.setTextColor(100, 116, 139);
       doc.setFont('helvetica', 'normal');
-      doc.text('CHECK OUT:', rightX, currY, { align: 'right' });
-      
-      currY += 5;
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text(log.checkOutTime ? new Date(log.checkOutTime).toLocaleString('en-IN') : 'PENDING', rightX, currY, { align: 'right' });
+      if (log.checkOutTime) {
+          doc.text(`OUT: ${new Date(log.checkOutTime).toLocaleString('en-IN')} (${formatDuration(log.checkInTime, log.checkOutTime)})`, rightX, currY, { align: 'right' });
+      } else {
+          doc.text('OUT: PENDING', rightX, currY, { align: 'right' });
+      }
 
       startY += cardHeight + cardSpacing;
       currentLogIndex++;
