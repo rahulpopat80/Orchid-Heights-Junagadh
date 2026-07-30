@@ -1449,7 +1449,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                           <p className="text-[10px] text-slate-400 font-medium bg-slate-50 border border-slate-150 p-2 rounded-lg inline-block">No registered members</p>
                         )}
 
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                           <input
                             type="text"
                             placeholder="Add Member Name"
@@ -1497,7 +1497,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                           )}
 
                           <div className="space-y-2">
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                               <select
                                 value={adminNewVehicleType}
                                 onChange={(e: any) => setAdminNewVehicleType(e.target.value)}
@@ -1766,7 +1766,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none focus:bg-white"
                     /></div></div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
                   <button
                     type="submit"
                     className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-5 py-2.5 rounded-xl text-xs cursor-pointer shadow transition"
@@ -2442,7 +2442,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
                   <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs cursor-pointer shadow">
                     {editingContact ? 'Save Changes' : 'Register Contact'}
                   </button>
@@ -2499,7 +2499,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <h3 className="font-display font-black text-base text-slate-800">Amenities & Bookings Master Auditor</h3>
                   <p className="text-xs text-slate-400">Force approve function halls, audit live Gym / Theatre entries, and download audit sheets.</p></div></div>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                 <button
                   onClick={handleDownloadAmenitiesPDF}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow transition cursor-pointer self-start md:self-auto shrink-0 animate-fadeIn"
@@ -2562,7 +2562,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             {booking.parkingRequest && <p><span className="text-slate-400 font-bold uppercase text-[9px]">Parking:</span> {booking.parkingRequest}</p>}
                             <p><span className="text-slate-400 font-bold uppercase text-[9px]">Votes:</span> {totalVotes} / 49</p></div>
 
-                          <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
                             {!isCleared && (
                               <button
                                 onClick={() => handleAdminApproveAmenityBooking(booking.id)}
@@ -2598,13 +2598,13 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <div className="space-y-3">
                       {gymTheatreLogs.filter(l => !l.checkOutTime).map((log) => (
                         <div key={log.id} className="bg-indigo-50/40 border border-indigo-100 p-3.5 rounded-xl flex justify-between items-center text-xs gap-3">
-                          <div className="text-left space-y-1">
+                          <div className="text-left space-y-1 min-w-0 flex-1">
                             <p className="font-bold text-indigo-900 uppercase">
                               {log.amenity === 'Gym' ? '🏋️ Gym' : '🎬 Theatre'}
                             </p>
                             <p className="font-semibold text-slate-700">Flat: {log.flatId}</p>
                             {(log.memberName || log.memberPhone) && (
-                              <p className="text-[10px] text-indigo-700 font-bold">
+                              <p className="text-[10px] text-indigo-700 font-bold truncate">
                                 {log.memberName || 'Member'} • {log.memberPhone}
                               </p>
                             )}
@@ -2632,7 +2632,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1">
                       {gymTheatreLogs.filter(l => l.checkOutTime).map((log) => (
                         <div key={log.id} className="bg-slate-50 border border-slate-150 p-3 rounded-xl flex items-center justify-between text-xs gap-3 font-medium">
-                          <div className="text-left space-y-1">
+                          <div className="text-left space-y-1 min-w-0 flex-1">
                             <p className="font-bold text-slate-800 uppercase">
                               {log.amenity === 'Gym' ? '🏋️ Gym' : '🎬 Theatre'} ({log.flatId})
                             </p>
@@ -2690,7 +2690,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                       {moviesSchedule.map((movie) => (
                         <div key={movie.id} className="bg-slate-50 border border-slate-150 p-3 rounded-xl flex items-center justify-between text-xs gap-3 font-medium">
-                          <div className="text-left space-y-1">
+                          <div className="text-left space-y-1 min-w-0 flex-1">
                             <h5 className="font-bold text-slate-800 uppercase">{movie.title}</h5>
                             <p className="text-[10px] text-slate-500 font-medium">Day: {movie.day} • {movie.date}</p>
                             <p className="text-[10px] text-slate-500 font-mono">Time: {movie.timing} • Length: {movie.length}</p>
@@ -2850,7 +2850,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <AlertTriangle className="w-4 h-4 mr-1 shrink-0" />
                     Are you absolutely sure? All data is wiped!
                   </p>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                     <button
                       onClick={handleResetDb} disabled={resetLoading}
                       className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg text-xs font-bold cursor-pointer"
@@ -2926,7 +2926,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       <AlertTriangle className="w-4 h-4 mr-1 shrink-0" />
                       This will DELETE ALL transactional data permanently! Owner data is kept safe.
                     </p>
-                    <div className="flex gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                       <button
                         onClick={handleWipeAllData} disabled={wipeLoading}
                         className="flex-1 bg-red-700 hover:bg-red-800 text-white py-2 rounded-lg text-xs font-bold cursor-pointer"
@@ -3090,7 +3090,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 
-                <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
                   <button type="submit" className="bg-emerald-600 text-white font-bold px-5 py-2.5 rounded-xl text-xs cursor-pointer shadow">
                     {editingContact ? 'Save Changes' : 'Register Contact'}
                   </button>
