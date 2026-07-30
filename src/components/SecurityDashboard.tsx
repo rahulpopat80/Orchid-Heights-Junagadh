@@ -982,12 +982,12 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             </div>
 
             {/* Show all selected flat owners */}
-            <div className="bg-slate-100 p-5 rounded-2xl border border-slate-200 space-y-2">
-              <p className="text-sm text-slate-500 font-bold">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-1 w-full sm:w-max sm:min-w-[50%]">
+              <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">
                 {selectedFlats.length === 1 ? 'લક્ષ્ય ફ્લેટના માલિક' : `${selectedFlats.length} ફ્લેટ પસંદ - માલિક સૂચિ`}
               </p>
               {selectedFlats.length <= 1 ? (
-                <p className="text-xl font-bold text-slate-800">{flatOwnerName}</p>
+                <p className="text-lg font-bold text-slate-800">{flatOwnerName}</p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                   {selectedFlats.map((fId) => {
