@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db, collection, onSnapshot, doc, setDoc, updateDoc, deleteDoc } from '../../lib/firebase';
 import { DailyHelper } from '../../types';
-import { Plus, X, Edit2, Trash2, Camera, Search, User } from 'lucide-react';
+import { Plus, X, Edit2, Trash2, Camera, Search, User, Layers } from 'lucide-react';
 import { compressImage } from '../../lib/imageCompressor';
 
 export default function AdminLocalServices() {
@@ -14,10 +14,24 @@ export default function AdminLocalServices() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'Maid' | 'Milkman' | 'Car Cleaner' | 'Newspaper Guy' | 'Other'>('Maid');
+  const [role, setRole] = useState<'Maid' | 'Milkman' | 'Car Cleaner' | 'Newspaper Guy' | 'Care Taker' | 'Cook' | 'Other'>('Maid');
   const [photoUrl, setPhotoUrl] = useState('');
-  const [flatsRaw, setFlatsRaw] = useState('');
-  
+  const [selectedFlats, setSelectedFlats] = useState<string[]>([]);
+  const [isMultiSelectOpen, setIsMultiSelectOpen] = useState(false);
+  const [flatSearchQuery, setFlatSearchQuery] = useState('');
+
+  const allFlatsChecklist = useMemo(() => {
+    return ['A', 'B'].flatMap(w => Array.from({ length: 12 }, (_, i) => i + 1).flatMap(f => Array.from({ length: 4 }, (_, j) => `${w}-${f * 100 + (j + 1)}`)));
+  }, []);
+
+  const filteredFlatsChecklist = useMemo(() => {
+    return allFlatsChecklist.filter(f => f.toLowerCase().includes(flatSearchQuery.toLowerCase()));
+  }, [allFlatsChecklist, flatSearchQuery]);
+
+  const toggleFlatSelection = (flatId: string) => {
+    setSelectedFlats(prev => prev.includes(flatId) ? prev.filter(f => f !== flatId) : [...prev, flatId]);
+  };
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'daily_helpers'), (snap) => {
       const list: DailyHelper[] = [];
@@ -35,14 +49,12 @@ export default function AdminLocalServices() {
       return;
     }
 
-    const flatArr = flatsRaw.split(',').map(f => f.trim().toUpperCase()).filter(f => f.match(/^[AB]-\d{3,4}$/));
-
     const payload: any = {
       name: name.trim(),
       phone: phone.trim(),
       role,
       photoUrl,
-      flats: flatArr
+      flats: selectedFlats
     };
 
     try {
@@ -66,7 +78,9 @@ export default function AdminLocalServices() {
     setPhone('');
     setRole('Maid');
     setPhotoUrl('');
-    setFlatsRaw('');
+    setSelectedFlats([]);
+    setIsMultiSelectOpen(false);
+    setFlatSearchQuery('');
   };
 
   const handleEdit = (h: DailyHelper) => {
@@ -75,7 +89,9 @@ export default function AdminLocalServices() {
     setPhone(h.phone);
     setRole(h.role);
     setPhotoUrl(h.photoUrl || '');
-    setFlatsRaw((h.flats || []).join(', '));
+    setSelectedFlats(h.flats || []);
+    setIsMultiSelectOpen(false);
+    setFlatSearchQuery('');
     setShowForm(true);
   };
 
@@ -150,13 +166,61 @@ export default function AdminLocalServices() {
                 <option value="Milkman">Milkman</option>
                 <option value="Car Cleaner">Car Cleaner</option>
                 <option value="Newspaper Guy">Newspaper Guy</option>
+                <option value="Care Taker">Care Taker</option>
+                <option value="Cook">Cook</option>
                 <option value="Other">Other</option>
               </select>
             </div>
             
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Assigned Flats (Comma Separated)</label>
-              <input type="text" placeholder="e.g. A-101, B-202" value={flatsRaw} onChange={e => setFlatsRaw(e.target.value)} className="w-full bg-white border border-slate-200 p-2 rounded-lg text-xs font-semibold outline-none focus:border-indigo-500" />
+            <div className="md:col-span-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Assigned Flats</label>
+              <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setIsMultiSelectOpen(!isMultiSelectOpen)}
+                  className="w-full bg-slate-50 hover:bg-slate-100 py-2.5 px-3 flex items-center justify-between text-xs font-bold text-slate-700 transition"
+                >
+                  <div className="flex items-center space-x-2">
+                    <Layers className="w-4 h-4 text-indigo-500" />
+                    <span>Select Flats</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full text-[10px]">{selectedFlats.length} Selected</span>
+                    <span>{isMultiSelectOpen ? '▲' : '▼'}</span>
+                  </div>
+                </button>
+                {isMultiSelectOpen && (
+                  <div className="p-3 bg-white border-t border-slate-200 space-y-3">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search flats..."
+                        value={flatSearchQuery}
+                        onChange={(e) => setFlatSearchQuery(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 pl-9 pr-3 text-xs outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-1.5 max-h-48 overflow-y-auto p-1">
+                      {filteredFlatsChecklist.map((flatId) => {
+                        const isChecked = selectedFlats.includes(flatId);
+                        return (
+                          <button
+                            type="button"
+                            key={flatId}
+                            onClick={() => toggleFlatSelection(flatId)}
+                            className={`py-1.5 rounded text-[10px] font-bold border transition-all text-center ${
+                              isChecked ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                          >
+                            {flatId}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="md:col-span-2 pt-3 border-t border-slate-100 flex justify-end">

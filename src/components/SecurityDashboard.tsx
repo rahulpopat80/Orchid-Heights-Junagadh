@@ -441,7 +441,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     }
   };
 
-  const isDailyHelperType = ['Milkman', 'Maid', 'Vehicle Cleaner', 'Newspaper', 'Care Taker', 'Cook'].includes(guestType);
+  const isDailyHelperType = ['Milkman', 'Maid', 'Vehicle Cleaner', 'Newspaper', 'Care Taker', 'Cook', 'Other Helper'].includes(guestType);
 
   const mappedHelpers = dailyHelpers.filter((h) => {
     if (guestType === 'Maid') return h.role === 'Maid';
@@ -450,6 +450,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     if (guestType === 'Newspaper') return h.role === 'Newspaper Guy';
     if (guestType === 'Care Taker') return h.role === 'Care Taker';
     if (guestType === 'Cook') return h.role === 'Cook';
+    if (guestType === 'Other Helper') return h.role === 'Other';
     return false;
   });
 
@@ -901,6 +902,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   <option value="Newspaper">📰 પેપરવાળો</option>
                   <option value="Care Taker">🤝 કેર ટેકર (Care Taker)</option>
                   <option value="Cook">🍳 રસોઇયા (Cook)</option>
+                  <option value="Other Helper">🛠️ અન્ય હેલ્પર (Other Helper)</option>
                   <option value="Cabinet">🛠️ સર્વિસ એજન્ટ</option>
                   <option value="Other">👤 અન્ય મુલાકાતી</option>
                 </select>
