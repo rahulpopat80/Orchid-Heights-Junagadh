@@ -165,12 +165,12 @@ export function verifyCredentialsLocal(role: string, payload: any) {
           
           // Check if phone number is already active elsewhere
           if (payload.phoneNumber && !isRegistered) {
-            const isPhoneActiveElsewhere = currentDevices.some((d) => d.phoneNumber === payload.phoneNumber);
+            const isPhoneActiveElsewhere = currentDevices.some((d) => d.phoneNumber === payload.phoneNumber && d.deviceId !== device.deviceId);
             if (isPhoneActiveElsewhere) {
               return {
                 success: false,
                 code: 'DEVICE_LIMIT_EXCEEDED',
-                devices: currentDevices,
+                devices: currentDevices.filter(d => d.phoneNumber === payload.phoneNumber),
                 message: `The phone number ${payload.phoneNumber} is already logged in on another device. You must log out of the other device first.`
               };
             }

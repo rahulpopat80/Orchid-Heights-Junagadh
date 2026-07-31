@@ -340,6 +340,7 @@ export default function App() {
       }
     }
     setSession(null);
+    lastRegisteredRef.current = '';
     localStorage.removeItem('orchid_gate_session');
     setActiveTab('directory');
   };
