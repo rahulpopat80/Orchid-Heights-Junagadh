@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Bell, ShieldAlert, Check, X, Users, Car, Phone, Lock, Eye, EyeOff, ClipboardList, AlertCircle, Trash2, Plus, Clock, RefreshCw, Megaphone, FileText, Download, Search, Wrench, CheckCircle, Upload, Calendar, Home, User, Dumbbell, Film, Sparkles, BookOpen, MapPin, CheckSquare, PlusCircle, ChevronRight, ArrowLeft, QrCode } from 'lucide-react';
 import { FlatOwner, Visitor, Vehicle, UserSession, Announcement, AmenityBooking, GymTheatreLog, DailyHelper, AbsenceLog, EssentialContact } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -155,6 +156,11 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
 
   const holdStartTimeRef = useRef<number>(0);
   const holdAnimationRef = useRef<number | null>(null);
+  
+  const [navbarPortalNode, setNavbarPortalNode] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setNavbarPortalNode(document.getElementById('navbar-actions-portal'));
+  }, []);
 
   // Subscribe to real-time SOS Alerts
   useEffect(() => {
@@ -1308,51 +1314,15 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               </div>
 
               <div className="flex items-center gap-2.5">
-                {/* Hold to SOS Button */}
-                <button
-                  onMouseDown={startSosHold}
-                  onMouseUp={cancelSosHold}
-                  onMouseLeave={cancelSosHold}
-                  onTouchStart={startSosHold}
-                  onTouchEnd={cancelSosHold}
-                  onTouchCancel={cancelSosHold}
-                  className="relative w-11 h-11 rounded-full bg-red-600 hover:bg-red-700 text-white font-sans font-black text-[10px] tracking-wider flex items-center justify-center shadow-lg transition-all transform active:scale-95 cursor-pointer overflow-hidden select-none"
-                  title="Hold for 5 seconds to broadcast SOS alarm"
-                >
-                  {isHoldingSos && (
-                    <div 
-                      className="absolute bottom-0 left-0 right-0 bg-red-900 transition-all duration-75"
-                      style={{ height: `${sosHoldProgress}%`, opacity: 0.8 }}
-                    />
-                  )}
-                  <span className="relative z-10 font-black">
-                    {isHoldingSos ? `${Math.ceil((5000 - (sosHoldProgress / 100) * 5000) / 1000)}s` : 'SOS'}
-                  </span>
-                </button>
-
-                {/* Premium Notification bell with badge */}
-                <button
-                  onClick={() => setIsNotificationsOpen(true)}
-                  className="relative flex items-center justify-center p-3.5 bg-gradient-to-tr from-indigo-600/90 to-purple-600/90 hover:from-indigo-500 hover:to-purple-500 text-white rounded-2xl transition-all duration-300 cursor-pointer shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/30 backdrop-blur-xl group hover:scale-105 active:scale-95"
-                  title="Open Notifications Panel"
-                >
-                  <Bell className="w-5 h-5 group-hover:animate-bounce" />
-                  {(activeSocietyNotifs.length + activeSosAlerts.length + displayedPoll.length) > 0 && (
-                    <span className="absolute -top-2 -right-2 w-6 h-6 bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-lg border-2 border-slate-800 shadow-[0_0_15px_rgba(225,29,72,0.6)] animate-pulse">
-                      {activeSocietyNotifs.length + activeSosAlerts.length + displayedPoll.length}
-                    </span>
-                  )}
-                </button>
+                {/* Initials Avatar Badge replaced Notification button position */}
+                <div className="w-11 h-11 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white font-sans font-bold text-sm shadow-inner select-none">
+                  {firstName.substring(0, 2).toUpperCase()}
+                </div>
               </div>
             </div>
 
             {/* Resident Identity Info Section inside the Banner */}
             <div className="relative z-10 flex flex-col items-center text-center mt-6 mb-2">
-              {/* Initials Avatar Badge centered */}
-              <div className="w-14 h-14 rounded-full border border-white/25 bg-white/10 backdrop-blur-sm flex items-center justify-center text-white font-sans font-medium text-xl select-none mb-3 shadow-inner">
-                {firstName.substring(0, 2).toUpperCase()}
-              </div>
-
               {/* Blue-violet Role Pill */}
               <div className="inline-flex items-center bg-[#7C3AED]/30 border border-[#7C3AED]/50 px-4.5 py-1 rounded-full mb-2.5 shadow-sm select-none">
                 <span className="text-[#C7D2FE] text-[9px] font-sans font-bold uppercase tracking-widest">
@@ -1374,6 +1344,48 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
             </div>
           </div>
         </div>
+      )}
+
+      {/* --- Render Portal for Navbar Actions --- */}
+      {navbarPortalNode && createPortal(
+        <>
+          {/* Hold to SOS Button */}
+          <button
+            onMouseDown={startSosHold}
+            onMouseUp={cancelSosHold}
+            onMouseLeave={cancelSosHold}
+            onTouchStart={startSosHold}
+            onTouchEnd={cancelSosHold}
+            onTouchCancel={cancelSosHold}
+            className="relative w-9 h-9 rounded-full bg-red-600 hover:bg-red-700 text-white font-sans font-black text-[9px] tracking-wider flex items-center justify-center shadow-lg transition-all transform active:scale-95 cursor-pointer overflow-hidden select-none"
+            title="Hold for 5 seconds to broadcast SOS alarm"
+          >
+            {isHoldingSos && (
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-red-900 transition-all duration-75"
+                style={{ height: `${sosHoldProgress}%`, opacity: 0.8 }}
+              />
+            )}
+            <span className="relative z-10 font-black">
+              {isHoldingSos ? `${Math.ceil((5000 - (sosHoldProgress / 100) * 5000) / 1000)}s` : 'SOS'}
+            </span>
+          </button>
+
+          {/* Premium Notification bell with badge */}
+          <button
+            onClick={() => setIsNotificationsOpen(true)}
+            className="relative flex items-center justify-center p-2.5 bg-gradient-to-tr from-indigo-600/90 to-purple-600/90 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl transition-all duration-300 cursor-pointer shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-indigo-200 group hover:scale-105 active:scale-95"
+            title="Open Notifications Panel"
+          >
+            <Bell className="w-4 h-4 group-hover:animate-bounce" />
+            {(activeSocietyNotifs.length + activeSosAlerts.length + displayedPoll.length) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center shadow-lg border border-white shadow-[0_0_15px_rgba(225,29,72,0.6)] animate-pulse">
+                {activeSocietyNotifs.length + activeSosAlerts.length + displayedPoll.length}
+              </span>
+            )}
+          </button>
+        </>,
+        navbarPortalNode
       )}
 
       {/* --- Main Routing --- */}

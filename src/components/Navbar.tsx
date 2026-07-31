@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { LogOut, Shield, Home, Clock, Phone, Building } from 'lucide-react';
+import React from 'react';
+import { LogOut, Shield, Home, Building } from 'lucide-react';
 import { UserSession } from '../types';
 
 interface NavbarProps {
@@ -15,18 +15,6 @@ interface NavbarProps {
 }
 
 export default function Navbar({ session, onLogout, activeTab, setActiveTab }: NavbarProps) {
-  const [time, setTime] = useState<string>('');
-
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      setTime(now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    };
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
   const getRoleLabel = () => {
     if (session.role === 'admin') return 'Resident Admin';
     if (session.role === 'security') return 'Gate Security';
@@ -79,11 +67,7 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
 
           {/* Right Action Widgets */}
           <div className="flex items-center space-x-4">
-            {/* Clock */}
-            <div className="hidden sm:flex items-center space-x-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-slate-600 font-mono text-xs">
-              <Clock className="w-3.5 h-3.5 text-slate-400" />
-              <span>{time || '00:00:00'}</span>
-            </div>
+            <div id="navbar-actions-portal" className="flex items-center gap-2.5"></div>
 
             {/* Profile Info */}
             <div className="hidden md:flex items-center space-x-2 bg-slate-50 border border-slate-100 p-1.5 pr-3 rounded-xl">
