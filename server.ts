@@ -359,6 +359,12 @@ async function startServer() {
         fcmPayload = { message: payload };
       }
 
+      // --- ADDED: FORCE HIGH PRIORITY TO WAKE UP SLEEPING DEVICES ---
+      fcmPayload.message.android = fcmPayload.message.android || { priority: "high" };
+      fcmPayload.message.webpush = fcmPayload.message.webpush || { headers: { Urgency: "high" } };
+      fcmPayload.message.apns = fcmPayload.message.apns || { payload: { aps: { 'content-available': 1 } } };
+      // --------------------------------------------------------------
+
       const response = await fetch(
         `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
         {

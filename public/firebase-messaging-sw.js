@@ -17,7 +17,7 @@ firebase.initializeApp({
   appId: "1:408063641296:web:c0d1b7e79c69681704c0d5"
 });
 
-const messaging = firebase.messaging();
+// const messaging = firebase.messaging(); <-- DELETE THIS LINE
 // DO NOT initialize Firestore here to ensure fast cold-boots for push events.
 
 // NOTIFICATION PUSH HANDLER
