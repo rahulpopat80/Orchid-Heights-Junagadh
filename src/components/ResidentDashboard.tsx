@@ -2195,6 +2195,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               absenceError={absenceError}
               handleSaveAbsence={handleSaveAbsence}
               handleCancelAbsence={handleCancelAbsence}
+              onLogout={onLogout}
             />
           )}
         </motion.div>
