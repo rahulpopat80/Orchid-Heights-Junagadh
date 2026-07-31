@@ -1003,7 +1003,14 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
     setLoadingComplaints(true);
     try {
       const list = await api.getComplaints();
-      setComplaints(list);
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const recentComplaints = list.filter((c: any) => {
+        const d = new Date(c.createdAt || new Date().toISOString());
+        return d >= oneMonthAgo;
+      });
+      setComplaints(recentComplaints);
     } catch (err) {
       console.error('Failed to fetch complaints:', err);
     } finally {

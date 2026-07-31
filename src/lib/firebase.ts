@@ -1504,7 +1504,14 @@ export function subscribeToAllVisitors(onUpdate: (visitors: Visitor[]) => void, 
 export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpdate: (announcements: Announcement[]) => void, onError?: (error: Error) => void) {
   const getFiltered = () => {
     const list = fallback.getLocalAnnouncements();
-    const filtered = list.filter(item => item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo));
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    const filtered = list.filter(item => {
+      const d = new Date(item.timestamp || new Date().toISOString());
+      if (d < oneMonthAgo) return false;
+      return item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo);
+    });
     filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return filtered;
   };
@@ -1518,10 +1525,16 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
     unsubFirestore = onSnapshot(collection(db, 'announcements'), (snapshot) => {
       if (!active) return;
       const list: Announcement[] = [];
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
       snapshot.forEach((docSnap) => {
         const item = docSnap.data() as Announcement;
-        if (item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo)) {
-          list.push(item);
+        const d = new Date(item.timestamp || new Date().toISOString());
+        if (d >= oneMonthAgo) {
+          if (item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo)) {
+            list.push(item);
+          }
         }
       });
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -1548,7 +1561,12 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
 export function subscribeToSocietyNotifications(wing: string, flatNo: number, onUpdate: (notifications: any[]) => void) {
   const getFiltered = () => {
     const list = fallback.getLocalSocietyNotifications();
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
     const filtered = list.filter(data => {
+      const d = new Date(data.timestamp || new Date().toISOString());
+      if (d < oneMonthAgo) return false;
       const isGlobal = !data.wing || Number(data.flatNo) === 0;
       const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
       return isGlobal || isMine;
@@ -1566,12 +1584,18 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
     unsubFirestore = onSnapshot(collection(db, 'society_notifications'), (snapshot) => {
       if (!active) return;
       const list: any[] = [];
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();
-        const isGlobal = !data.wing || Number(data.flatNo) === 0;
-        const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
-        if (isGlobal || isMine) {
-          list.push({ id: docSnap.id, ...data });
+        const d = new Date(data.timestamp || new Date().toISOString());
+        if (d >= oneMonthAgo) {
+          const isGlobal = !data.wing || Number(data.flatNo) === 0;
+          const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
+          if (isGlobal || isMine) {
+            list.push({ id: docSnap.id, ...data });
+          }
         }
       });
       list.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

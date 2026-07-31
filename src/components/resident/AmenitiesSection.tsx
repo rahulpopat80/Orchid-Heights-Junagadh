@@ -186,18 +186,24 @@ export default function AmenitiesSection({
       const now = new Date();
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
 
       snap.forEach((docSnap) => {
         const data = docSnap.data();
         const itemDate = data.date ? new Date(data.date) : null;
         
-        // Auto-delete movie logs older than 1 month from firestore dynamically
-        if (itemDate && itemDate.getTime() < oneMonthAgo.getTime()) {
+        // Auto-delete movie logs older than 3 months from firestore dynamically
+        if (itemDate && itemDate.getTime() < threeMonthsAgo.getTime()) {
           deleteDoc(doc(db, 'movies_schedule', docSnap.id)).catch(err => {
             console.error('Auto-cleanup movie error:', err);
           });
         } else {
-          list.push({ id: docSnap.id, ...data });
+          // Resident portal only displays movies from the last 1 month or future
+          if (!itemDate || itemDate.getTime() >= oneMonthAgo.getTime()) {
+            list.push({ id: docSnap.id, ...data });
+          }
         }
       });
 

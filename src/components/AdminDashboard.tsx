@@ -257,8 +257,24 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         api.getFlatPasswords()
       ]);
       
-      if (Array.isArray(annList)) setAnnouncements(annList);
-      if (Array.isArray(compList)) setComplaints(compList);
+      if (Array.isArray(annList)) {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const recentAnnouncements = annList.filter((a: any) => {
+          const d = new Date(a.timestamp || new Date().toISOString());
+          return d >= threeMonthsAgo;
+        });
+        setAnnouncements(recentAnnouncements);
+      }
+      if (Array.isArray(compList)) {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        const recentComplaints = compList.filter((c: any) => {
+          const d = new Date(c.createdAt || new Date().toISOString());
+          return d >= threeMonthsAgo;
+        });
+        setComplaints(recentComplaints);
+      }
       if (Array.isArray(finList)) setFinancialReports(finList);
       if (Array.isArray(contList)) setContacts(contList);
       if (passMap) setFlatPasswords(passMap);

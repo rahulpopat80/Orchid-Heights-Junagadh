@@ -82,26 +82,22 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
                   {session.role === 'security' ? 'Gate Guard' : session.ownerName}
                 </p>
               </div>
-              {session.role !== 'owner' && (
-                <button
-                  onClick={onLogout}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                  title="Log Out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-            
-            {session.role !== 'owner' && (
               <button
                 onClick={onLogout}
-                className="md:hidden p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                 title="Log Out"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4" />
               </button>
-            )}
+            </div>
+            
+            <button
+              onClick={onLogout}
+              className="md:hidden p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+              title="Log Out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
