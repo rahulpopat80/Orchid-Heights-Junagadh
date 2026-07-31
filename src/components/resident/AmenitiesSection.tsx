@@ -322,7 +322,7 @@ export default function AmenitiesSection({
 
   const gymLogs15Days = gymTheatreLogs.filter(l => {
     const dateLimit = l.createdAt ? new Date(l.createdAt) : new Date();
-    return l.flatId === myFlatId && dateLimit.getTime() >= fifteenDaysAgo.getTime();
+    return dateLimit.getTime() >= fifteenDaysAgo.getTime();
   });
 
   return (
@@ -403,7 +403,7 @@ export default function AmenitiesSection({
           </div>
           
           <p className="text-[11px] text-slate-500 font-medium">
-            Showing gym entry records for your flat from the last 15 days.
+            Showing all gym entry records from the last 15 days.
           </p>
 
           <div className="space-y-3 mt-4">
@@ -432,7 +432,7 @@ export default function AmenitiesSection({
                       </div>
                       <div>
                         <p className="font-bold text-xs text-slate-800 uppercase tracking-wide flex items-center gap-2">
-                          {log.memberName}
+                          {log.memberName} <span className="text-slate-500 font-normal">({log.flatId})</span>
                           {!log.checkOutTime && (
                             <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[9px]">Active</span>
                           )}

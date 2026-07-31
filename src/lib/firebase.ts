@@ -1290,120 +1290,35 @@ async function triggerFCMPushForSocietyNotification(payload: {
   const flatNo = payload.flatNo || 0;
 
   try {
+    const notification = {
+      title: payload.title,
+      body: payload.message,
+      icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+      data: { 
+        type: payload.type,
+        visitorId: String(payload.metadata?.visitorId || ""),
+        wing: String(wing),
+        flatNo: String(flatNo)
+      }
+    };
+
     if (wing && flatNo > 0) {
-      console.log(`[FCM Trigger] Direct push to flat: ${wing}-${flatNo}`);
-      await sendFCMPushToFlat(wing, flatNo, {
-          title: payload.title,
-          body: payload.message,
-          icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
-          data: { type: payload.type }
-        });
-    } else {
-      console.log(`[FCM Trigger] Broadcast push. Wing: ${wing || 'All'}`);
-      let queryRef;
-      if (wing) {
-        queryRef = rawQuery(rawCollection(db, 'owners'), rawWhere('wing', '==', wing.toUpperCase()));
-      } else {
-        queryRef = rawCollection(db, 'owners');
-      }
-
-      const snap = await rawGetDocs(queryRef);
-      const allTokens: string[] = [];
-      snap.forEach((docSnap) => {
-        const ownerData = docSnap.data() as FlatOwner;
-        const tokens: string[] = (ownerData as any).fcmTokens || [];
-        tokens.forEach(t => {
-          if (t && !allTokens.includes(t)) {
-            allTokens.push(t);
-          }
-        });
+      console.log(`[FCM Trigger] Direct push to flat via API: ${wing}-${flatNo}`);
+      await fetch('/api/push/flat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wing, flatNo, notification })
       });
-
-      if (allTokens.length === 0) {
-        console.log('[FCM Trigger] No tokens registered for broadcast scope, skipping push.');
-        return;
-      }
-
-      console.log(`[FCM Trigger] Dispatching broadcast push to ${allTokens.length} devices...`);
-      const serviceAccount = getHardcodedServiceAccount();
-      if (!serviceAccount.client_email || !serviceAccount.private_key) return;
-
-      const accessToken = await getGoogleAccessToken(
-        serviceAccount.client_email,
-        serviceAccount.private_key
-      );
-
-      // Deliver to each token
-      for (const token of allTokens) {
-        try {
-          const payloadBody = {
-            projectId: firebaseConfig.projectId,
-            accessToken,
-            payload: {
-              message: {
-                token: token,
-                notification: {
-                  title: String(payload.title),
-                  body: String(payload.message)
-                },
-                data: {
-                  title: String(payload.title),
-                  body: String(payload.message),
-                  type: String(payload.type),
-                  visitorId: String(payload.metadata?.visitorId || ""),
-                  wing: String(payload.wing || ""),
-                  flatNo: String(payload.flatNo || "")
-                },
-                  webpush: {
-                    notification: {
-                      icon: "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
-                      badge: "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
-                      requireInteraction: payload.type === 'visitor',
-                      vibrate: [200, 100, 200],
-                      tag: String(payload.metadata?.visitorId || payload.type || "society_notif")
-                    },
-                    fcm_options: {
-                      link: "/?activeTab=resident"
-                    },
-                    headers: {
-                      Urgency: "high",
-                      TTL: "86400"
-                    }
-                  }
-                }
-              }
-            };
-
-          const response = await fetch('/api/fcm', {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payloadBody)
-          });
-
-          if (!response.ok) {
-            const errText = await response.text();
-            console.warn(`[FCM Broadcast] FCM Delivery Failed (${response.status}):`, errText);
-            throw new Error(`FCM Server returned status ${response.status}: ${errText}`);
-          }
-          console.log(`[FCM Trigger] Notification successfully broadcast-sent to token ${token.substring(0, 8)}...`);
-        } catch (deliveryErr: any) {
-          console.warn('[FCM Trigger] Failed delivery to token:', token, deliveryErr);
-          try {
-            await addDoc(collection(db, 'fcm_errors'), {
-              timestamp: new Date().toISOString(),
-              token: token.substring(0, 15) + '...',
-              error: deliveryErr.message || String(deliveryErr),
-              context: 'broadcast_push',
-              title: payload.title
-            });
-          } catch (logErr) {}
-        }
-      }
+    } else {
+      console.log(`[FCM Trigger] Broadcast push via API. Wing: ${wing || 'All'}`);
+      await fetch('/api/push/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification })
+      });
     }
   } catch (err) {
-    console.error('[FCM Trigger] Background push execution failed:', err);
+    console.warn('[FCM Trigger] Push API call failed', err);
   }
 }
 
@@ -1832,46 +1747,13 @@ function getHardcodedServiceAccount(): { client_email: string; private_key: stri
 
 export async function sendFCMBroadcast(notification: { title: string; body: string; icon?: string; data?: Record<string, string> }): Promise<void> {
   try {
-    const snap = await rawGetDocs(rawCollection(db, 'owners'));
-    const allTokens = [];
-    snap.forEach((docSnap) => {
-      const ownerData = docSnap.data();
-      const tokens = ownerData.fcmTokens || [];
-      tokens.forEach(tk => { if (tk && !allTokens.includes(tk)) allTokens.push(tk); });
+    await fetch('/api/push/broadcast', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notification })
     });
-    if (allTokens.length === 0) return;
-    const serviceAccount = getHardcodedServiceAccount();
-    if (!serviceAccount.client_email) return;
-    const accessToken = await getGoogleAccessToken(serviceAccount.client_email, serviceAccount.private_key);
-    if (!accessToken) {
-      console.warn('[FCM Broadcast] Valid access token unavailable. Skipping broadcast.');
-      return;
-    }
-    console.log(`[FCM Broadcast] Sending to ${allTokens.length} tokens`);
-    
-    const sendPromises = allTokens.map(async (token) => {
-      const payload = {
-        message: {
-          token: token,
-          notification: {
-            title: notification.title,
-            body: notification.body
-          },
-          data: notification.data || {}
-        }
-      };
-      return fetch(`https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-    });
-    await Promise.allSettled(sendPromises);
-  } catch (error) {
-    console.warn('[FCM Broadcast] Failed', error);
+  } catch (err) {
+    console.warn('[FCM Broadcast] Error calling push API:', err);
   }
 }
 
@@ -1881,108 +1763,13 @@ export async function sendFCMPushToFlat(
   notification: { title: string; body: string; icon?: string; data?: Record<string, string> }
 ): Promise<void> {
   try {
-    const tokens = await getFCMTokensForFlat(wing, flatNo);
-    if (tokens.length === 0) {
-      console.log(`[FCM] No tokens found for flat ${wing}-${flatNo}, skipping push`);
-      return;
-    }
-
-    const serviceAccount = getHardcodedServiceAccount();
-    if (!serviceAccount.client_email || !serviceAccount.private_key) {
-      console.warn("[FCM] Hardcoded Service Account credentials invalid or missing. skipping push.");
-      return;
-    }
-
-    console.log(`[FCM] Authenticating with Google OAuth for FCM v1...`);
-    const accessToken = await getGoogleAccessToken(
-      serviceAccount.client_email,
-      serviceAccount.private_key
-    );
-
-    if (!accessToken) {
-      console.warn('[FCM] Valid OAuth access token unavailable. Skipping push.');
-      return;
-    }
-
-    console.log(`[FCM] Sending push payload using FCM v1 to ${tokens.length} device tokens:`, tokens);
-
-    // Send to each token individually using the FCM v1 endpoint
-    for (const token of tokens) {
-      try {
-        const payloadBody = {
-          projectId: firebaseConfig.projectId,
-          accessToken,
-          payload: {
-            message: {
-              token: token,
-              notification: {
-                title: String(notification.title),
-                body: String(notification.body)
-              },
-              data: Object.assign(
-                {
-                  title: String(notification.title),
-                  body: String(notification.body)
-                },
-                Object.fromEntries(
-                  Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)])
-                )
-              ),
-              webpush: {
-                notification: {
-                  icon: String(notification.icon || "https://i.ibb.co/zT5tpcdY/1000296229-1.png"),
-                  badge: "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
-                  requireInteraction: notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request',
-                  vibrate: [200, 100, 200],
-                  tag: String(notification.data?.visitorId || notification.data?.type || "orchid_notif"),
-                  ...( (notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request') ? {
-                    actions: [
-                      { action: 'approve', title: '✅ Approve Entry' },
-                      { action: 'reject', title: '❌ Reject' }
-                    ]
-                  } : {})
-                },
-                fcm_options: {
-                  link: "/?activeTab=resident"
-                },
-                headers: {
-                  Urgency: "high",
-                  TTL: "86400"
-                }
-              }
-            }
-          }
-        };
-
-          const response = await fetch('/api/fcm', {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payloadBody)
-          });
-
-        if (!response.ok) {
-          const errText = await response.text();
-          console.warn(`[FCM] Delivery Failed (${response.status}):`, errText);
-          throw new Error(`FCM Server returned status ${response.status}: ${errText}`);
-        }
-        console.log(`[FCM] Notification successfully sent to token ${token.substring(0, 8)}...`);
-      } catch (postErr: any) {
-        console.warn(`[FCM] Individual token delivery failed for ${token.substring(0, 8)}...`, postErr);
-        try {
-          await addDoc(collection(db, 'fcm_errors'), {
-            timestamp: new Date().toISOString(),
-            token: token.substring(0, 15) + '...',
-            error: postErr.message || String(postErr),
-            context: 'flat_push',
-            title: notification.title
-          });
-        } catch (logErr) {}
-      }
-    }
+    await fetch('/api/push/flat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ wing, flatNo, notification })
+    });
   } catch (err) {
-    console.warn("[FCM] Error sending push notification:", err);
+    console.warn('[FCM] Error calling push API:', err);
   }
 }
 

@@ -453,117 +453,147 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
   };
 
   // Download pass as a beautiful shareable high-contrast image
-  const downloadImagePass = (entry: PreEntry) => {
+  const downloadImagePass = async (entry: PreEntry) => {
     // Generate styled pass card in canvas
     const canvas = document.createElement('canvas');
     canvas.width = 450;
-    canvas.height = 700;
+    canvas.height = 720;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     // Draw background
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 450, 700);
+    ctx.fillRect(0, 0, 450, 720);
 
     // Card border (indigo-600)
     ctx.strokeStyle = '#4f46e5'; 
     ctx.lineWidth = 6;
-    ctx.strokeRect(15, 15, 420, 670);
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(18, 18, 414, 684, 18);
+      ctx.stroke();
+    } else {
+      ctx.strokeRect(18, 18, 414, 684);
+    }
 
     // Top Header Banner (slate-900)
     ctx.fillStyle = '#0f172a';
-    ctx.fillRect(20, 20, 410, 100);
+    if (ctx.roundRect) {
+      ctx.beginPath();
+      ctx.roundRect(22.5, 22.5, 405, 108, 13.5);
+      ctx.fill();
+    } else {
+      ctx.fillRect(22.5, 22.5, 405, 108);
+    }
 
     // Pink accent bar
     ctx.fillStyle = '#d81b60';
-    ctx.fillRect(20, 115, 410, 8);
+    ctx.fillRect(22.5, 121.5, 405, 9);
+
+    const logoBase64 = await getLogoBase64();
+    if (logoBase64) {
+      ctx.fillStyle = '#ffffff';
+      if (ctx.roundRect) {
+        ctx.beginPath();
+        ctx.roundRect(31.5, 27, 90, 90, 13.5);
+        ctx.fill();
+      } else {
+        ctx.fillRect(31.5, 27, 90, 90);
+      }
+      
+      const logoImg = new Image();
+      logoImg.src = logoBase64;
+      await new Promise(r => logoImg.onload = r);
+      ctx.drawImage(logoImg, 36, 31.5, 81, 81);
+    }
 
     // Header Text
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.font = 'bold 28px sans-serif';
-    ctx.fillText('ORCHID HEIGHTS', 225, 65);
+    ctx.fillText('ORCHID HEIGHTS', logoBase64 ? 252 : 225, 63);
     ctx.font = 'bold 14px sans-serif';
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText('OFFICIAL VISIT PRE-ENTRY PASS', 225, 95);
+    ctx.fillText('OFFICIAL VISIT PRE-ENTRY PASS', logoBase64 ? 252 : 225, 85.5);
 
     // Visitor Name
     ctx.fillStyle = '#0f172a'; // slate-900
     ctx.font = 'bold 26px sans-serif';
-    ctx.fillText(entry.fullName.toUpperCase(), 225, 170);
+    ctx.fillText(entry.fullName.toUpperCase(), 225, 162);
 
     // Phone
     ctx.fillStyle = '#64748b'; // slate-500
     ctx.font = '16px sans-serif';
-    ctx.fillText(`Mobile: ${entry.mobileNumber}`, 225, 195);
+    ctx.fillText(`Mobile: ${entry.mobileNumber}`, 225, 184.5);
 
     // Divider Line
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(40, 215);
-    ctx.lineTo(410, 215);
+    ctx.moveTo(45, 202.5);
+    ctx.lineTo(405, 202.5);
     ctx.stroke();
 
     // Stats Grid
-    const drawRowCanvas = (label: string, val: string, y: number) => {
+    let currY = 230;
+    const drawRowCanvas = (label: string, val: string) => {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#64748b';
       ctx.font = '16px sans-serif';
-      ctx.fillText(label, 50, y);
-      
+      ctx.fillText(label, 54, currY);
+         
       ctx.textAlign = 'right';
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 16px sans-serif';
-      ctx.fillText(val, 400, y);
+      ctx.fillText(val, 396, currY);
+      currY += 30;
     };
 
-    drawRowCanvas('Visitor Type:', entry.guestType.toUpperCase(), 250);
-    drawRowCanvas('Reason for Visit:', entry.reason, 280);
-    drawRowCanvas('Visitors Count:', String(entry.visitorCount), 310);
-    drawRowCanvas('Target Flat:', `Wing ${entry.wing} - Flat ${entry.flatNo}`, 340);
-    drawRowCanvas('Invited By:', entry.householdMemberName, 370);
+    drawRowCanvas('Visitor Type:', entry.guestType.toUpperCase());
+    drawRowCanvas('Reason for Visit:', entry.reason);
+    drawRowCanvas('Visitors Count:', String(entry.visitorCount));
+    drawRowCanvas('Target Flat:', `Wing ${entry.wing} - Flat ${entry.flatNo}`);
+    drawRowCanvas('Invited By:', entry.householdMemberName);
 
     // Second Divider
     ctx.beginPath();
-    ctx.moveTo(40, 395);
-    ctx.lineTo(410, 395);
+    ctx.moveTo(45, currY - 9);
+    ctx.lineTo(405, currY - 9);
     ctx.stroke();
 
     // Add QR Code
+    const finalizeImage = () => {
+      // Expiration Text
+      const expiresDate = new Date(entry.expiresAt);
+      const expDateStr = expiresDate.toLocaleDateString('en-IN');
+      const expTimeStr = expiresDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ef4444'; // red-500
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 225, currY + 207);
+
+      ctx.fillStyle = '#94a3b8'; // slate-400
+      ctx.font = '12px sans-serif';
+      ctx.fillText(`PASS ID: ${entry.id} | Orchid Heights Gatekeeper`, 225, currY + 230);
+
+      // Download trigger
+      const finalUrl = canvas.toDataURL('image/jpeg', 1.0);
+      const a = document.createElement('a');
+      a.href = finalUrl;
+      a.download = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.jpg`;
+      a.click();
+    };
+
     if (selectedPassQR) {
       const qrImg = new Image();
       qrImg.onload = () => {
-        ctx.drawImage(qrImg, 135, 415, 180, 180);
-
-        // Expiration Text
-        const expiresDate = new Date(entry.expiresAt);
-        const expDateStr = expiresDate.toLocaleDateString('en-IN');
-        const expTimeStr = expiresDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ef4444'; // red-500
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillText(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 225, 630);
-
-        ctx.fillStyle = '#94a3b8'; // slate-400
-        ctx.font = '12px sans-serif';
-        ctx.fillText(`PASS ID: ${entry.id} | Generated on Resident Device`, 225, 655);
-
-        // Download trigger
-        const finalUrl = canvas.toDataURL('image/jpeg', 0.95);
-        const a = document.createElement('a');
-        a.href = finalUrl;
-        a.download = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.jpg`;
-        a.click();
+        ctx.drawImage(qrImg, 135, currY + 9, 180, 180);
+        finalizeImage();
       };
       qrImg.src = selectedPassQR;
     } else {
-        const finalUrl = canvas.toDataURL('image/jpeg', 0.95);
-        const a = document.createElement('a');
-        a.href = finalUrl;
-        a.download = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.jpg`;
-        a.click();
+      finalizeImage();
     }
   };
 
@@ -574,19 +604,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-white border border-slate-200 rounded-3xl p-6 shadow-xs gap-4 text-left">
-        <div>
-          <h1 className="font-display font-black text-2xl text-slate-800 tracking-tight flex items-center space-x-2">
-            <QrCode className="w-7 h-7 text-indigo-600" />
-            <span>Pre-Entry Gate Passes</span>
-          </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Generate instantly pre-approved QR codes for guests. Checked in securely on presentation.
-          </p>
-        </div>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* LEFT COLUMN: Create Pre-Entry Form (5 Cols) */}
         <div className="lg:col-span-5 bg-white border border-slate-200 rounded-3xl shadow-xs p-6 text-left space-y-6">
@@ -659,8 +676,18 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   onChange={(e) => setGuestType(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs font-semibold outline-none focus:border-indigo-500 focus:bg-white"
                 >
-                  <option value="Guest">👋 Guest / Relative</option>
-                  <option value="Other">👤 Other Visitor</option>
+                  <option value="Delivery">📦 Delivery / Courier</option>
+                  <option value="Guest">👋 Relative / Friend</option>
+                  <option value="Electrician">⚡ Electrician / Work</option>
+                  <option value="Milkman">🥛 Milkman</option>
+                  <option value="Maid">🧹 Maid</option>
+                  <option value="Vehicle Cleaner">🚗 Vehicle Cleaner</option>
+                  <option value="Newspaper">📰 News Paper</option>
+                  <option value="Care Taker">🤝 Care Taker</option>
+                  <option value="Cook">🍳 Cook</option>
+                  <option value="Other Helper">🛠️ Other Helper</option>
+                  <option value="Cabinet">🛠️ Service Agent</option>
+                  <option value="Other">👤 Other</option>
                 </select>
               </div>
 

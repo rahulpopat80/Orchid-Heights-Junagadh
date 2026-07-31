@@ -10,7 +10,7 @@ import { FlatOwner, Visitor, Vehicle, UserSession, Announcement, AmenityBooking,
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { api, detectServerEnvironment } from '../lib/api';
-import { db, collection, doc, setDoc, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, sendFCMPushToFlat } from '../lib/firebase';
+import { db, collection, doc, setDoc, addDoc, getDocs, onSnapshot, updateDoc, deleteDoc, query, where, orderBy, sendFCMPushToFlat, sendFCMBroadcast } from '../lib/firebase';
 import { compressImage } from '../lib/imageCompressor';
 import { uploadFileInChunks } from '../lib/fileStorage';
 
@@ -1301,6 +1301,12 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
         status: 'active'
       };
       await addDoc(collection(db, 'sos_alerts'), payload);
+      await sendFCMBroadcast({
+        title: `🚨 EMERGENCY SOS ALERT!`,
+        body: `Resident ${fullName} of Flat ${wing}-${flatNo} has triggered a society-wide EMERGENCY SOS! Please check immediately!`,
+        icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+        data: { type: 'sos', flatId: `${wing}-${flatNo}` }
+      });
       alert("🚨 EMERGENCY SOS BROADCASTED! Society-wide emergency alarm has been triggered and sent to all owners and guards.");
     } catch (err: any) {
       console.error('Failed to trigger SOS:', err);
@@ -1506,6 +1512,12 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                                   if (confirm("Are you sure you want to resolve and clear your SOS emergency alert?")) {
                                     try {
                                       await updateDoc(doc(db, 'sos_alerts', sos.id), { status: 'resolved' });
+                                      await sendFCMBroadcast({
+                                        title: `✅ SOS Emergency Resolved`,
+                                        body: `The emergency SOS alert for Flat ${wing}-${flatNo} has been resolved.`,
+                                        icon: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+                                        data: { type: 'sos_resolved', flatId: `${wing}-${flatNo}` }
+                                      });
                                     } catch (e) {
                                       console.error('Failed to resolve SOS:', e);
                                     }

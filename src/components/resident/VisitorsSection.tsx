@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, ShieldAlert, Check, X, ClipboardList, Clock, Trash2, Download , ArrowLeft} from 'lucide-react';
+import { Bell, ShieldAlert, Check, X, ClipboardList, Clock, Trash2, Download , ArrowLeft, Search} from 'lucide-react';
 import { Visitor } from '../../types';
 
 interface VisitorsSectionProps {
@@ -36,6 +36,21 @@ export default function VisitorsSection({
   isAlarmActive,
   stopAlarm
 }: VisitorsSectionProps) {
+
+  const [searchName, setSearchName] = useState('');
+  const [searchDate, setSearchDate] = useState('');
+  const [searchType, setSearchType] = useState('');
+
+  const filteredHistory = guestHistory.filter(log => {
+    let match = true;
+    if (searchName && !log.fullName.toLowerCase().includes(searchName.toLowerCase())) match = false;
+    if (searchType && log.guestType.toLowerCase() !== searchType.toLowerCase()) match = false;
+    if (searchDate) {
+      const logDate = new Date(log.requestTime).toISOString().split('T')[0];
+      if (logDate !== searchDate) match = false;
+    }
+    return match;
+  });
   return (
     <div className="space-y-6 text-left">
       {isAlarmActive && (
@@ -178,6 +193,44 @@ export default function VisitorsSection({
           </button>
         </div>
 
+        <div className="flex flex-col md:flex-row items-center gap-3 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <div className="relative flex-1 w-full">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by visitor name..."
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 pl-9 pr-3 text-xs outline-none transition"
+            />
+          </div>
+          <input
+            type="date"
+            value={searchDate}
+            onChange={(e) => setSearchDate(e.target.value)}
+            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
+          />
+          <select
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value)}
+            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
+          >
+            <option value="">All Visitor Types</option>
+            <option value="Delivery">Delivery / Courier</option>
+            <option value="Guest">Relative / Friend</option>
+            <option value="Electrician">Electrician / Work</option>
+            <option value="Milkman">Milkman</option>
+            <option value="Maid">Maid</option>
+            <option value="Vehicle Cleaner">Vehicle Cleaner</option>
+            <option value="Newspaper">News Paper</option>
+            <option value="Care Taker">Care Taker</option>
+            <option value="Cook">Cook</option>
+            <option value="Other Helper">Other Helper</option>
+            <option value="Cabinet">Service Agent</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
         {loadingHistory && guestHistory.length === 0 ? (
           <div className="py-12 flex items-center justify-center">
             <span className="inline-block border-2 border-indigo-600 border-t-transparent rounded-full w-5 h-5 animate-spin"></span>
@@ -187,9 +240,14 @@ export default function VisitorsSection({
             <ClipboardList className="w-10 h-10 text-slate-200 mb-2" />
             <p className="text-xs font-semibold text-slate-600">No Visitor Logs Available</p>
           </div>
+        ) : filteredHistory.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-slate-400 py-12 border-2 border-dashed border-slate-150 rounded-xl">
+            <Search className="w-10 h-10 text-slate-200 mb-2" />
+            <p className="text-xs font-semibold text-slate-600">No logs found matching criteria</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[480px] overflow-y-auto pr-1">
-            {guestHistory.map((log) => (
+            {filteredHistory.map((log) => (
               <div
                 key={log.id}
                 className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3 hover:border-slate-300 transition relative overflow-hidden flex flex-col justify-between"
