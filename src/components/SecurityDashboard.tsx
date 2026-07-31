@@ -10,7 +10,7 @@ import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
 import { api, detectServerEnvironment } from '../lib/api';
 import { collection, onSnapshot, doc, setDoc, updateDoc, db, sendFCMPushToFlat, getDoc } from '../lib/firebase';
-import { Html5QrcodeScanner, Html5Qrcode } from 'html5-qrcode';
+import { Html5Qrcode } from 'html5-qrcode';
 import GymEntrySection from './GymEntrySection';
 
 const playDecisionSound = (status: string) => {
@@ -115,45 +115,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       console.error('Failed to exit visitor:', e);
     } finally {
       setExitingId(null);
-    }
-  };
-
-  const handleQrImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setVerifyingPass(true);
-    setScanResult({ status: null, message: '' });
-
-    try {
-      const html5QrCode = new Html5Qrcode("qr-image-temp");
-      const decodedText = await html5QrCode.scanFile(file, true);
-      
-      let parsedId = decodedText;
-      if (decodedText.includes('Pass ID:')) {
-        const lines = decodedText.split('\n');
-        const idLine = lines.find(l => l.startsWith('Pass ID:'));
-        if (idLine) {
-          parsedId = idLine.replace('Pass ID:', '').trim();
-        }
-      } else if (decodedText.startsWith('{')) {
-        try {
-          const parsed = JSON.parse(decodedText);
-          if (parsed.passId) parsedId = parsed.passId;
-          else if (parsed.id) parsedId = parsed.id;
-        } catch (e) {}
-      }
-
-      handleVerifyPass(parsedId);
-    } catch (err) {
-      console.error("QR Code Image Scan Error:", err);
-      setScanResult({
-        status: 'invalid',
-        message: 'ફોટોમાં QR કોડ મળ્યો નથી અથવા વાંચી શકાય તેમ નથી. કૃપા કરીને ફરી પ્રયાસ કરો. (No readable QR code found in photo)'
-      });
-      playDecisionSound('rejected');
-    } finally {
-      setVerifyingPass(false);
     }
   };
 
@@ -269,16 +230,13 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   useEffect(() => {
     if (!isCameraActive || activeSecTab !== 'qr_scan') return;
 
-    let scanner: any = null;
+    let html5QrCode: any = null;
     const timer = setTimeout(() => {
       try {
-        scanner = new Html5QrcodeScanner(
-          'qr-reader',
+        html5QrCode = new Html5Qrcode('qr-reader');
+        html5QrCode.start(
+          { facingMode: "environment" },
           { fps: 10, qrbox: { width: 250, height: 250 } },
-          false
-        );
-
-        scanner.render(
           (decodedText: string) => {
             let parsedId = decodedText;
             if (decodedText.includes('Pass ID:')) {
@@ -296,24 +254,30 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
             }
             
             setIsCameraActive(false);
-            if (scanner) {
-              scanner.clear().catch(e => console.error(e));
+            if (html5QrCode && html5QrCode.isScanning) {
+              html5QrCode.stop().catch((e: any) => console.error(e));
             }
             
             handleVerifyPass(parsedId);
           },
           () => {}
-        );
+        ).catch((err: any) => {
+          console.error('Html5Qrcode start error:', err);
+          setScanResult({
+            status: 'invalid',
+            message: 'કેમેરા શરૂ કરવામાં ભૂલ આવી. કૃપા કરીને પરવાનગી આપો. (Camera Error)'
+          });
+        });
       } catch (err) {
-        console.error('Html5QrcodeScanner init error:', err);
+        console.error('Html5Qrcode init error:', err);
       }
     }, 200);
 
     return () => {
       clearTimeout(timer);
-      if (scanner) {
+      if (html5QrCode && html5QrCode.isScanning) {
         try {
-          scanner.clear().catch((e: any) => console.error(e));
+          html5QrCode.stop().catch((e: any) => console.error(e));
         } catch (e) {}
       }
     };
@@ -1065,7 +1029,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 
                 {/* QR Camera Reader Box */}
                 <div className="max-w-md mx-auto overflow-hidden rounded-2xl border-2 border-indigo-200 bg-white shadow-inner relative min-h-[250px] flex items-center justify-center">
-                  <div id="qr-image-temp" className="hidden" />
                   {isCameraActive ? (
                     <div id="qr-reader" className="w-full" />
                   ) : (

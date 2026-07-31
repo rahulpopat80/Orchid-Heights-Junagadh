@@ -99,15 +99,6 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
                 </p>
               </div>
             </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={onLogout}
-              className="bg-slate-50 hover:bg-red-50 hover:text-red-600 border border-slate-200 hover:border-red-200 p-2 rounded-lg text-slate-500 transition shadow-sm"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
 

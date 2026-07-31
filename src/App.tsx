@@ -459,6 +459,7 @@ export default function App() {
                         session={session}
                         owners={owners}
                         onRefreshOwners={loadOwners}
+                        onLogout={handleLogout}
                       />
                     )}
                   </motion.div>

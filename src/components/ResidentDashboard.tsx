@@ -126,9 +126,10 @@ interface ResidentDashboardProps {
   session: UserSession;
   owners: FlatOwner[];
   onRefreshOwners: () => void;
+  onLogout?: () => void;
 }
 
-export default function ResidentDashboard({ session, owners, onRefreshOwners }: ResidentDashboardProps) {
+export default function ResidentDashboard({ session, owners, onRefreshOwners, onLogout }: ResidentDashboardProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { wing = 'A', flatNo = 101 } = session;
@@ -1301,7 +1302,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners }: 
                     Orchid Heights
                   </h1>
                   <p className="text-[9px] text-indigo-200 font-bold uppercase tracking-widest font-sans">
-                    Owners Association • ઓર્કીડ સોસાયટી
+                    Owners Association
                   </p>
                 </div>
               </div>

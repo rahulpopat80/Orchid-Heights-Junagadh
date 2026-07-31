@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, Car, Phone, Lock, Eye, EyeOff, Calendar, AlertCircle, Trash2, Plus, ShieldCheck, HelpCircle , ArrowLeft} from 'lucide-react';
+import { User, Users, Car, Phone, Lock, Eye, EyeOff, Calendar, AlertCircle, Trash2, Plus, ShieldCheck, HelpCircle, ArrowLeft, LogOut } from 'lucide-react';
 import { FlatOwner, Vehicle, AbsenceLog, DailyHelper } from '../../types';
 
 interface ProfileSectionProps {
@@ -57,6 +57,7 @@ interface ProfileSectionProps {
   absenceError: string;
   handleSaveAbsence: (e: React.FormEvent) => void;
   handleCancelAbsence: () => void;
+  onLogout?: () => void;
 }
 
 export default function ProfileSection({
@@ -104,7 +105,8 @@ export default function ProfileSection({
   absenceSuccess,
   absenceError,
   handleSaveAbsence,
-  handleCancelAbsence
+  handleCancelAbsence,
+  onLogout
 }: ProfileSectionProps) {
   const flatId = `${wing}-${flatNo}`;
   
@@ -396,6 +398,17 @@ export default function ProfileSection({
               </div>
             </div>
           )}
+
+          {/* Logout Section */}
+          <div className="pt-2">
+            <button
+              onClick={onLogout}
+              className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 px-4 rounded-xl text-sm border border-red-200 transition-colors shadow-sm flex items-center justify-center space-x-2"
+            >
+              <LogOut className="w-5 h-5" />
+              <span>લોગ આઉટ (Log Out)</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

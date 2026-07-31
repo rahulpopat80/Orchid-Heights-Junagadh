@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dumbbell, Phone, Clock, Search, LogOut } from 'lucide-react';
 import { db, collection, query, where, onSnapshot, addDoc, updateDoc, doc } from '../lib/firebase';
 import { GymTheatreLog, FlatOwner } from '../types';
+import { transliterateToGujarati } from '../lib/transliterate';
 
 interface GymEntrySectionProps {
   owners: FlatOwner[];
@@ -11,6 +12,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
   const [wing, setWing] = useState<'A' | 'B'>('A');
   const [flatNo, setFlatNo] = useState<number>(101);
   const [member, setMember] = useState<string>('');
+  const [translatedMembers, setTranslatedMembers] = useState<string[]>([]);
   const [logs, setLogs] = useState<GymTheatreLog[]>([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -26,19 +28,40 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
     return () => unsub();
   }, []);
 
-  const currentOwner = owners.find(o => o.wing === wing && o.flatNo === flatNo);
-  const flatMembers = currentOwner ? [
-    `${currentOwner.nameGu || currentOwner.nameEn || `ફ્લેટ (Flat) ${wing}-${flatNo}`}${currentOwner.phone ? ` (${currentOwner.phone})` : ''}`,
-    ...(currentOwner.members || [])
-  ] : [];
+  const currentOwner = useMemo(() => owners.find(o => o.wing === wing && o.flatNo === flatNo), [owners, wing, flatNo]);
+  
+  const rawFlatMembers = useMemo(() => {
+    return currentOwner ? [
+      `${currentOwner.nameGu || currentOwner.nameEn || `ફ્લેટ (Flat) ${wing}-${flatNo}`}${currentOwner.phone ? ` (${currentOwner.phone})` : ''}`,
+      ...(currentOwner.members || [])
+    ] : [];
+  }, [currentOwner, wing, flatNo]);
 
   useEffect(() => {
-    if (flatMembers.length > 0 && !flatMembers.includes(member)) {
-      setMember(flatMembers[0]);
-    } else if (flatMembers.length === 0) {
-      setMember('');
-    }
-  }, [wing, flatNo, currentOwner]);
+    const fetchTranslations = async () => {
+      if (rawFlatMembers.length === 0) {
+        setTranslatedMembers([]);
+        setMember('');
+        return;
+      }
+      const translated = await Promise.all(rawFlatMembers.map(async m => {
+         const phoneMatch = m.match(/\(([\d\s\+\-]+)\)$/);
+         let namePart = m;
+         let phonePart = '';
+         if (phoneMatch) {
+            namePart = m.replace(/\s*\([\d\s\+\-]+\)$/, '').trim();
+            phonePart = ` (${phoneMatch[1]})`;
+         }
+         const tName = await transliterateToGujarati(namePart);
+         return tName + phonePart;
+      }));
+      setTranslatedMembers(translated);
+      if (translated.length > 0) {
+        setMember(translated[0]);
+      }
+    };
+    fetchTranslations();
+  }, [rawFlatMembers]);
 
   const handleCheckIn = async () => {
     setError('');
@@ -55,7 +78,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
       extractedPhone = phoneMatch[1].replace(/[\s\+\-]/g, '');
       cleanMemberName = member.replace(/\s*\([\d\s\+\-]+\)$/, '').trim();
     } else {
-      if (member === flatMembers[0]) {
+      if (translatedMembers.length > 0 && member === translatedMembers[0]) {
          extractedPhone = currentOwner?.phone || '';
       }
     }
@@ -146,7 +169,7 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
           <div>
              <label className="block text-sm font-bold text-slate-700 mb-2">સભ્યનું નામ</label>
              <select value={member} onChange={(e) => setMember(e.target.value)} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold truncate">
-                {flatMembers.map(m => (
+                {translatedMembers.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
              </select>
@@ -178,15 +201,15 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
                     પ્રવેશ (In): {formatDateTime(log.checkInTime)}
                   </p>
                 </div>
-                <div className="flex w-full sm:w-auto gap-2 mt-2 sm:mt-0">
+                <div className="flex w-full sm:w-auto gap-2 mt-3 sm:mt-0">
                   {log.memberPhone && (
                     <a href={`tel:${log.memberPhone}`} className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl transition shrink-0 flex items-center justify-center">
                       <Phone className="w-5 h-5" />
                     </a>
                   )}
-                  <button onClick={() => handleCheckOut(log.id!)} className="flex-1 sm:flex-none sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-1 shrink-0">
+                  <button onClick={() => handleCheckOut(log.id!)} className="flex-1 sm:flex-none sm:w-auto bg-amber-500 hover:bg-amber-600 text-white font-bold px-4 py-2.5 rounded-xl transition flex items-center justify-center space-x-2 shrink-0">
                     <LogOut className="w-4 h-4" />
-                    <span>ચેક આઉટ (Check Out)</span>
+                    <span className="text-sm">ચેક આઉટ</span>
                   </button>
                 </div>
               </div>
