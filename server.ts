@@ -7,9 +7,6 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { GoogleAuth } from 'google-auth-library';
-import { db } from './src/lib/firebase';
-import { collection, doc, getDoc, getDocs, updateDoc, arrayRemove } from 'firebase/firestore';
-
 import { createServer as createViteServer } from 'vite';
 import { 
   verifyCredentials,
@@ -31,43 +28,41 @@ import {
 } from './src/lib/server-db';
 import { startServerNotificationService } from './src/lib/server-notifications';
 
-let cachedGoogleAuth: GoogleAuth | null = null;
 async function getFcmAccessToken(clientEmail?: string, privateKey?: string): Promise<string | null> {
   try {
-    if (!cachedGoogleAuth) {
-      if (fs.existsSync('./service-account.json')) {
-        const sa = JSON.parse(fs.readFileSync('./service-account.json', 'utf8'));
-        cachedGoogleAuth = new GoogleAuth({
-          credentials: {
-            client_email: sa.client_email,
-            private_key: sa.private_key,
-          },
-          scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-        });
-      } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
-          ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
-          : process.env.FIREBASE_SERVICE_ACCOUNT;
-        cachedGoogleAuth = new GoogleAuth({
-          credentials: {
-            client_email: sa.client_email,
-            private_key: sa.private_key,
-          },
-          scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-        });
-      } else if (clientEmail && privateKey) {
-        cachedGoogleAuth = new GoogleAuth({
-          credentials: {
-            client_email: clientEmail,
-            private_key: privateKey,
-          },
-          scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
-        });
-      }
+    let auth: GoogleAuth | null = null;
+    if (fs.existsSync('./service-account.json')) {
+      const sa = JSON.parse(fs.readFileSync('./service-account.json', 'utf8'));
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: sa.client_email,
+          private_key: sa.private_key,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string'
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : process.env.FIREBASE_SERVICE_ACCOUNT;
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: sa.client_email,
+          private_key: sa.private_key,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
+    } else if (clientEmail && privateKey) {
+      auth = new GoogleAuth({
+        credentials: {
+          client_email: clientEmail,
+          private_key: privateKey,
+        },
+        scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
+      });
     }
-    
-    if (cachedGoogleAuth) {
-      const client = await cachedGoogleAuth.getClient();
+
+    if (auth) {
+      const client = await auth.getClient();
       const tokenRes = await client.getAccessToken();
       return tokenRes.token || null;
     }
@@ -390,166 +385,7 @@ async function startServer() {
     }
   });
 
-
-  // PUSH API: Send to specific flat
-  app.post('/api/push/flat', async (req, res) => {
-    try {
-      const { wing, flatNo, notification } = req.body;
-      const flatId = `${wing.toUpperCase()}-${flatNo}`;
-      const snap = await getDoc(doc(db, 'owners', flatId));
-      let tokens: string[] = [];
-      if (snap.exists()) {
-        tokens = (snap.data() as any).fcmTokens || [];
-      }
-      if (tokens.length === 0) {
-        return res.json({ success: true, message: 'No tokens found' });
-      }
-      
-      const accessToken = await getFcmAccessToken();
-      if (!accessToken) return res.status(500).json({ error: 'No access token' });
-      
-      const projectId = 'orchidheights-d46f2';
-      let sentCount = 0;
-      
-      for (const token of tokens) {
-        const payload = {
-          message: {
-            token: token,
-            notification: {
-              title: String(notification.title),
-              body: String(notification.body)
-            },
-            data: Object.assign(
-              { title: String(notification.title), body: String(notification.body) },
-              Object.fromEntries(Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)]))
-            ),
-            webpush: {
-              notification: {
-                icon: String(notification.icon || "https://i.ibb.co/zT5tpcdY/1000296229-1.png"),
-                badge: "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
-                requireInteraction: notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request' || notification.data?.type === 'sos',
-                vibrate: [200, 100, 200],
-                tag: String(notification.data?.visitorId || notification.data?.type || "orchid_notif"),
-                ...( (notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request') ? {
-                  actions: [
-                    { action: 'approve', title: '✅ Approve Entry' },
-                    { action: 'reject', title: '❌ Reject' }
-                  ]
-                } : {})
-              },
-              fcm_options: { link: "/?activeTab=resident" },
-              headers: { Urgency: "high", TTL: "86400" }
-            }
-          }
-        };
-        const fcmRes = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-          body: JSON.stringify(payload)
-        });
-        if (fcmRes.ok) sentCount++;
-        else {
-          const err = await fcmRes.text();
-          if (err.includes("UNREGISTERED")) {
-            // Token is invalid, remove it
-            await updateDoc(doc(db, 'owners', flatId), {
-              fcmTokens: arrayRemove(token)
-            });
-          }
-        }
-      }
-      res.json({ success: true, sentCount });
-    } catch (err: any) {
-      console.error('Push flat error:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
-  // PUSH API: Broadcast to all
-  app.post('/api/push/broadcast', async (req, res) => {
-    try {
-      const { notification } = req.body;
-      const snap = await getDocs(collection(db, 'owners'));
-      let allTokens: { token: string, docId: string }[] = [];
-      snap.forEach(docSnap => {
-        const tokens = (docSnap.data() as any).fcmTokens || [];
-        tokens.forEach((t: string) => {
-          if (t && !allTokens.find(x => x.token === t)) {
-            allTokens.push({ token: t, docId: docSnap.id });
-          }
-        });
-      });
-      if (allTokens.length === 0) return res.json({ success: true, message: 'No tokens found' });
-      
-      const accessToken = await getFcmAccessToken();
-      if (!accessToken) return res.status(500).json({ error: 'No access token' });
-      
-      const projectId = 'orchidheights-d46f2';
-      let sentCount = 0;
-      
-      // Batch in promises for speed
-      const chunks = [];
-      for (let i = 0; i < allTokens.length; i += 10) {
-        chunks.push(allTokens.slice(i, i + 10));
-      }
-      
-      for (const chunk of chunks) {
-        await Promise.all(chunk.map(async ({ token, docId }) => {
-          const payload = {
-            message: {
-              token: token,
-              notification: {
-                title: String(notification.title),
-                body: String(notification.body)
-              },
-              data: Object.assign(
-                { title: String(notification.title), body: String(notification.body) },
-                Object.fromEntries(Object.entries(notification.data || {}).map(([k, v]) => [k, String(v)]))
-              ),
-              webpush: {
-                notification: {
-                  icon: String(notification.icon || "https://i.ibb.co/zT5tpcdY/1000296229-1.png"),
-                  badge: "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
-                  requireInteraction: notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request' || notification.data?.type === 'sos',
-                  vibrate: [200, 100, 200],
-                  tag: String(notification.data?.visitorId || notification.data?.type || "orchid_notif"),
-                  ...( (notification.data?.type === 'visitor' || notification.data?.type === 'visitor_request') ? {
-                    actions: [
-                      { action: 'approve', title: '✅ Approve Entry' },
-                      { action: 'reject', title: '❌ Reject' }
-                    ]
-                  } : {})
-                },
-                fcm_options: { link: "/?activeTab=resident" },
-                headers: { Urgency: "high", TTL: "86400" }
-              }
-            }
-          };
-          const fcmRes = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-            body: JSON.stringify(payload)
-          });
-          if (fcmRes.ok) sentCount++;
-          else {
-            const err = await fcmRes.text();
-            if (err.includes("UNREGISTERED")) {
-              await updateDoc(doc(db, 'owners', docId), {
-                fcmTokens: arrayRemove(token)
-              });
-            }
-          }
-        }));
-      }
-      res.json({ success: true, sentCount });
-    } catch (err: any) {
-      console.error('Push broadcast error:', err);
-      res.status(500).json({ error: err.message });
-    }
-  });
-
   // --- VITE MIDDLEWARE SETUP ---
-
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

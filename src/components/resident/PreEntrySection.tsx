@@ -676,18 +676,8 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                   onChange={(e) => setGuestType(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-3 text-xs font-semibold outline-none focus:border-indigo-500 focus:bg-white"
                 >
-                  <option value="Delivery">📦 Delivery / Courier</option>
-                  <option value="Guest">👋 Relative / Friend</option>
-                  <option value="Electrician">⚡ Electrician / Work</option>
-                  <option value="Milkman">🥛 Milkman</option>
-                  <option value="Maid">🧹 Maid</option>
-                  <option value="Vehicle Cleaner">🚗 Vehicle Cleaner</option>
-                  <option value="Newspaper">📰 News Paper</option>
-                  <option value="Care Taker">🤝 Care Taker</option>
-                  <option value="Cook">🍳 Cook</option>
-                  <option value="Other Helper">🛠️ Other Helper</option>
-                  <option value="Cabinet">🛠️ Service Agent</option>
-                  <option value="Other">👤 Other</option>
+                  <option value="Guest">👋 Guest / Relative</option>
+                  <option value="Other">👤 Other Visitor</option>
                 </select>
               </div>
 

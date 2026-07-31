@@ -217,12 +217,12 @@ export default function VisitorsSection({
           >
             <option value="">All Visitor Types</option>
             <option value="Delivery">Delivery / Courier</option>
-            <option value="Guest">Relative / Friend</option>
+            <option value="Guest">Guest / Friend</option>
             <option value="Electrician">Electrician / Work</option>
             <option value="Milkman">Milkman</option>
             <option value="Maid">Maid</option>
             <option value="Vehicle Cleaner">Vehicle Cleaner</option>
-            <option value="Newspaper">News Paper</option>
+            <option value="Newspaper">Newspaper</option>
             <option value="Care Taker">Care Taker</option>
             <option value="Cook">Cook</option>
             <option value="Other Helper">Other Helper</option>

@@ -825,16 +825,14 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         processNotes: editingComplaint.processNotes || ''
       });
 
-      if (editingComplaint.status === 'resolved' || editingComplaint.status === 'in-progress') {
+      if (editingComplaint.status === 'resolved') {
         const parts = (editingComplaint.flatId || '').split('-');
         const wingPart = parts[0] || '';
         const flatPart = Number(parts[1]) || 0;
         await api.createSocietyNotification({
           type: 'complaint',
-          title: editingComplaint.status === 'resolved' ? `✓ Ticket Resolved: ${editingComplaint.title}` : `⏳ Ticket In-Progress: ${editingComplaint.title}`,
-          message: editingComplaint.status === 'resolved' 
-            ? `Your ticket has been marked resolved. Action Notes: ${editingComplaint.processNotes || 'None'}`
-            : `Your ticket is now being worked on. Notes: ${editingComplaint.processNotes || 'None'}`,
+          title: `✓ Ticket Resolved: ${editingComplaint.title}`,
+          message: `Your ticket has been marked resolved. Action Notes: ${editingComplaint.processNotes || 'None'}`,
           wing: wingPart,
           flatNo: flatPart,
           metadata: { complaintId: editingComplaint.id }

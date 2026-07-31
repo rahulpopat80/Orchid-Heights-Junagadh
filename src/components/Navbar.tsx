@@ -82,7 +82,7 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
                   {session.role === 'security' ? 'Gate Guard' : session.ownerName}
                 </p>
               </div>
-              {session.role !== 'resident' && (
+              {session.role !== 'owner' && (
                 <button
                   onClick={onLogout}
                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
@@ -93,7 +93,7 @@ export default function Navbar({ session, onLogout, activeTab, setActiveTab }: N
               )}
             </div>
             
-            {session.role !== 'resident' && (
+            {session.role !== 'owner' && (
               <button
                 onClick={onLogout}
                 className="md:hidden p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
