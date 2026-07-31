@@ -12,7 +12,11 @@ import {
   doc, 
   getDoc, 
   getDocs, 
-  onSnapshot 
+  onSnapshot,
+  updateDoc,
+  query,
+  where,
+  arrayRemove
 } from 'firebase/firestore';
 import { webcrypto } from 'crypto';
 import { GoogleAuth } from 'google-auth-library';
@@ -201,6 +205,32 @@ async function getAllFCMTokensServer(): Promise<string[]> {
   return [];
 }
 
+async function removeInvalidFCMTokenServer(token: string) {
+  try {
+    const q = query(collection(db, 'owners'), where('fcmTokens', 'array-contains', token));
+    const snap = await getDocs(q);
+    
+    snap.forEach(async (docSnap) => {
+      await updateDoc(docSnap.ref, {
+        fcmTokens: arrayRemove(token)
+      });
+      console.log(`[Server FCM] Removed invalid token from owner: ${docSnap.id}`);
+    });
+    
+    // Also check security collection if needed, but owners is the main one
+    const qSec = query(collection(db, 'security'), where('fcmTokens', 'array-contains', token));
+    const snapSec = await getDocs(qSec);
+    snapSec.forEach(async (docSnap) => {
+      await updateDoc(docSnap.ref, {
+        fcmTokens: arrayRemove(token)
+      });
+      console.log(`[Server FCM] Removed invalid token from security: ${docSnap.id}`);
+    });
+  } catch (err) {
+    console.error('[Server FCM] Failed to remove invalid token:', err);
+  }
+}
+
 // Dispatch FCM Push Notification to target tokens
 async function sendFCMPushServer(
   tokens: string[],
@@ -283,6 +313,9 @@ async function sendFCMPushServer(
         if (!response.ok) {
           const errText = await response.text();
           console.warn(`[Server FCM] Failed to send to token ${token.substring(0, 8)}: ${errText}`);
+          if (errText.includes("UNREGISTERED")) {
+            await removeInvalidFCMTokenServer(token);
+          }
         } else {
           console.log(`[Server FCM] Successfully delivered push to token ${token.substring(0, 8)}...`);
         }
