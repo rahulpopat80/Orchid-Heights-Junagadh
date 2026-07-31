@@ -882,6 +882,19 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
     updateOwnerProfile({ members: updatedMembers }, 'Household family member unregistered.');
   };
 
+  const handleEditMember = (idx: number) => {
+    if (!myOwnerData) return;
+    const memberToEdit = (myOwnerData.members || [])[idx];
+    if (memberToEdit) {
+      const match = memberToEdit.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+      if (match) {
+        setNewMember(match[1]?.trim() || '');
+        setNewMemberPhone(match[2]?.trim() || '');
+      }
+      handleRemoveMember(idx);
+    }
+  };
+
   const handleAddVehicle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!vPlate.trim() || !vModel.trim() || !myOwnerData) return;
@@ -903,6 +916,18 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
     if (!myOwnerData) return;
     const updatedVehicles = (myOwnerData.vehicles || []).filter(v => v.id !== vehicleId);
     updateOwnerProfile({ vehicles: updatedVehicles }, 'Vehicle registry plate deleted.');
+  };
+
+  const handleEditVehicle = (vehicleId: string) => {
+    if (!myOwnerData) return;
+    const vehicleToEdit = (myOwnerData.vehicles || []).find(v => v.id === vehicleId);
+    if (vehicleToEdit) {
+      setVType(vehicleToEdit.type);
+      setVPlate(vehicleToEdit.plateNumber);
+      setVModel(vehicleToEdit.brandModel);
+      setVParkingPlot(vehicleToEdit.parkingPlot || '');
+      handleRemoveVehicle(vehicleId);
+    }
   };
 
   const handleSaveGeneral = async (e: React.FormEvent) => {
@@ -2081,12 +2106,14 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               savingSettings={savingSettings}
               settingsSuccess={settingsSuccess}
               settingsError={settingsError}
+              session={session}
               newMember={newMember}
               setNewMember={setNewMember}
               newMemberPhone={newMemberPhone}
               setNewMemberPhone={setNewMemberPhone}
               handleAddMember={handleAddMember}
               handleRemoveMember={handleRemoveMember}
+              handleEditMember={handleEditMember}
               vType={vType}
               setVType={setVType}
               vPlate={vPlate}
@@ -2097,6 +2124,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               setVParkingPlot={setVParkingPlot}
               handleAddVehicle={handleAddVehicle}
               handleRemoveVehicle={handleRemoveVehicle}
+              handleEditVehicle={handleEditVehicle}
               altContact={altContact}
               setAltContact={setAltContact}
               showPass={showPass}

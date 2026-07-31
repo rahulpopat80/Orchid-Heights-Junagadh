@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Users, Car, Phone, Lock, Eye, EyeOff, Calendar, AlertCircle, Trash2, Plus, ShieldCheck, HelpCircle, ArrowLeft, LogOut } from 'lucide-react';
-import { FlatOwner, Vehicle, AbsenceLog, DailyHelper } from '../../types';
+import { User, Users, Car, Phone, Lock, Eye, EyeOff, Calendar, AlertCircle, Trash2, Plus, ShieldCheck, HelpCircle, ArrowLeft, LogOut, Edit3 } from 'lucide-react';
+import { FlatOwner, Vehicle, AbsenceLog, DailyHelper, UserSession } from '../../types';
 
 interface ProfileSectionProps {
   wing: string;
@@ -10,6 +10,7 @@ interface ProfileSectionProps {
   savingSettings: boolean;
   settingsSuccess: string;
   settingsError: string;
+  session: UserSession;
 
   // Family members state
   newMember: string;
@@ -18,6 +19,7 @@ interface ProfileSectionProps {
   setNewMemberPhone: (text: string) => void;
   handleAddMember: (e: React.FormEvent) => void;
   handleRemoveMember: (idx: number) => void;
+  handleEditMember: (idx: number) => void;
 
   // Vehicles state
   vType: 'twowheeler' | 'fourwheeler';
@@ -30,6 +32,7 @@ interface ProfileSectionProps {
   setVParkingPlot: (text: string) => void;
   handleAddVehicle: (e: React.FormEvent) => void;
   handleRemoveVehicle: (id: string) => void;
+  handleEditVehicle: (id: string) => void;
 
   // Security alternate contact & Password state
   altContact: string;
@@ -67,12 +70,14 @@ export default function ProfileSection({
   savingSettings,
   settingsSuccess,
   settingsError,
+  session,
   newMember,
   setNewMember,
   newMemberPhone,
   setNewMemberPhone,
   handleAddMember,
   handleRemoveMember,
+  handleEditMember,
   vType,
   setVType,
   vPlate,
@@ -83,6 +88,7 @@ export default function ProfileSection({
   setVParkingPlot,
   handleAddVehicle,
   handleRemoveVehicle,
+  handleEditVehicle,
   altContact,
   setAltContact,
   showPass,
@@ -152,22 +158,62 @@ export default function ProfileSection({
 
             {myOwnerData?.members && myOwnerData.members.length > 0 ? (
               <div className="space-y-2">
-                {myOwnerData.members.map((member, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center bg-slate-50 border border-slate-200 p-2.5 rounded-lg text-xs font-semibold uppercase text-slate-800"
-                  >
-                    <span>👤 {member}</span>
-                    <button
-                      onClick={() => handleRemoveMember(idx)}
-                      disabled={savingSettings}
-                      title="Remove member"
-                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition cursor-pointer"
+                {myOwnerData.members.map((member, idx) => {
+                  const match = member.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+                  const memberPhone = match ? match[2]?.trim() : null;
+                  
+                  // Strict match primarily by phone if both have phone numbers
+                  let isCurrentMember = false;
+                  if (session.phone && memberPhone) {
+                    isCurrentMember = session.phone === memberPhone;
+                  } else {
+                    // Fallback to name matching if phone is missing on either side
+                    const memberName = match ? match[1]?.trim() : member;
+                    isCurrentMember = session.ownerName?.toLowerCase() === memberName?.toLowerCase();
+                  }
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex justify-between items-center border p-2.5 rounded-lg text-xs font-semibold uppercase ${
+                        isCurrentMember 
+                          ? 'bg-indigo-50 border-indigo-200 text-indigo-900' 
+                          : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
+                      <div className="flex items-center space-x-2">
+                        <span>👤 {member}</span>
+                        {isCurrentMember && (
+                          <span className="bg-indigo-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                            YOU
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => handleEditMember(idx)}
+                          disabled={savingSettings}
+                          title="Edit member"
+                          className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded transition cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveMember(idx)}
+                          disabled={savingSettings || isCurrentMember}
+                          title={isCurrentMember ? "Cannot remove currently logged-in member" : "Remove member"}
+                          className={`p-1 rounded transition ${
+                            isCurrentMember 
+                              ? 'text-slate-300 cursor-not-allowed' 
+                              : 'text-slate-400 hover:text-red-500 hover:bg-red-50 cursor-pointer'
+                          }`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="py-6 text-center text-slate-400 border border-dashed rounded-lg text-[11px]">
@@ -235,14 +281,24 @@ export default function ProfileSection({
                         <span className="text-[10px] text-indigo-600 font-bold mt-0.5">🅿️ Plot: {v.parkingPlot}</span>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRemoveVehicle(v.id)}
-                      disabled={savingSettings}
-                      title="Unregister vehicle"
-                      className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex items-center space-x-1">
+                      <button
+                        onClick={() => handleEditVehicle(v.id)}
+                        disabled={savingSettings}
+                        title="Edit vehicle"
+                        className="text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 p-1 rounded transition cursor-pointer"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleRemoveVehicle(v.id)}
+                        disabled={savingSettings}
+                        title="Unregister vehicle"
+                        className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded transition cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

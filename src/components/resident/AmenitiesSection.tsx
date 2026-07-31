@@ -311,9 +311,12 @@ export default function AmenitiesSection({
     return b.flatId === myFlatId && dateLimit.getTime() >= oneMonthAgo.getTime();
   });
 
-  const filteredLogs = gymTheatreLogs.filter(l => {
+  const fifteenDaysAgo = new Date();
+  fifteenDaysAgo.setDate(fifteenDaysAgo.getDate() - 15);
+
+  const gymLogs15Days = gymTheatreLogs.filter(l => {
     const dateLimit = l.createdAt ? new Date(l.createdAt) : new Date();
-    return l.flatId === myFlatId && dateLimit.getTime() >= oneMonthAgo.getTime();
+    return l.flatId === myFlatId && dateLimit.getTime() >= fifteenDaysAgo.getTime();
   });
 
   return (
@@ -330,6 +333,19 @@ export default function AmenitiesSection({
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+            {/* Sub-Block 1: Gym Entry Logs */}
+            <div
+              onClick={() => navigateToRoute('/amenities/gym-theatre', 'gym_theatre')}
+              className="bg-white rounded-none p-6 border shadow-sm flex flex-col items-center justify-center min-h-[140px] text-center hover:shadow-md transition cursor-pointer relative group border-slate-200/60"
+            >
+              <div className="w-14 h-14 rounded-none bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 shadow-sm mb-3 group-hover:scale-105 transition-transform duration-300">
+                <Dumbbell className="w-7 h-7" />
+              </div>
+              <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
+                Gym Entry Logs
+              </h4>
+            </div>
 
 
             {/* Sub-Block 2: Movie Theatre Schedule */}
@@ -361,7 +377,82 @@ export default function AmenitiesSection({
         </motion.div>
       )}
 
-// Removed Gym Theatre Access Screen
+      {/* ==================== SCREEN: GYM ENTRY LOGS ==================== */}
+      {activeSub === 'gym_theatre' && (
+        <motion.div key="gym_theatre" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <button
+              onClick={() => navigateToRoute('/amenities', 'menu')}
+              className="flex items-center space-x-2 text-sm font-black text-indigo-700 hover:text-indigo-900 cursor-pointer transition select-none bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-5 py-2.5 rounded-full shadow-sm active:scale-95"
+            >
+              <ArrowLeft className="w-4 h-4 -ml-1" />
+              <span className="uppercase tracking-widest text-[10px]">Back</span>
+            </button>
+            <div className="flex items-center space-x-2">
+              <Dumbbell className="w-5 h-5 text-indigo-600" />
+              <h4 className="font-display font-bold text-xs uppercase tracking-wider text-slate-800">
+                Gym Entry Logs
+              </h4>
+            </div>
+          </div>
+          
+          <p className="text-[11px] text-slate-500 font-medium">
+            Showing gym entry records for your flat from the last 15 days.
+          </p>
+
+          <div className="space-y-3 mt-4">
+            {gymLogs15Days.length > 0 ? (
+              gymLogs15Days.filter(log => log.amenity === 'Gym').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(log => {
+                const checkIn = new Date(log.createdAt).toLocaleString('en-IN', {
+                  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+                const checkOut = log.checkOutTime 
+                  ? new Date(log.checkOutTime).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
+                  : 'Active';
+                  
+                let duration = '0 mins';
+                if (log.durationMinutes) {
+                  duration = `${log.durationMinutes} mins`;
+                } else if (!log.checkOutTime) {
+                  const diff = Math.floor((new Date().getTime() - new Date(log.createdAt).getTime()) / 60000);
+                  duration = `${diff} mins`;
+                }
+                
+                return (
+                  <div key={log.id} className="bg-slate-50 border border-slate-200 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm hover:border-slate-300 transition">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center shrink-0 border border-blue-200">
+                        <Dumbbell className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-xs text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                          {log.memberName}
+                          {!log.checkOutTime && (
+                            <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded text-[9px]">Active</span>
+                          )}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+                          {checkIn} → {checkOut}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end">
+                      <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
+                        Duration: {duration}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <Dumbbell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                <p className="text-[11px] font-medium">No gym records found in the last 15 days.</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      )}
 
       {/* ==================== SCREEN: MOVIE THEATRE SCHEDULE ==================== */}
       {activeSub === 'movies' && (

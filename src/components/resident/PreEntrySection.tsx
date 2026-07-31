@@ -462,39 +462,40 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
     if (!ctx) return;
 
     // Draw background
-    ctx.fillStyle = '#f8fafc'; // slate-50
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, 450, 700);
 
-    // Draw card background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(15, 15, 420, 670);
-
-    // Card border
-    ctx.strokeStyle = '#4f46e5'; // indigo-600
+    // Card border (indigo-600)
+    ctx.strokeStyle = '#4f46e5'; 
     ctx.lineWidth = 6;
     ctx.strokeRect(15, 15, 420, 670);
 
-    // Top Header Banner
-    ctx.fillStyle = '#4f46e5';
-    ctx.fillRect(20, 20, 410, 90);
+    // Top Header Banner (slate-900)
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(20, 20, 410, 100);
+
+    // Pink accent bar
+    ctx.fillStyle = '#d81b60';
+    ctx.fillRect(20, 115, 410, 8);
 
     // Header Text
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillText('ORCHID HEIGHTS', 225, 60);
-    ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('OFFICIAL VISIT PRE-ENTRY PASS', 225, 88);
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText('ORCHID HEIGHTS', 225, 65);
+    ctx.font = 'bold 14px sans-serif';
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText('OFFICIAL VISIT PRE-ENTRY PASS', 225, 95);
 
     // Visitor Name
     ctx.fillStyle = '#0f172a'; // slate-900
-    ctx.font = 'bold 22px sans-serif';
-    ctx.fillText(entry.fullName.toUpperCase(), 225, 160);
+    ctx.font = 'bold 26px sans-serif';
+    ctx.fillText(entry.fullName.toUpperCase(), 225, 170);
 
     // Phone
     ctx.fillStyle = '#64748b'; // slate-500
-    ctx.font = 'bold 15px sans-serif';
-    ctx.fillText(`Phone: ${entry.mobileNumber}`, 225, 190);
+    ctx.font = '16px sans-serif';
+    ctx.fillText(`Mobile: ${entry.mobileNumber}`, 225, 195);
 
     // Divider Line
     ctx.strokeStyle = '#e2e8f0';
@@ -508,12 +509,12 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
     const drawRowCanvas = (label: string, val: string, y: number) => {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#64748b';
-      ctx.font = '15px sans-serif';
+      ctx.font = '16px sans-serif';
       ctx.fillText(label, 50, y);
       
       ctx.textAlign = 'right';
       ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 15px sans-serif';
+      ctx.font = 'bold 16px sans-serif';
       ctx.fillText(val, 400, y);
     };
 
@@ -542,12 +543,12 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
 
         ctx.textAlign = 'center';
         ctx.fillStyle = '#ef4444'; // red-500
-        ctx.font = 'bold 14px sans-serif';
-        ctx.fillText(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 225, 625);
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillText(`VALID UNTIL: ${expDateStr} • ${expTimeStr}`, 225, 630);
 
         ctx.fillStyle = '#94a3b8'; // slate-400
-        ctx.font = '11px sans-serif';
-        ctx.fillText(`PASS ID: ${entry.id} | Generated on Resident Device`, 225, 650);
+        ctx.font = '12px sans-serif';
+        ctx.fillText(`PASS ID: ${entry.id} | Generated on Resident Device`, 225, 655);
 
         // Download trigger
         const finalUrl = canvas.toDataURL('image/jpeg', 0.95);
@@ -557,6 +558,12 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
         a.click();
       };
       qrImg.src = selectedPassQR;
+    } else {
+        const finalUrl = canvas.toDataURL('image/jpeg', 0.95);
+        const a = document.createElement('a');
+        a.href = finalUrl;
+        a.download = `GatePass_OrchidHeights_${entry.fullName.replace(/\s+/g, '_')}.jpg`;
+        a.click();
     }
   };
 
