@@ -215,12 +215,14 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
   // Household Members State
   const [newMember, setNewMember] = useState<string>('');
   const [newMemberPhone, setNewMemberPhone] = useState<string>('');
+  const [editingMemberIdx, setEditingMemberIdx] = useState<number | null>(null);
   
   // Vehicle State
   const [vType, setVType] = useState<'twowheeler' | 'fourwheeler'>('fourwheeler');
   const [vPlate, setVPlate] = useState<string>('');
   const [vModel, setVModel] = useState<string>('');
   const [vParkingPlot, setVParkingPlot] = useState<string>('');
+  const [editingVehicleId, setEditingVehicleId] = useState<string | null>(null);
 
   // General settings
   const [altContact, setAltContact] = useState<string>('');
@@ -863,23 +865,37 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
     e.preventDefault();
     if (!newMember.trim() || !myOwnerData) return;
     const currentMembers = myOwnerData.members || [];
-    if (currentMembers.length >= 5) {
+    if (editingMemberIdx === null && currentMembers.length >= 5) {
       alert('⚠️ Member limit reached: You can add up to a maximum of 5 household family members per flat.');
       return;
     }
     const memberStr = newMemberPhone.trim()
       ? `${newMember.trim()} (${newMemberPhone.trim()})`
       : newMember.trim();
-    const updatedMembers = [...currentMembers, memberStr];
-    updateOwnerProfile({ members: updatedMembers }, 'Household family member registered successfully.');
+      
+    let updatedMembers;
+    if (editingMemberIdx !== null) {
+      updatedMembers = [...currentMembers];
+      updatedMembers[editingMemberIdx] = memberStr;
+    } else {
+      updatedMembers = [...currentMembers, memberStr];
+    }
+    
+    updateOwnerProfile({ members: updatedMembers }, editingMemberIdx !== null ? 'Household family member updated successfully.' : 'Household family member registered successfully.');
     setNewMember('');
     setNewMemberPhone('');
+    setEditingMemberIdx(null);
   };
 
   const handleRemoveMember = (idx: number) => {
     if (!myOwnerData) return;
     const updatedMembers = (myOwnerData.members || []).filter((_, i) => i !== idx);
     updateOwnerProfile({ members: updatedMembers }, 'Household family member unregistered.');
+    if (editingMemberIdx === idx) {
+      setEditingMemberIdx(null);
+      setNewMember('');
+      setNewMemberPhone('');
+    }
   };
 
   const handleEditMember = (idx: number) => {
@@ -891,31 +907,51 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
         setNewMember(match[1]?.trim() || '');
         setNewMemberPhone(match[2]?.trim() || '');
       }
-      handleRemoveMember(idx);
+      setEditingMemberIdx(idx);
     }
   };
 
   const handleAddVehicle = (e: React.FormEvent) => {
     e.preventDefault();
     if (!vPlate.trim() || !vModel.trim() || !myOwnerData) return;
-    const newV: Vehicle = {
-      id: Math.random().toString(36).substring(2, 9),
-      type: vType,
-      plateNumber: vPlate.trim().toUpperCase(),
-      brandModel: vModel.trim(),
-      parkingPlot: vParkingPlot.trim() || undefined
-    };
-    const updatedVehicles = [...(myOwnerData.vehicles || []), newV];
-    updateOwnerProfile({ vehicles: updatedVehicles }, 'Vehicle register plate license registered successfully.');
+    
+    const currentVehicles = myOwnerData.vehicles || [];
+    let updatedVehicles;
+    
+    if (editingVehicleId) {
+      updatedVehicles = currentVehicles.map(v => 
+        v.id === editingVehicleId 
+          ? { ...v, type: vType, plateNumber: vPlate.trim().toUpperCase(), brandModel: vModel.trim(), parkingPlot: vParkingPlot.trim() || undefined }
+          : v
+      );
+    } else {
+      const newV: Vehicle = {
+        id: Math.random().toString(36).substring(2, 9),
+        type: vType,
+        plateNumber: vPlate.trim().toUpperCase(),
+        brandModel: vModel.trim(),
+        parkingPlot: vParkingPlot.trim() || undefined
+      };
+      updatedVehicles = [...currentVehicles, newV];
+    }
+    
+    updateOwnerProfile({ vehicles: updatedVehicles }, editingVehicleId ? 'Vehicle details updated successfully.' : 'Vehicle register plate license registered successfully.');
     setVPlate('');
     setVModel('');
     setVParkingPlot('');
+    setEditingVehicleId(null);
   };
 
   const handleRemoveVehicle = (vehicleId: string) => {
     if (!myOwnerData) return;
     const updatedVehicles = (myOwnerData.vehicles || []).filter(v => v.id !== vehicleId);
     updateOwnerProfile({ vehicles: updatedVehicles }, 'Vehicle registry plate deleted.');
+    if (editingVehicleId === vehicleId) {
+      setEditingVehicleId(null);
+      setVPlate('');
+      setVModel('');
+      setVParkingPlot('');
+    }
   };
 
   const handleEditVehicle = (vehicleId: string) => {
@@ -926,7 +962,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
       setVPlate(vehicleToEdit.plateNumber);
       setVModel(vehicleToEdit.brandModel);
       setVParkingPlot(vehicleToEdit.parkingPlot || '');
-      handleRemoveVehicle(vehicleId);
+      setEditingVehicleId(vehicleId);
     }
   };
 
@@ -2111,6 +2147,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               setNewMember={setNewMember}
               newMemberPhone={newMemberPhone}
               setNewMemberPhone={setNewMemberPhone}
+              editingMemberIdx={editingMemberIdx}
+              setEditingMemberIdx={setEditingMemberIdx}
               handleAddMember={handleAddMember}
               handleRemoveMember={handleRemoveMember}
               handleEditMember={handleEditMember}
@@ -2122,6 +2160,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
               setVModel={setVModel}
               vParkingPlot={vParkingPlot}
               setVParkingPlot={setVParkingPlot}
+              editingVehicleId={editingVehicleId}
+              setEditingVehicleId={setEditingVehicleId}
               handleAddVehicle={handleAddVehicle}
               handleRemoveVehicle={handleRemoveVehicle}
               handleEditVehicle={handleEditVehicle}

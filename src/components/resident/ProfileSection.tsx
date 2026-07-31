@@ -17,6 +17,8 @@ interface ProfileSectionProps {
   setNewMember: (text: string) => void;
   newMemberPhone: string;
   setNewMemberPhone: (text: string) => void;
+  editingMemberIdx?: number | null;
+  setEditingMemberIdx?: (idx: number | null) => void;
   handleAddMember: (e: React.FormEvent) => void;
   handleRemoveMember: (idx: number) => void;
   handleEditMember: (idx: number) => void;
@@ -30,6 +32,8 @@ interface ProfileSectionProps {
   setVModel: (text: string) => void;
   vParkingPlot: string;
   setVParkingPlot: (text: string) => void;
+  editingVehicleId?: string | null;
+  setEditingVehicleId?: (id: string | null) => void;
   handleAddVehicle: (e: React.FormEvent) => void;
   handleRemoveVehicle: (id: string) => void;
   handleEditVehicle: (id: string) => void;
@@ -75,6 +79,8 @@ export default function ProfileSection({
   setNewMember,
   newMemberPhone,
   setNewMemberPhone,
+  editingMemberIdx,
+  setEditingMemberIdx,
   handleAddMember,
   handleRemoveMember,
   handleEditMember,
@@ -86,6 +92,8 @@ export default function ProfileSection({
   setVModel,
   vParkingPlot,
   setVParkingPlot,
+  editingVehicleId,
+  setEditingVehicleId,
   handleAddVehicle,
   handleRemoveVehicle,
   handleEditVehicle,
@@ -240,14 +248,39 @@ export default function ProfileSection({
                   className="bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded-lg px-3 py-2 text-xs font-medium outline-none transition w-full sm:w-40"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={savingSettings}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg flex items-center justify-center space-x-1.5 transition cursor-pointer text-xs"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Household Member</span>
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg flex items-center justify-center space-x-1.5 transition cursor-pointer text-xs"
+                >
+                  {editingMemberIdx !== undefined && editingMemberIdx !== null ? (
+                    <>
+                      <Edit3 className="w-4 h-4" />
+                      <span>Update Member</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Add Household Member</span>
+                    </>
+                  )}
+                </button>
+                {editingMemberIdx !== undefined && editingMemberIdx !== null && setEditingMemberIdx && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingMemberIdx(null);
+                      setNewMember('');
+                      setNewMemberPhone('');
+                    }}
+                    disabled={savingSettings}
+                    className="px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 rounded-lg flex items-center justify-center transition cursor-pointer text-xs"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
           </div>
 
@@ -362,13 +395,30 @@ export default function ProfileSection({
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={savingSettings}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-[10px] transition cursor-pointer uppercase tracking-wider"
-              >
-                Register Vehicle
-              </button>
+              <div className="flex gap-2">
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-[10px] transition cursor-pointer uppercase tracking-wider"
+                >
+                  {editingVehicleId ? 'Update Vehicle' : 'Register Vehicle'}
+                </button>
+                {editingVehicleId && setEditingVehicleId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingVehicleId(null);
+                      setVPlate('');
+                      setVModel('');
+                      setVParkingPlot('');
+                    }}
+                    disabled={savingSettings}
+                    className="px-4 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-lg transition cursor-pointer text-[10px] uppercase tracking-wider"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         </div>
