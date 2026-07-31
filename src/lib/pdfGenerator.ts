@@ -661,7 +661,7 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(sanitizeText(log.memberName).toUpperCase(), textX, currY);
+      doc.text(sanitizeText(log.memberName || ownerName).toUpperCase(), textX, currY);
 
       currY += 6;
       doc.setTextColor(71, 85, 105);
