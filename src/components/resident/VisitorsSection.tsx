@@ -283,6 +283,9 @@ export default function VisitorsSection({
 
                   <div className="text-[11px] text-slate-600 bg-white border border-slate-200/40 p-2 rounded-lg leading-relaxed text-left">
                     <p className="font-medium"><span className="text-slate-400 font-normal">Reason:</span> {log.reason}</p>
+                    {log.respondedBy && (
+                      <p className="font-medium mt-1 text-[10px] text-indigo-600"><span className="text-slate-400 font-normal">By:</span> {log.respondedBy}</p>
+                    )}
                   </div>
                 </div>
 

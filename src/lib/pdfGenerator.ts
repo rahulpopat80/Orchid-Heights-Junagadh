@@ -152,7 +152,7 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       const ownerMatch = owners.find(o => `${o.wing}-${o.flatNo}` === `${log.wing}-${log.flatNo}`);
       const ownerName = ownerMatch ? ownerMatch.nameEn : (log.flatOwnerName || 'Resident');
       const responder = log.respondedBy ? log.respondedBy.toUpperCase() : ownerName;
-      const truncatedResponder = responder.length > 14 ? responder.substring(0, 14) + '...' : responder;
+      const truncatedResponder = responder.length > 40 ? responder.substring(0, 40) + '...' : responder;
       doc.text(`Target: Flat ${log.wing}-${log.flatNo} (${sanitizeText(truncatedResponder)})`, textX, currY);
 
       currY += 4.5;

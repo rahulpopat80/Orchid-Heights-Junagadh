@@ -91,6 +91,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
+  const [activeCallReq, setActiveCallReq] = useState<{ visitorId: string; memberName: string } | null>(null);
 
   // Pre-Entry QR Scanner states
   const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan' | 'gym_entry'>('register');
@@ -115,6 +116,23 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       console.error('Failed to exit visitor:', e);
     } finally {
       setExitingId(null);
+    }
+  };
+
+  const handleCallRespond = async (visitorId: string, status: 'approved' | 'rejected', memberName: string) => {
+    try {
+      const actionText = status === 'approved' ? 'Approved Through Call' : 'Declined Through Call';
+      const respondedByText = `${actionText} (by ${memberName})`;
+      const res = await api.respondToVisitor(visitorId, status, respondedByText, status === 'rejected' ? 'Security Call Decline' : '');
+      if (res.success) {
+        setActiveCallReq(null);
+        // Relying on realtime subscription to update the UI
+      } else {
+        alert('Failed to respond. Please try again.');
+      }
+    } catch (error) {
+      console.error("Call respond error:", error);
+      alert('Failed to respond. Please try again.');
     }
   };
 
@@ -1200,18 +1218,51 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       </div>
                     </div>
                     {owner && (
-                      <div className="flex flex-col gap-2 min-w-[200px]">
-                        <a href={`tel:${owner.phone}`} className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm">
-                          <Phone className="w-5 h-5" />
-                          <span>કોલ કરો</span>
-                        </a>
-                        {owner.secondaryContact && (
-                          <a href={`tel:${owner.secondaryContact}`} className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition">
+                      activeCallReq?.visitorId === v.id ? (
+                        <div className="flex flex-col gap-2 min-w-[200px]">
+                          <button 
+                            onClick={() => handleCallRespond(v.id, 'approved', activeCallReq.memberName)}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+                          >
+                            <CheckCircle2 className="w-5 h-5" />
+                            <span>મંજૂર (Call Approve)</span>
+                          </button>
+                          <button 
+                            onClick={() => handleCallRespond(v.id, 'rejected', activeCallReq.memberName)}
+                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+                          >
+                            <XCircle className="w-5 h-5" />
+                            <span>નામંજૂર (Call Declined)</span>
+                          </button>
+                          <button 
+                            onClick={() => setActiveCallReq(null)}
+                            className="text-xs text-slate-500 mt-2 underline text-center"
+                          >
+                            Cancel Call Action
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-2 min-w-[200px]">
+                          <a 
+                            href={`tel:${owner.phone}`} 
+                            onClick={() => setActiveCallReq({ visitorId: v.id, memberName: owner.nameEn || owner.nameGu })}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+                          >
                             <Phone className="w-5 h-5" />
                             <span>કોલ કરો</span>
                           </a>
-                        )}
-                      </div>
+                          {owner.secondaryContact && (
+                            <a 
+                              href={`tel:${owner.secondaryContact}`} 
+                              onClick={() => setActiveCallReq({ visitorId: v.id, memberName: `${owner.nameEn || owner.nameGu} (Secondary)` })}
+                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition"
+                            >
+                              <Phone className="w-5 h-5" />
+                              <span>કોલ કરો (Alternative)</span>
+                            </a>
+                          )}
+                        </div>
+                      )
                     )}
                   </div>
                 );
@@ -1281,6 +1332,11 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                           <p className="text-xs text-slate-500 font-semibold mt-0.5">
                             ફ્લેટ {v.wing}-{v.flatNo} • {v.guestType} • {new Date(v.requestTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                           </p>
+                          {v.respondedBy && (
+                            <p className="text-[10px] text-indigo-600 font-bold mt-1">
+                              Response: {v.respondedBy}
+                            </p>
+                          )}
                           {v.exited && (
                             <p className="text-[11px] text-slate-600 font-semibold mt-1 flex items-center gap-1">
                               <LogOut className="w-3 h-3 text-rose-500 inline shrink-0" />
