@@ -91,7 +91,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
-  const [activeCallReq, setActiveCallReqState] = useState<{ visitorId: string; memberName: string } | null>(() => {
+  const [activeCallReq, setActiveCallReqState] = useState<{ visitorId: string; step: 'select_member' | 'action'; selectedMemberName?: string } | null>(() => {
     try {
       const stored = localStorage.getItem('security_active_call_req');
       if (stored) return JSON.parse(stored);
@@ -99,7 +99,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
     return null;
   });
 
-  const setActiveCallReq = (val: { visitorId: string; memberName: string } | null) => {
+  const setActiveCallReq = (val: { visitorId: string; step: 'select_member' | 'action'; selectedMemberName?: string } | null) => {
     setActiveCallReqState(val);
     if (val) {
       localStorage.setItem('security_active_call_req', JSON.stringify(val));
@@ -1243,53 +1243,104 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       </div>
                     </div>
                     {owner && (
-                      activeCallReq?.visitorId === v.id ? (
-                        <div className="grid grid-cols-2 gap-2 min-w-[200px]">
-                          <button 
-                            onClick={() => handleCallRespond(v.id, 'approved', activeCallReq.memberName)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            <span>મંજૂર</span>
-                          </button>
-                          <button 
-                            onClick={() => handleCallRespond(v.id, 'rejected', activeCallReq.memberName)}
-                            className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
-                          >
-                            <XCircle className="w-4 h-4" />
-                            <span>નામંજૂર</span>
-                          </button>
-                          <button 
-                            onClick={() => setActiveCallReq(null)}
-                            className="col-span-2 text-xs text-slate-500 mt-1 underline text-center"
-                          >
-                            Cancel Call Action
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col gap-2 min-w-[200px]">
-                          <a 
-                            href={`tel:${owner.phone}`} 
-                            target="_blank" rel="noopener noreferrer"
-                            onClick={() => setActiveCallReq({ visitorId: v.id, memberName: owner.nameEn || owner.nameGu })}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
-                          >
-                            <Phone className="w-5 h-5" />
-                            <span>કોલ કરો</span>
-                          </a>
-                          {owner.secondaryContact && (
-                            <a 
-                              href={`tel:${owner.secondaryContact}`} 
-                              target="_blank" rel="noopener noreferrer"
-                              onClick={() => setActiveCallReq({ visitorId: v.id, memberName: `${owner.nameEn || owner.nameGu} (Secondary)` })}
-                              className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition"
+                      (() => {
+                        const memberOptions: { name: string; phone: string }[] = [];
+                        if (owner.nameGu || owner.nameEn) {
+                          memberOptions.push({ name: owner.nameGu || owner.nameEn, phone: owner.phone });
+                        }
+                        if (owner.secondaryContact) {
+                          memberOptions.push({ name: `${owner.nameGu || owner.nameEn} (Secondary)`, phone: owner.secondaryContact });
+                        }
+                        if (owner.members) {
+                          owner.members.forEach((mStr) => {
+                            const match = mStr.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+                            if (match) {
+                              memberOptions.push({ name: match[1].trim(), phone: match[2]?.trim() || '' });
+                            }
+                          });
+                        }
+
+                        if (activeCallReq?.visitorId === v.id) {
+                          if (activeCallReq.step === 'action') {
+                            return (
+                              <div className="flex flex-col gap-2 min-w-[200px]">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button 
+                                    onClick={() => handleCallRespond(v.id, 'approved', activeCallReq.selectedMemberName || 'Unknown')}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
+                                  >
+                                    <CheckCircle2 className="w-4 h-4" />
+                                    <span>મંજૂર કરો</span>
+                                  </button>
+                                  <button 
+                                    onClick={() => handleCallRespond(v.id, 'rejected', activeCallReq.selectedMemberName || 'Unknown')}
+                                    className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
+                                  >
+                                    <XCircle className="w-4 h-4" />
+                                    <span>નામંજૂર</span>
+                                  </button>
+                                </div>
+                                <button
+                                  onClick={() => setActiveCallReq({ visitorId: v.id, step: 'select_member' })}
+                                  className="bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-xl font-bold transition shadow-sm text-xs mt-1"
+                                >
+                                  અન્ય નંબર અજમાવો (Try Other)
+                                </button>
+                                <button 
+                                  onClick={() => setActiveCallReq(null)}
+                                  className="text-xs text-slate-500 mt-1 underline text-center"
+                                >
+                                  રદ કરો (Cancel)
+                                </button>
+                              </div>
+                            );
+                          } else {
+                            // select_member step
+                            return (
+                              <div className="flex flex-col gap-2 min-w-[200px]">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">સભ્ય પસંદ કરો (Select Member)</p>
+                                {memberOptions.map((mem, idx) => (
+                                  <a 
+                                    key={idx}
+                                    href={mem.phone ? `tel:${mem.phone}` : '#'} 
+                                    target="_blank" rel="noopener noreferrer"
+                                    onClick={(e) => {
+                                      if (!mem.phone) e.preventDefault();
+                                      setActiveCallReq({ visitorId: v.id, step: 'action', selectedMemberName: mem.name });
+                                    }}
+                                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-semibold flex items-center justify-between transition shadow-sm text-sm"
+                                  >
+                                    <span className="truncate max-w-[120px]">{mem.name}</span>
+                                    <div className="flex items-center gap-1">
+                                      <span className="text-[10px] text-indigo-400 font-mono">{mem.phone || 'No Number'}</span>
+                                      <Phone className="w-4 h-4" />
+                                    </div>
+                                  </a>
+                                ))}
+                                <button 
+                                  onClick={() => setActiveCallReq(null)}
+                                  className="text-xs text-slate-500 mt-2 underline text-center"
+                                >
+                                  રદ કરો (Cancel)
+                                </button>
+                              </div>
+                            );
+                          }
+                        }
+
+                        // Default state
+                        return (
+                          <div className="flex flex-col gap-2 min-w-[200px]">
+                            <button
+                              onClick={() => setActiveCallReq({ visitorId: v.id, step: 'select_member' })}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
                             >
                               <Phone className="w-5 h-5" />
-                              <span>કોલ કરો (Alternative)</span>
-                            </a>
-                          )}
-                        </div>
-                      )
+                              <span>કોલ કરો (Call)</span>
+                            </button>
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
                 );
