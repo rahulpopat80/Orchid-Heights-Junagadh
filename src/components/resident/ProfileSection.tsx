@@ -524,6 +524,16 @@ export default function ProfileSection({
 
 // Help sub components
 function PWAInstallButton() {
+  const [isInstalled, setIsInstalled] = React.useState(false);
+
+  React.useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsInstalled(true);
+    }
+  }, []);
+
+  if (isInstalled) return null;
+
   const handleInstallClick = async () => {
     const promptEvent = window.deferredPrompt;
     if (!promptEvent) {

@@ -15,7 +15,7 @@ interface VisitorsSectionProps {
   setRejectReasonText: (text: string) => void;
   handleRespond: (id: string, status: 'approved' | 'rejected', customReason?: string) => void;
   handleDeleteHistoryRecord: (id: string, name: string) => void;
-  handleDownloadVisitorReport: () => void;
+  handleDownloadVisitorReport: (filteredData: Visitor[]) => void;
   isAlarmActive: boolean;
   stopAlarm: () => void;
 }
@@ -39,6 +39,7 @@ export default function VisitorsSection({
 
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
+  const [searchTime, setSearchTime] = useState('');
   const [searchType, setSearchType] = useState('');
 
   const filteredHistory = guestHistory.filter(log => {
@@ -48,6 +49,11 @@ export default function VisitorsSection({
     if (searchDate) {
       const logDate = new Date(log.requestTime).toISOString().split('T')[0];
       if (logDate !== searchDate) match = false;
+    }
+    if (searchTime) {
+      const logTime = new Date(log.requestTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      // Match by hour and minute exactly, ignoring seconds
+      if (!logTime.startsWith(searchTime)) match = false;
     }
     return match;
   });
@@ -185,11 +191,11 @@ export default function VisitorsSection({
             <p className="text-xs text-slate-400 mt-1">Logs populate as soon as visitors register at the security gate.</p>
           </div>
           <button
-            onClick={handleDownloadVisitorReport}
+            onClick={() => handleDownloadVisitorReport(filteredHistory)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs flex items-center justify-center space-x-2 shadow-sm transition-all cursor-pointer select-none"
           >
             <Download className="w-4 h-4" />
-            <span>Download 3-Month Report</span>
+            <span>Download Filtered Report</span>
           </button>
         </div>
 
@@ -208,6 +214,12 @@ export default function VisitorsSection({
             type="date"
             value={searchDate}
             onChange={(e) => setSearchDate(e.target.value)}
+            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
+          />
+          <input
+            type="time"
+            value={searchTime}
+            onChange={(e) => setSearchTime(e.target.value)}
             className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
           />
           <select

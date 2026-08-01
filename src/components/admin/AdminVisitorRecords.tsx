@@ -13,6 +13,8 @@ interface AdminVisitorRecordsProps {
 
 export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisitorRecordsProps) {
   const [filterTime, setFilterTime] = useState<'today' | '1m' | '2m' | 'all'>('today');
+  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterSpecificTime, setFilterSpecificTime] = useState<string>('');
   const [filterWing, setFilterWing] = useState<'ALL' | 'A' | 'B'>('ALL');
   const [filterFlatNo, setFilterFlatNo] = useState<string>('');
   
@@ -38,7 +40,21 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
       cutoff = new Date(0);
     }
 
-    return list.filter(v => new Date(v.requestTime) >= cutoff);
+    return list.filter(v => {
+      let match = new Date(v.requestTime) >= cutoff;
+      
+      if (match && filterDate) {
+        const logDate = new Date(v.requestTime).toISOString().split('T')[0];
+        if (logDate !== filterDate) match = false;
+      }
+      
+      if (match && filterSpecificTime) {
+        const logTime = new Date(v.requestTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        if (!logTime.startsWith(filterSpecificTime)) match = false;
+      }
+      
+      return match;
+    });
   };
 
   const downloadCSV = async () => {
@@ -134,7 +150,7 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
 
       <div className="space-y-4">
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Time Range</label>
             <select
@@ -147,6 +163,24 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
               <option value="2m">📈 Last 2 Months Logs</option>
               <option value="all">🗂️ All-Time Logs</option>
             </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Specific Date</label>
+            <input
+              type="date"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none text-slate-700"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Specific Time</label>
+            <input
+              type="time"
+              value={filterSpecificTime}
+              onChange={(e) => setFilterSpecificTime(e.target.value)}
+              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none text-slate-700"
+            />
           </div>
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Target Wing</label>

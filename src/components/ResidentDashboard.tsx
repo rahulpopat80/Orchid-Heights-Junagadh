@@ -510,14 +510,17 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
   const [absenceError, setAbsenceError] = useState<string>('');
   const [absenceSuccess, setAbsenceSuccess] = useState<string>('');
 
-  // Download 3-month visitor logs as PDF
-  const handleDownloadVisitorReport = async () => {
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  // Download visitor logs as PDF
+  const handleDownloadVisitorReport = async (filteredData: Visitor[]) => {
+    // Determine a sensible subtitle based on data
+    let subtitle = `Flat: ${wing}-${flatNo}`;
+    if (filteredData.length === guestHistory.length) {
+      subtitle += ` | Report Period: Last 3 Months (All)`;
+    } else {
+      subtitle += ` | Filtered Report (${filteredData.length} records)`;
+    }
     
-    const reportData = guestHistory.filter(v => new Date(v.requestTime) >= threeMonthsAgo);
-    
-    await generateVisitorPDF(reportData, "GATE VISITOR REPORT", `Flat: ${wing}-${flatNo} | Report Period: Last 3 Months`);
+    await generateVisitorPDF(filteredData, "GATE VISITOR REPORT", subtitle);
   };
 
 
