@@ -166,3 +166,8 @@ self.addEventListener('activate', (event) => {
   console.log('[SW] Service worker activated. Taking control of all clients...');
   event.waitUntil(clients.claim());
 });
+
+self.addEventListener('fetch', function(event) {
+  // Required by Chrome to pass PWA installation criteria.
+  // We simply let the browser handle all network requests normally.
+});

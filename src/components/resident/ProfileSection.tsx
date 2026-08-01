@@ -527,7 +527,12 @@ function PWAInstallButton() {
   const handleInstallClick = async () => {
     const promptEvent = window.deferredPrompt;
     if (!promptEvent) {
-      alert("To install the WebApp, please use your browser's menu to 'Add to Home Screen' (on iOS tap Share -> Add to Home Screen). If you have already installed it, you can launch it from your home screen.");
+      const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
+      if (isIos) {
+        alert("Apple iOS does not allow direct WebApp downloads. To install on iPhone/iPad, you MUST tap the Share icon at the bottom of your screen and select 'Add to Home Screen'.");
+      } else {
+        alert("Native install prompt is not available right now. This usually means the app is already installed, or you are viewing it inside a preview window. Please open the app in a new dedicated browser tab to download it, or use the browser menu 'Add to Home Screen'.");
+      }
       return;
     }
     // Show the install prompt
