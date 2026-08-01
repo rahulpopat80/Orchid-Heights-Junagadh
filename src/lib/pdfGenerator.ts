@@ -195,6 +195,13 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
         doc.text('PRE-ENTRY', rightX - 40, currY - 0.5, { align: 'center' });
+      } else if (log.respondedBy?.includes('Through Call')) {
+        doc.setFillColor(243, 232, 255); // Purple-100
+        doc.roundedRect(rightX - 53, currY - 6, 26, 8, 2, 2, 'F');
+        doc.setTextColor(107, 33, 168); // Purple-800
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.text('CALL (GATE)', rightX - 40, currY - 0.5, { align: 'center' });
       }
 
       currY += 10;

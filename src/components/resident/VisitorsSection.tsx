@@ -294,15 +294,27 @@ export default function VisitorsSection({
                     <Clock className="w-3.5 h-3.5 mr-1 shrink-0" />
                     {new Date(log.requestTime).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} • {new Date(log.requestTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                   </p>
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
-                    log.status === 'approved'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                      : log.status === 'expired'
-                      ? 'bg-slate-50 text-slate-500 border border-slate-200'
-                      : 'bg-red-50 text-red-700 border-red-100'
-                  }`}>
-                    {log.status}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {log.isPreEntry && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-100">
+                        PRE-ENTRY
+                      </span>
+                    )}
+                    {log.respondedBy?.includes('Through Call') && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-100">
+                        CALL
+                      </span>
+                    )}
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase font-mono ${
+                      log.status === 'approved' || log.status === 'Entered'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : log.status === 'expired'
+                        ? 'bg-slate-50 text-slate-500 border border-slate-200'
+                        : 'bg-red-50 text-red-700 border-red-100'
+                    }`}>
+                      {log.exited ? 'EXITED' : log.status}
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}

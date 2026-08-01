@@ -1063,7 +1063,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       const entryTime = new Date(v.requestTime).toLocaleString('en-IN');
       const exitTimeStr = v.exitTime ? new Date(v.exitTime).toLocaleString('en-IN') : '-';
       const deletedTag = v.deletedByResident ? 'Deleted by Resident' : 'Active Log';
-      const entryType = v.isPreEntry ? 'Pre-Entry' : 'Gate Entry';
+      const entryType = v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry');
       const statusStr = v.exited ? 'EXITED' : v.status.toUpperCase();
       csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${entryType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${exitTimeStr}","${v.duration || '-'}","${statusStr}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
     });
@@ -1157,7 +1157,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           `"${v.flatNo}"`,
           `"${(v.flatOwnerName || '').replace(/"/g, '""')}"`,
           `"${v.guestType || ''}"`,
-          `"${v.isPreEntry ? 'Pre-Entry' : 'Gate Entry'}"`,
+          `"${v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry')}"`,
           `"${(v.reason || '').replace(/"/g, '""')}"`,
           `"${v.visitorCount || 1}"`,
           `"${v.exited ? 'EXITED' : (v.status || '').toUpperCase()}"`,

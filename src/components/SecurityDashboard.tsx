@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
@@ -91,7 +91,22 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [absenceLogs, setAbsenceLogs] = useState<any[]>([]);
-  const [activeCallReq, setActiveCallReq] = useState<{ visitorId: string; memberName: string } | null>(null);
+  const [activeCallReq, setActiveCallReqState] = useState<{ visitorId: string; memberName: string } | null>(() => {
+    try {
+      const stored = localStorage.getItem('security_active_call_req');
+      if (stored) return JSON.parse(stored);
+    } catch(e) {}
+    return null;
+  });
+
+  const setActiveCallReq = (val: { visitorId: string; memberName: string } | null) => {
+    setActiveCallReqState(val);
+    if (val) {
+      localStorage.setItem('security_active_call_req', JSON.stringify(val));
+    } else {
+      localStorage.removeItem('security_active_call_req');
+    }
+  };
 
   // Pre-Entry QR Scanner states
   const [activeSecTab, setActiveSecTab] = useState<'register' | 'qr_scan' | 'gym_entry'>('register');
@@ -395,6 +410,13 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   };
 
   useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchVisitors();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const unsubscribe = api.subscribeAllVisitors(
       (data) => {
         setVisitors((prev) => {
@@ -410,7 +432,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
       },
       () => {}
     );
-    return () => unsubscribe();
+    return () => {
+      unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleDeleteVisitor = async (id: string, name: string) => {
@@ -1219,24 +1244,24 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     </div>
                     {owner && (
                       activeCallReq?.visitorId === v.id ? (
-                        <div className="flex flex-col gap-2 min-w-[200px]">
+                        <div className="grid grid-cols-2 gap-2 min-w-[200px]">
                           <button 
                             onClick={() => handleCallRespond(v.id, 'approved', activeCallReq.memberName)}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
                           >
-                            <CheckCircle2 className="w-5 h-5" />
-                            <span>મંજૂર (Call Approve)</span>
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>મંજૂર</span>
                           </button>
                           <button 
                             onClick={() => handleCallRespond(v.id, 'rejected', activeCallReq.memberName)}
-                            className="bg-red-500 hover:bg-red-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
+                            className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
                           >
-                            <XCircle className="w-5 h-5" />
-                            <span>નામંજૂર (Call Declined)</span>
+                            <XCircle className="w-4 h-4" />
+                            <span>નામંજૂર</span>
                           </button>
                           <button 
                             onClick={() => setActiveCallReq(null)}
-                            className="text-xs text-slate-500 mt-2 underline text-center"
+                            className="col-span-2 text-xs text-slate-500 mt-1 underline text-center"
                           >
                             Cancel Call Action
                           </button>
@@ -1245,6 +1270,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                         <div className="flex flex-col gap-2 min-w-[200px]">
                           <a 
                             href={`tel:${owner.phone}`} 
+                            target="_blank" rel="noopener noreferrer"
                             onClick={() => setActiveCallReq({ visitorId: v.id, memberName: owner.nameEn || owner.nameGu })}
                             className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition shadow-sm"
                           >
@@ -1254,6 +1280,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                           {owner.secondaryContact && (
                             <a 
                               href={`tel:${owner.secondaryContact}`} 
+                              target="_blank" rel="noopener noreferrer"
                               onClick={() => setActiveCallReq({ visitorId: v.id, memberName: `${owner.nameEn || owner.nameGu} (Secondary)` })}
                               className="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 px-4 py-3 rounded-xl font-bold flex items-center justify-center space-x-2 transition"
                             >
@@ -1326,6 +1353,11 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                             {v.isPreEntry && (
                               <span className="bg-indigo-100 text-indigo-800 border border-indigo-200 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                                 Pass (Pre-Entry)
+                              </span>
+                            )}
+                            {v.respondedBy?.includes('Through Call') && (
+                              <span className="bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                Call
                               </span>
                             )}
                           </div>

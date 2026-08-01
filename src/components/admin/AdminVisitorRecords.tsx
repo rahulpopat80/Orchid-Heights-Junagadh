@@ -79,7 +79,7 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
         rows.push([
           `"${idx + 1}"`, `"${(v.fullName || '').replace(/"/g, '""')}"`, `"${v.mobileNumber || ''}"`,
           `"${(v.email || '').replace(/"/g, '""')}"`, `"${v.wing}"`, `"${v.flatNo}"`,
-          `"${v.guestType || ''}"`, `"${v.isPreEntry ? 'Pre-Entry' : 'Gate Entry'}"`, `"${(v.reason || '').replace(/"/g, '""')}"`,
+          `"${v.guestType || ''}"`, `"${v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry')}"`, `"${(v.reason || '').replace(/"/g, '""')}"`,
           `"${v.exited ? 'EXITED' : (v.status || '').toUpperCase()}"`,
           `"${reqDate.toLocaleDateString('en-IN')}"`, `"${reqDate.toLocaleTimeString('en-IN')}"`,
           `"${respDate ? respDate.toLocaleString('en-IN') : '-'}"`,
