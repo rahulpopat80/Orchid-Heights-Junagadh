@@ -506,7 +506,8 @@ export default function ProfileSection({
           )}
 
           {/* Logout Section */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-4">
+            <PWAInstallButton />
             <button
               onClick={onLogout}
               className="w-full bg-red-50 hover:bg-red-100 text-red-600 font-bold py-3 px-4 rounded-xl text-sm border border-red-200 transition-colors shadow-sm flex items-center justify-center space-x-2"
@@ -522,6 +523,34 @@ export default function ProfileSection({
 }
 
 // Help sub components
+function PWAInstallButton() {
+  const handleInstallClick = async () => {
+    const promptEvent = window.deferredPrompt;
+    if (!promptEvent) {
+      alert("To install the WebApp, please use your browser's menu to 'Add to Home Screen' (on iOS tap Share -> Add to Home Screen). If you have already installed it, you can launch it from your home screen.");
+      return;
+    }
+    // Show the install prompt
+    promptEvent.prompt();
+    // Wait for the user to respond to the prompt
+    await promptEvent.userChoice;
+    // We've used the prompt, and can't use it again, throw it away
+    window.deferredPrompt = null;
+  };
+
+  return (
+    <button
+      onClick={handleInstallClick}
+      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center space-x-2"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+      </svg>
+      <span>Download WebApp (PWA)</span>
+    </button>
+  );
+}
+
 function VisualEyeIcon() {
   return <Eye className="w-4 h-4" />;
 }
