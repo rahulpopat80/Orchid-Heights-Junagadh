@@ -2857,7 +2857,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
               )}
 
               <p className="text-xs text-slate-600 leading-relaxed mb-4">
-                Restores all 96 flats back to their original Excel list status. This clears all added visitor logs, resets household members, and resets passwords to their default state (<span className="font-semibold text-slate-700 font-mono">admin@123</span>).
+                Restores all 96 flats back to their original Excel list status. This clears all added visitor logs, resets household members, and resets passwords to their default state.
               </p>
 
               {showConfirmReset ? (

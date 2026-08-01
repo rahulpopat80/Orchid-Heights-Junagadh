@@ -424,7 +424,7 @@ export async function verifyCredentials(role: string, payload: any): Promise<{ s
           }
         };
       }
-      return { success: false, message: 'Invalid password. Default is admin@123.' };
+      return { success: false, message: 'Invalid password.' };
     }
     return { success: false, message: 'Invalid role.' };
   } catch (error) {

@@ -14,7 +14,8 @@ interface AdminVisitorRecordsProps {
 export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisitorRecordsProps) {
   const [filterTime, setFilterTime] = useState<'today' | '1m' | '2m' | 'all'>('today');
   const [filterDate, setFilterDate] = useState<string>('');
-  const [filterSpecificTime, setFilterSpecificTime] = useState<string>('');
+  const [filterStartTime, setFilterStartTime] = useState<string>('');
+  const [filterEndTime, setFilterEndTime] = useState<string>('');
   const [filterWing, setFilterWing] = useState<'ALL' | 'A' | 'B'>('ALL');
   const [filterFlatNo, setFilterFlatNo] = useState<string>('');
   
@@ -48,9 +49,10 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
         if (logDate !== filterDate) match = false;
       }
       
-      if (match && filterSpecificTime) {
+      if (match && (filterStartTime || filterEndTime)) {
         const logTime = new Date(v.requestTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        if (!logTime.startsWith(filterSpecificTime)) match = false;
+        if (filterStartTime && logTime < filterStartTime) match = false;
+        if (filterEndTime && logTime > filterEndTime) match = false;
       }
       
       return match;
@@ -173,14 +175,24 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
               className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none text-slate-700"
             />
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Specific Time</label>
-            <input
-              type="time"
-              value={filterSpecificTime}
-              onChange={(e) => setFilterSpecificTime(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none text-slate-700"
-            />
+          <div className="col-span-2 sm:col-span-1">
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Time Duration</label>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl p-1.5 focus-within:border-indigo-500 transition">
+              <span className="text-[10px] font-bold text-slate-400 uppercase ml-1">From</span>
+              <input
+                type="time"
+                value={filterStartTime}
+                onChange={(e) => setFilterStartTime(e.target.value)}
+                className="bg-transparent text-xs font-bold outline-none text-slate-700 w-full"
+              />
+              <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
+              <input
+                type="time"
+                value={filterEndTime}
+                onChange={(e) => setFilterEndTime(e.target.value)}
+                className="bg-transparent text-xs font-bold outline-none text-slate-700 w-full"
+              />
+            </div>
           </div>
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Target Wing</label>

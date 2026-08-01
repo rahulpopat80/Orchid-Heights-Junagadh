@@ -39,7 +39,8 @@ export default function VisitorsSection({
 
   const [searchName, setSearchName] = useState('');
   const [searchDate, setSearchDate] = useState('');
-  const [searchTime, setSearchTime] = useState('');
+  const [searchStartTime, setSearchStartTime] = useState('');
+  const [searchEndTime, setSearchEndTime] = useState('');
   const [searchType, setSearchType] = useState('');
 
   const filteredHistory = guestHistory.filter(log => {
@@ -50,13 +51,27 @@ export default function VisitorsSection({
       const logDate = new Date(log.requestTime).toISOString().split('T')[0];
       if (logDate !== searchDate) match = false;
     }
-    if (searchTime) {
+    if (searchStartTime || searchEndTime) {
       const logTime = new Date(log.requestTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      // Match by hour and minute exactly, ignoring seconds
-      if (!logTime.startsWith(searchTime)) match = false;
+      if (searchStartTime && logTime < searchStartTime) match = false;
+      if (searchEndTime && logTime > searchEndTime) match = false;
     }
     return match;
   });
+
+  const getStats = () => {
+    const today = new Date().toDateString();
+    let todayCount = 0;
+    
+    guestHistory.forEach(log => {
+       const d = new Date(log.requestTime);
+       if (d.toDateString() === today) todayCount++;
+    });
+    
+    return todayCount;
+  };
+  const todayVisitorsCount = getStats();
+
   return (
     <div className="space-y-6 text-left">
       {isAlarmActive && (
@@ -199,29 +214,48 @@ export default function VisitorsSection({
           </button>
         </div>
 
-        <div className="flex flex-col md:flex-row items-center gap-3 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+        <div className="flex flex-col md:flex-row items-end gap-3 mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
           <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">નામ શોધો (Search Name)</label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search by visitor name..."
+                value={searchName}
+                onChange={(e) => setSearchName(e.target.value)}
+                className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 pl-9 pr-3 text-xs outline-none transition"
+              />
+            </div>
+          </div>
+          <div className="relative w-full md:w-auto">
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">તારીખ (Date)</label>
             <input
-              type="text"
-              placeholder="Search by visitor name..."
-              value={searchName}
-              onChange={(e) => setSearchName(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 pl-9 pr-3 text-xs outline-none transition"
+              type="date"
+              value={searchDate}
+              onChange={(e) => setSearchDate(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
             />
           </div>
-          <input
-            type="date"
-            value={searchDate}
-            onChange={(e) => setSearchDate(e.target.value)}
-            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
-          />
-          <input
-            type="time"
-            value={searchTime}
-            onChange={(e) => setSearchTime(e.target.value)}
-            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
-          />
+          <div className="relative w-full md:w-auto col-span-2 sm:col-span-1">
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">સમયગાળો (Time Duration)</label>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg py-1 px-2 focus-within:border-indigo-500 transition">
+              <span className="text-[10px] font-bold text-slate-400 uppercase">From</span>
+              <input
+                type="time"
+                value={searchStartTime}
+                onChange={(e) => setSearchStartTime(e.target.value)}
+                className="bg-transparent text-xs outline-none text-slate-600 w-full"
+              />
+              <span className="text-[10px] font-bold text-slate-400 uppercase">To</span>
+              <input
+                type="time"
+                value={searchEndTime}
+                onChange={(e) => setSearchEndTime(e.target.value)}
+                className="bg-transparent text-xs outline-none text-slate-600 w-full"
+              />
+            </div>
+          </div>
           <select
             value={searchType}
             onChange={(e) => setSearchType(e.target.value)}

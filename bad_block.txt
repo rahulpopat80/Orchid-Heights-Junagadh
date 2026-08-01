@@ -1,0 +1,78 @@
+                  <button
+                    type="button"
+                    onClick={() => handleVerifyPass(manualPassId)}
+                              {scanResult.data && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">મુલાકાતીનો પ્રકાર:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">મોબાઇલ:</span>
+                          <span className="font-mono font-bold text-slate-800">+91 {scanResult.data.mobileNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">કારણ:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.reason || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">સ્થિતિ:</span>
+                          <span className={`font-bold ${
+                            scanResult.status === 'success' ? 'text-emerald-600' : 'text-red-600'
+                          }`}>{scanResult.status === 'success' ? 'મંજૂર (Approved)' : (scanResult.data.status || 'નામંજૂર (Declined)')}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      {/* CLOSE BUTTON AT BOTTOM OF SECTION */}
+                      <button
+                        onClick={() => setScanResult({ status: null, message: '' })}
+                        className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                      >
+                        બંધ કરો (Close)
+                      </button>           {scanResult.data && (
+                        <p className="text-xs text-slate-500 font-medium">
+                          Visiting Flat {scanResult.data.wing}-{scanResult.data.flatNo} ({scanResult.data.flatOwnerName || 'Resident'})
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="text-center font-bold text-sm text-slate-700 my-2">
+                      {scanResult.message}
+                    </div>
+
+                    {scanResult.data?.photoUrl && (
+                      <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+                        <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+
+                    {scanResult.data && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Guest Type:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Mobile:</span>
+                          <span className="font-mono font-bold text-slate-800">+91 {scanResult.data.mobileNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Reason:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.reason || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">Status:</span>
+                          <span className={`font-bold ${
+                            scanResult.status === 'success' ? 'text-emerald-600' : 'text-red-600'
+                          }`}>{scanResult.status === 'success' ? 'Approved' : (scanResult.data.status || 'Declined')}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      {/* CLOSE BUTTON AT BOTTOM OF SECTION */}
+                      <button
+                        onClick={() => setScanResult({ status: null, message: '' })}
+                        className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                      >

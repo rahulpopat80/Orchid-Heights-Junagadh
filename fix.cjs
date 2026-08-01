@@ -1,83 +1,84 @@
 const fs = require('fs');
-const files = [
-  'src/components/resident/AmenitiesSection.tsx',
-  'src/components/resident/HelpDeskSection.tsx',
-  'src/components/resident/LocalServicesSection.tsx',
-  'src/components/resident/NoticeSection.tsx',
-  'src/components/resident/VisitorsSection.tsx',
-  'src/components/resident/ProfileSection.tsx',
-  'src/components/resident/DirectorySection.tsx',
-  'src/components/resident/BuildingServicesSection.tsx',
-  'src/components/AdminDashboard.tsx',
-  'src/components/ResidentDashboard.tsx'
-];
+let content = fs.readFileSync('src/components/SecurityDashboard.tsx', 'utf8');
+let bad = fs.readFileSync('bad_block.txt', 'utf8');
+let good = `                  <button
+                    type="button"
+                    onClick={() => handleVerifyPass(manualPassId)}
+                    disabled={verifyingPass || !manualPassId.trim()}
+                    className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold px-6 py-3 rounded-xl transition shadow flex items-center justify-center sm:min-w-[120px] w-full sm:w-auto"
+                  >
+                    {verifyingPass ? 'ચકાસણી...' : 'ચકાસો (Verify)'}
+                  </button>
+                </div>
+              </div>
 
-files.forEach(file => {
-  if (!fs.existsSync(file)) return;
-  let content = fs.readFileSync(file, 'utf8');
-  
-  if (!content.includes('framer-motion')) {
-    content = content.replace(/import React([^;]*);/, "import React$1;\nimport { motion, AnimatePresence } from 'framer-motion';");
-  } else if (!content.includes('AnimatePresence')) {
-    content = content.replace(/import \{ motion \} from 'framer-motion';/, "import { motion, AnimatePresence } from 'framer-motion';");
-  }
-  
-  // Replace missing ArrowLeft imports if needed
-  if (!content.includes('ArrowLeft') && content.includes('lucide-react')) {
-    content = content.replace(/import \{([^}]+)\} from 'lucide-react';/, (match, p1) => {
-        return `import {${p1}, ArrowLeft} from 'lucide-react';`;
-    });
-  }
+              {/* Scan Results Feedback Modal */}
+              {scanResult.status && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-2xl w-full max-w-md relative space-y-5">
+                    {/* CLOSE BUTTON IN PASS VISITOR DETAILS */}
+                    <button
+                      onClick={() => setScanResult({ status: null, message: '' })}
+                      className="absolute top-4 right-4 p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full transition cursor-pointer flex items-center justify-center"
+                      title="Close Visitor Details"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
 
-  // Fix the back button '?'
-  content = content.replace(/<span className="text-xl leading-none -mt-0\.5">\?<\/span>/g, '<ArrowLeft className="w-4 h-4 -ml-1" />');
-  
-  // Wrap admin and owner sub-sections in motion.div if they aren't already
-  if (file.includes('AmenitiesSection') && !content.includes('<AnimatePresence mode="wait">')) {
-    content = content.replace(/\{activeSub === 'menu' && \(/g, '<AnimatePresence mode="wait">\n      {activeSub === \'menu\' && (');
-    content = content.replace(/<div className="space-y-4">(\s*<div className="flex items-center space-x-2 border-b border-slate-100 pb-2 mb-2">)/, '<motion.div key="menu" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="space-y-4">$1');
-    content = content.replace(/\{activeSub === 'gym_theatre' && \(\s*<div className="bg-white border/g, '{activeSub === \'gym_theatre\' && (\n        <motion.div key="gym" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    content = content.replace(/\{activeSub === 'movies' && \(\s*<div className="bg-white border/g, '{activeSub === \'movies\' && (\n        <motion.div key="movies" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    content = content.replace(/\{activeSub === 'bookings' && \(\s*<div className="bg-white border/g, '{activeSub === \'bookings\' && (\n        <motion.div key="bookings" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    
-    // Close motion tags in AmenitiesSection
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: GYM & THEATRE GATE ACCESS/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: GYM & THEATRE GATE ACCESS');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: MOVIE THEATRE/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: MOVIE THEATRE');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: FUNCTION HALL/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: FUNCTION HALL');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== MODALS ==================== \*\/\}/g, '</motion.div>\n      )}\n      </AnimatePresence>\n\n      {/* ==================== MODALS ==================== */}');
-  }
+                    <div className="text-center space-y-1 pr-8">
+                      <span className={\`\${
+                        scanResult.status === 'success' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                      } text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase\`}>
+                        {scanResult.status === 'success' ? 'Verified Pass Details' : 'Pass Declined'}
+                      </span>
+                      <h3 className="text-lg font-black text-slate-800 uppercase mt-1">
+                        {scanResult.data?.fullName || 'Unknown Visitor'}
+                      </h3>
+                      {scanResult.data && (
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          ફ્લેટની મુલાકાત (Visiting Flat) {scanResult.data.wing}-{scanResult.data.flatNo} ({scanResult.data.flatOwnerName || 'રહેવાસી'})
+                        </p>
+                      )}
+                    </div>
+                    
+                    <div className="text-center font-bold text-sm text-slate-700 my-2">
+                      {scanResult.message}
+                    </div>
 
-  if (file.includes('HelpDeskSection') && !content.includes('<AnimatePresence mode="wait">')) {
-    content = content.replace(/\{activeSub === 'menu' && \(/g, '<AnimatePresence mode="wait">\n      {activeSub === \'menu\' && (');
-    content = content.replace(/<div className="space-y-4">(\s*<div className="flex items-center space-x-2 border-b border-slate-100 pb-2 mb-2">)/, '<motion.div key="menu" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="space-y-4">$1');
-    content = content.replace(/\{activeSub === 'complaints' && \(\s*<div className="bg-white border/g, '{activeSub === \'complaints\' && (\n        <motion.div key="complaints" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    content = content.replace(/\{activeSub === 'sos' && \(\s*<div className="bg-white border/g, '{activeSub === \'sos\' && (\n        <motion.div key="sos" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    
-    // Close tags
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: COMPLAINT BOX/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: COMPLAINT BOX');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: EMERGENCY SOS/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: EMERGENCY SOS');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== MODALS ==================== \*\/\}/g, '</motion.div>\n      )}\n      </AnimatePresence>\n\n      {/* ==================== MODALS ==================== */}');
-  }
+                    {scanResult.data?.photoUrl && (
+                      <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+                        <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-cover" />
+                      </div>
+                    )}
 
-  if (file.includes('LocalServicesSection') && !content.includes('<AnimatePresence mode="wait">')) {
-    content = content.replace(/\{activeSub === 'menu' && \(/g, '<AnimatePresence mode="wait">\n      {activeSub === \'menu\' && (');
-    content = content.replace(/<div className="space-y-4">(\s*<div className="flex items-center space-x-2 border-b border-slate-100 pb-2 mb-2">)/, '<motion.div key="menu" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="space-y-4">$1');
-    content = content.replace(/\{activeSub === 'workers' && \(\s*<div className="bg-white border/g, '{activeSub === \'workers\' && (\n        <motion.div key="workers" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    content = content.replace(/\{activeSub === 'vendors' && \(\s*<div className="bg-white border/g, '{activeSub === \'vendors\' && (\n        <motion.div key="vendors" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border');
-    
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: DAILY HELPERS/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: DAILY HELPERS');
-    content = content.replace(/<\/div>\s*\)\}\s*\{\/\* ==================== SCREEN: LOCAL VENDORS/g, '</motion.div>\n      )}\n\n      {/* ==================== SCREEN: LOCAL VENDORS');
-    content = content.replace(/<\/div>\s*\)\}\s*<\/div>\s*\);\s*\};/g, '</motion.div>\n      )}\n      </AnimatePresence>\n    </div>\n  );\n};');
-  }
-  
-  if (file.includes('AdminDashboard.tsx')) {
-    // Add transition to sub blocks in Admin Dashboard
-    if (!content.includes('<motion.div key="admin-sub"')) {
-      content = content.replace(/\{activeLocalTab === 'providers' && \(/g, '{activeLocalTab === \'providers\' && (\n<motion.div key="admin-sub-providers" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}}>');
-      content = content.replace(/\{activeLocalTab === 'building' && \(/g, '{activeLocalTab === \'building\' && (\n<motion.div key="admin-sub-building" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}}>');
-      content = content.replace(/<\/div>\s*\)\}\s*<\/div>\s*\)\}\s*<\/div>\s*\)\}\s*<\/div>\s*\)\}/g, '</div>\n                  </motion.div>\n                )}\n              </div>\n            )}\n          </div>\n        )}\n      </div>\n    )}'); // A bit risky but let's just use CSS for this if needed, actually doing it with replace is error prone
-    }
-  }
-
-  fs.writeFileSync(file, content);
-});
+                    {scanResult.data && (
+                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">મુલાકાતીનો પ્રકાર:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">મોબાઇલ:</span>
+                          <span className="font-mono font-bold text-slate-800">+91 {scanResult.data.mobileNumber}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">કારણ:</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.reason || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">સ્થિતિ:</span>
+                          <span className={\`font-bold \${
+                            scanResult.status === 'success' ? 'text-emerald-600' : 'text-red-600'
+                          }\`}>{scanResult.status === 'success' ? 'મંજૂર (Approved)' : (scanResult.data.status || 'નામંજૂર (Declined)')}</span>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      {/* CLOSE BUTTON AT BOTTOM OF SECTION */}
+                      <button
+                        onClick={() => setScanResult({ status: null, message: '' })}
+                        className="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-3 rounded-xl text-xs transition cursor-pointer"
+                      >
+`;
+content = content.replace(bad, good);
+fs.writeFileSync('src/components/SecurityDashboard.tsx', content);

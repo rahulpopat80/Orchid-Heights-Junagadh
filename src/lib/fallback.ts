@@ -200,7 +200,7 @@ export function verifyCredentialsLocal(role: string, payload: any) {
         }
       };
     }
-    return { success: false, message: 'Invalid password. Default is admin@123.' };
+    return { success: false, message: 'Invalid password.' };
   }
   return { success: false, message: 'Invalid role.' };
 }

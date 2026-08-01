@@ -319,6 +319,31 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
   // IP and IMEI tracking
   const [deviceIp, setDeviceIp] = useState<string>('');
   const [deviceImei, setDeviceImei] = useState<string>('');
+  const [translatedMembersMap, setTranslatedMembersMap] = useState<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    import('../lib/transliterate').then(({ transliterateToGujarati }) => {
+      const runTranslations = async () => {
+        if (!owners || owners.length === 0) return;
+        const newMap: Record<string, Record<string, string>> = {};
+        for (const owner of owners) {
+          const key = `${owner.wing}-${owner.flatNo}`;
+          newMap[key] = {};
+          if (owner.members) {
+            for (const mStr of owner.members) {
+              const match = mStr.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+              if (match) {
+                const mName = match[1].trim();
+                newMap[key][mName] = await transliterateToGujarati(mName);
+              }
+            }
+          }
+        }
+        setTranslatedMembersMap(newMap);
+      };
+      runTranslations();
+    }).catch(e => console.error("Could not load transliterate", e));
+  }, [owners]);
 
   useEffect(() => {
     // Fetch public IP securely using ipify API
@@ -923,8 +948,8 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     onChange={(e) => setWing(e.target.value as 'A' | 'B')}
                     className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-lg font-bold"
                   >
-                    <option value="A">Wing A</option>
-                    <option value="B">Wing B</option>
+                    <option value="A">વિંગ એ (Wing A)</option>
+                    <option value="B">વિંગ બી (Wing B)</option>
                   </select>
                 </div>
                 <div>
@@ -1147,12 +1172,12 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                         {scanResult.data?.fullName || 'Unknown Visitor'}
                       </h3>
                       {scanResult.data && (
-                        <p className="text-xs text-slate-500 font-medium">
-                          Visiting Flat {scanResult.data.wing}-{scanResult.data.flatNo} ({scanResult.data.flatOwnerName || 'Resident'})
+                        <p className="text-xs text-slate-500 font-medium mt-1">
+                          ફ્લેટની મુલાકાત (Visiting Flat) {scanResult.data.wing}-{scanResult.data.flatNo} ({scanResult.data.flatOwnerName || 'રહેવાસી'})
                         </p>
                       )}
                     </div>
-
+                    
                     <div className="text-center font-bold text-sm text-slate-700 my-2">
                       {scanResult.message}
                     </div>
@@ -1166,26 +1191,25 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     {scanResult.data && (
                       <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Guest Type:</span>
+                          <span className="text-slate-400">મુલાકાતીનો પ્રકાર:</span>
                           <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Mobile:</span>
+                          <span className="text-slate-400">મોબાઇલ:</span>
                           <span className="font-mono font-bold text-slate-800">+91 {scanResult.data.mobileNumber}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Reason:</span>
+                          <span className="text-slate-400">કારણ:</span>
                           <span className="font-bold text-slate-800">{scanResult.data.reason || '-'}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400">Status:</span>
+                          <span className="text-slate-400">સ્થિતિ:</span>
                           <span className={`font-bold ${
                             scanResult.status === 'success' ? 'text-emerald-600' : 'text-red-600'
-                          }`}>{scanResult.status === 'success' ? 'Approved' : (scanResult.data.status || 'Declined')}</span>
+                          }`}>{scanResult.status === 'success' ? 'મંજૂર (Approved)' : (scanResult.data.status || 'નામંજૂર (Declined)')}</span>
                         </div>
                       </div>
                     )}
-
                     <div className="flex gap-3">
                       {/* CLOSE BUTTON AT BOTTOM OF SECTION */}
                       <button
@@ -1244,88 +1268,117 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     </div>
                     {owner && (
                       (() => {
-                        const memberOptions: { name: string; phone: string }[] = [];
+                        const memberOptions: { name: string; phone: string; nameEn: string }[] = [];
+                        
+                        let ownerNameGu = owner.nameGu || owner.nameEn || 'Owner';
                         if (owner.nameGu || owner.nameEn) {
-                          memberOptions.push({ name: owner.nameGu || owner.nameEn, phone: owner.phone });
+                          memberOptions.push({ name: ownerNameGu, phone: owner.phone, nameEn: owner.nameEn || ownerNameGu });
                         }
-                        if (owner.secondaryContact) {
-                          memberOptions.push({ name: `${owner.nameGu || owner.nameEn} (Secondary)`, phone: owner.secondaryContact });
-                        }
+                        
+                        const secPhone = owner.secondaryContact ? owner.secondaryContact.replace(/\D/g, '') : '';
+                        let secMatchedIndex = -1;
+                        
+                        const tempMembers: { name: string; phone: string; nameEn: string }[] = [];
                         if (owner.members) {
                           owner.members.forEach((mStr) => {
                             const match = mStr.match(/^(.*?)(?:\s*\((.*?)\))?$/);
                             if (match) {
-                              memberOptions.push({ name: match[1].trim(), phone: match[2]?.trim() || '' });
+                              const mName = match[1].trim();
+                              const mPhone = match[2]?.trim() || '';
+                              tempMembers.push({ name: mName, phone: mPhone, nameEn: mName });
                             }
                           });
                         }
+                        
+                        if (secPhone) {
+                          secMatchedIndex = tempMembers.findIndex(m => m.phone.replace(/\D/g, '') === secPhone);
+                        }
+                        
+                        tempMembers.forEach((m, idx) => {
+                          let finalName = m.name;
+                          const translations = translatedMembersMap[`${owner.wing}-${owner.flatNo}`];
+                          if (translations && translations[m.name]) {
+                             finalName = translations[m.name];
+                          }
+                          if (idx === secMatchedIndex) {
+                            finalName = `${finalName} (S)`;
+                          }
+                          memberOptions.push({ name: finalName, phone: m.phone, nameEn: m.nameEn });
+                        });
+                        
+                        if (secPhone && secMatchedIndex === -1) {
+                          memberOptions.push({ name: `${ownerNameGu} (Secondary)`, phone: owner.secondaryContact, nameEn: `${owner.nameEn || 'Owner'} (Secondary)` });
+                        }
 
                         if (activeCallReq?.visitorId === v.id) {
-                          if (activeCallReq.step === 'action') {
-                            return (
-                              <div className="flex flex-col gap-2 min-w-[200px]">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <button 
-                                    onClick={() => handleCallRespond(v.id, 'approved', activeCallReq.selectedMemberName || 'Unknown')}
-                                    className="bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
-                                  >
-                                    <CheckCircle2 className="w-4 h-4" />
-                                    <span>મંજૂર કરો</span>
-                                  </button>
-                                  <button 
-                                    onClick={() => handleCallRespond(v.id, 'rejected', activeCallReq.selectedMemberName || 'Unknown')}
-                                    className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
-                                  >
-                                    <XCircle className="w-4 h-4" />
-                                    <span>નામંજૂર</span>
-                                  </button>
-                                </div>
-                                <button
-                                  onClick={() => setActiveCallReq({ visitorId: v.id, step: 'select_member' })}
-                                  className="bg-amber-100 hover:bg-amber-200 text-amber-800 py-2 rounded-xl font-bold transition shadow-sm text-xs mt-1"
-                                >
-                                  અન્ય નંબર અજમાવો (Try Other)
-                                </button>
-                                <button 
-                                  onClick={() => setActiveCallReq(null)}
-                                  className="text-xs text-slate-500 mt-1 underline text-center"
-                                >
-                                  રદ કરો (Cancel)
-                                </button>
-                              </div>
-                            );
-                          } else {
-                            // select_member step
-                            return (
-                              <div className="flex flex-col gap-2 min-w-[200px]">
-                                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">સભ્ય પસંદ કરો (Select Member)</p>
-                                {memberOptions.map((mem, idx) => (
+                          const activeMem = memberOptions.find(m => m.name === activeCallReq.selectedMemberName);
+                          return (
+                            <div className="flex flex-col gap-2 min-w-[200px]">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">સભ્ય પસંદ કરો (Select Member)</p>
+                              {memberOptions.map((mem, idx) => {
+                                const isSelected = activeCallReq.step === 'action' && activeCallReq.selectedMemberName === mem.name;
+                                return (
                                   <a 
                                     key={idx}
                                     href={mem.phone ? `tel:${mem.phone}` : '#'} 
                                     target="_blank" rel="noopener noreferrer"
                                     onClick={(e) => {
+                                      e.stopPropagation();
                                       if (!mem.phone) e.preventDefault();
-                                      setActiveCallReq({ visitorId: v.id, step: 'action', selectedMemberName: mem.name });
+                                      // Only set action state, let tel: link open the dialer
+                                      setTimeout(() => {
+                                        setActiveCallReq({ visitorId: v.id, step: 'action', selectedMemberName: mem.name });
+                                      }, 300); // 300ms delay to prevent ghost clicks
                                     }}
-                                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-semibold flex items-center justify-between transition shadow-sm text-sm"
+                                    className={`px-3 py-2 rounded-lg font-semibold flex items-center justify-between transition shadow-sm text-sm ${
+                                      isSelected 
+                                        ? 'bg-indigo-600 text-white border-2 border-indigo-700' 
+                                        : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-700'
+                                    }`}
                                   >
                                     <span className="truncate max-w-[120px]">{mem.name}</span>
                                     <div className="flex items-center gap-1">
-                                      <span className="text-[10px] text-indigo-400 font-mono">{mem.phone || 'No Number'}</span>
+                                      <span className={`text-[10px] font-mono ${isSelected ? 'text-indigo-200' : 'text-indigo-400'}`}>
+                                        {mem.phone || 'No Number'}
+                                      </span>
                                       <Phone className="w-4 h-4" />
                                     </div>
                                   </a>
-                                ))}
-                                <button 
-                                  onClick={() => setActiveCallReq(null)}
-                                  className="text-xs text-slate-500 mt-2 underline text-center"
-                                >
-                                  રદ કરો (Cancel)
-                                </button>
-                              </div>
-                            );
-                          }
+                                );
+                              })}
+
+                              {activeCallReq.step === 'action' && (
+                                <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-3 animate-fade-in">
+                                  <p className="text-[10px] font-bold text-slate-500 uppercase text-center">
+                                    રિસ્પોન્સ પસંદ કરો (Select Response)
+                                  </p>
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <button 
+                                      onClick={() => handleCallRespond(v.id, 'approved', activeMem ? activeMem.nameEn : 'Unknown')}
+                                      className="bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
+                                    >
+                                      <CheckCircle2 className="w-4 h-4" />
+                                      <span>મંજૂર કરો</span>
+                                    </button>
+                                    <button 
+                                      onClick={() => handleCallRespond(v.id, 'rejected', activeMem ? activeMem.nameEn : 'Unknown')}
+                                      className="bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-bold flex items-center justify-center space-x-1 transition shadow-sm text-xs"
+                                    >
+                                      <XCircle className="w-4 h-4" />
+                                      <span>નામંજૂર</span>
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                              
+                              <button 
+                                onClick={() => setActiveCallReq(null)}
+                                className="text-xs text-slate-500 mt-2 underline text-center"
+                              >
+                                રદ કરો (Cancel)
+                              </button>
+                            </div>
+                          );
                         }
 
                         // Default state

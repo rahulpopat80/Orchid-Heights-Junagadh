@@ -130,7 +130,7 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       const truncatedVisitorName = log.fullName.length > 18 ? log.fullName.substring(0, 18) + '...' : log.fullName;
-      doc.text(sanitizeText(truncatedVisitorName).toUpperCase(), textX, currY);
+      doc.text(`${currentLogIndex + 1}. ` + sanitizeText(truncatedVisitorName).toUpperCase(), textX, currY);
 
       currY += 5.5;
       doc.setTextColor(71, 85, 105);

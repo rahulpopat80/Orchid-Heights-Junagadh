@@ -153,8 +153,8 @@ export default function GymEntrySection({ owners }: GymEntrySectionProps) {
             <div>
               <label className="block text-sm font-bold text-slate-700 mb-2">વિંગ</label>
               <select value={wing} onChange={(e) => setWing(e.target.value as 'A' | 'B')} className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 font-bold truncate">
-                <option value="A">Wing A</option>
-                <option value="B">Wing B</option>
+                <option value="A">વિંગ એ (Wing A)</option>
+                <option value="B">વિંગ બી (Wing B)</option>
               </select>
             </div>
             <div>
