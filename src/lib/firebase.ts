@@ -1505,7 +1505,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
   const getFiltered = () => {
     const list = fallback.getLocalAnnouncements();
     const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 3);
     
     const filtered = list.filter(item => {
       const d = new Date(item.timestamp || new Date().toISOString());
@@ -1526,7 +1526,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
       if (!active) return;
       const list: Announcement[] = [];
       const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 3);
       
       snapshot.forEach((docSnap) => {
         const item = docSnap.data() as Announcement;
@@ -1562,7 +1562,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
   const getFiltered = () => {
     const list = fallback.getLocalSocietyNotifications();
     const oneMonthAgo = new Date();
-    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 3);
     
     const filtered = list.filter(data => {
       const d = new Date(data.timestamp || new Date().toISOString());
@@ -1585,7 +1585,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
       if (!active) return;
       const list: any[] = [];
       const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 3);
       
       snapshot.forEach((docSnap) => {
         const data = docSnap.data();

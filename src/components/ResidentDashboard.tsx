@@ -1006,14 +1006,12 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
     setLoadingComplaints(true);
     try {
       const list = await api.getComplaints();
-      const oneMonthAgo = new Date();
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-      
-      const recentComplaints = list.filter((c: any) => {
-        const d = new Date(c.createdAt || new Date().toISOString());
-        return d >= oneMonthAgo;
+      const activeComplaints = list.filter((c: any) => {
+        // Hide resolved complaints from resident view (auto-deleted from their perspective)
+        // Keep pending, in-process, received, etc forever.
+        return c.status?.toLowerCase() !== 'resolved';
       });
-      setComplaints(recentComplaints);
+      setComplaints(activeComplaints);
     } catch (err) {
       console.error('Failed to fetch complaints:', err);
     } finally {
