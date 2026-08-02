@@ -1182,17 +1182,25 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                       {scanResult.message}
                     </div>
 
-                    {scanResult.data?.photoUrl && (
-                      <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md">
+                    <div className="w-28 h-28 mx-auto rounded-2xl overflow-hidden border-2 border-indigo-500 shadow-md flex items-center justify-center bg-slate-100">
+                      {scanResult.data?.photoUrl ? (
                         <img src={scanResult.data.photoUrl} alt="Visitor" className="w-full h-full object-cover" />
-                      </div>
-                    )}
+                      ) : (
+                        <svg className="w-12 h-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                    </div>
 
                     {scanResult.data && (
                       <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs space-y-2 font-medium">
                         <div className="flex justify-between">
                           <span className="text-slate-400">મુલાકાતીનો પ્રકાર:</span>
                           <span className="font-bold text-slate-800">{scanResult.data.guestType}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400">મુલાકાતીઓ (Count):</span>
+                          <span className="font-bold text-slate-800">{scanResult.data.visitorCount || 1}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-slate-400">મોબાઇલ:</span>
