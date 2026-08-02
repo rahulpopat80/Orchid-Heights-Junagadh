@@ -672,14 +672,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     }
   };
 
-  const handleDownloadAmenitiesPDF = async () => {
-    if (amenityBookings.length === 0) {
-      alert('No amenities logs to export.');
-      return;
-    }
-    await generateAmenityPDF(amenityBookings, "SOCIETY AMENITIES AUDIT", "All Function Hall Booking Records", true, owners);
-  };
-
+  
   const handleDownloadGymTheatreLogsCSV = () => {
     if (gymTheatreLogs.length === 0) {
       alert('No gym or movie theatre logs to export.');
@@ -2598,13 +2591,6 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
               <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
                 <button
-                  onClick={handleDownloadAmenitiesPDF}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow transition cursor-pointer self-start md:self-auto shrink-0 animate-fadeIn"
-                >
-                  <Download className="w-4 h-4" />
-                  <span>Export Amenities Logs (PDF)</span>
-                </button>
-                <button
                   onClick={handleDownloadGymLogsPDF}
                   className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-4 py-2.5 rounded-xl text-xs flex items-center justify-center space-x-1.5 shadow transition cursor-pointer self-start md:self-auto shrink-0 animate-fadeIn"
                 >
@@ -2616,70 +2602,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
-              {/* Left Column: Function Bookings (7 cols) */}
-              <div className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-                  <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <Calendar className="w-4 h-4 text-indigo-600" />
-                    <span>Function Hall Requests ({amenityBookings.length})</span>
-                  </h4></div>
-
-                {amenityBookings.length === 0 ? (
-                  <div className="py-12 text-center text-slate-400 font-medium">
-                    <p className="text-xs">No function bookings logged in the system.</p></div>
-                ) : (
-                  <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
-                    {amenityBookings.map((booking) => {
-                      const totalVotes = booking.approvedFlats?.length || 0;
-                      const isCleared = totalVotes >= 49;
-
-                      return (
-                        <div key={booking.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition text-left space-y-3">
-                          <div className="flex justify-between items-start gap-4">
-                            <div>
-                              <span className="bg-indigo-100 text-indigo-800 font-mono text-[9px] font-black px-2.5 py-0.5 rounded uppercase">
-                                Flat {booking.flatId}
-                              </span>
-                              <h5 className="font-bold text-xs text-slate-800 mt-1 uppercase">
-                                {booking.propertyName}
-                              </h5></div>
-                            <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${
-                              isCleared 
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                                : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }`}>
-                              {isCleared ? '✅ Cleared' : 'Pending approvals'}
-                            </span></div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] text-slate-600 pt-2 border-t border-slate-100">
-                            <p><span className="text-slate-400 font-bold uppercase text-[9px]">From:</span> {new Date(booking.dateFrom).toLocaleString('en-IN')}</p>
-                            <p><span className="text-slate-400 font-bold uppercase text-[9px]">To:</span> {new Date(booking.dateTo).toLocaleString('en-IN')}</p>
-                            <p><span className="text-slate-400 font-bold uppercase text-[9px]">Purpose:</span> {booking.reason}</p>
-                            <p><span className="text-slate-400 font-bold uppercase text-[9px]">Stuff needed:</span> {booking.stuffNeeded}</p>
-                            {booking.parkingRequest && <p><span className="text-slate-400 font-bold uppercase text-[9px]">Parking:</span> {booking.parkingRequest}</p>}
-                            <p><span className="text-slate-400 font-bold uppercase text-[9px]">Votes:</span> {totalVotes} / 49</p></div>
-
-                          <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-slate-100">
-                            {!isCleared && (
-                              <button
-                                onClick={() => handleAdminApproveAmenityBooking(booking.id)}
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase transition cursor-pointer"
-                              >
-                                Force Approve
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleAdminDeleteAmenityBooking(booking.id)}
-                              className="bg-white hover:bg-red-50 text-red-600 border border-slate-200 hover:border-red-200 font-bold px-3 py-1.5 rounded-lg text-[10px] uppercase transition cursor-pointer"
-                            >
-                              Delete Request
-                            </button></div></div>
-                      );
-                    })}</div>
-                )}</div>
-
+              {/* Left Column: Function Bookings Removed */}
               {/* Right Column: Gym & Theatre Logging (5 cols) */}
-              <div className="lg:col-span-5 space-y-6">
+              <div className="lg:col-span-12 space-y-6">
                 
                 {/* 1. Active Check-ins */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
