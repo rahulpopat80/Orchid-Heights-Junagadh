@@ -519,6 +519,7 @@ export const generateMoviePDF = async (logs: any[], title: string, subtitle: str
   doc.save(`Orchid_Heights_Movies_${new Date().getTime()}.pdf`);
 };
 
+
 export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, subtitle: string, isAdmin: boolean = false, owners: any[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -530,87 +531,67 @@ export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, 
   const cardSpacing = 5;
 
   let currentLogIndex = 0;
-  
+
   while (currentLogIndex < logs.length) {
     if (currentLogIndex > 0) doc.addPage();
     await drawPDFHeader(doc, title, subtitle, pageWidth);
+
     let startY = 43;
 
     for (let i = 0; i < logsPerPage && currentLogIndex < logs.length; i++) {
       const log = logs[currentLogIndex];
-      const ownerMatch = owners.find(o => `${o.wing}-${o.flatNo}` === log.flatId);
+      const ownerMatch = owners.find((o: any) => `${o.wing}-${o.flatNo}` === log.flatId);
       const ownerName = ownerMatch ? ownerMatch.nameEn : 'Resident';
-
+      
       doc.setFillColor(255, 255, 255);
       doc.setDrawColor(226, 232, 240);
       doc.roundedRect(margin, startY, contentWidth, cardHeight, 3, 3, 'FD');
 
       const textX = margin + 5;
-      let currY = startY + 12;
-
+      let currY = startY + 10;
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text(sanitizeText(log.propertyName).toUpperCase(), textX, currY);
-
-      currY += 7;
+      
+      currY += 8;
       doc.setTextColor(71, 85, 105);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text(`Requested By: Flat ${log.flatId} (${sanitizeText(ownerName)})`, textX, currY);
+      doc.text(`Flat: ${log.flatId} (${sanitizeText(ownerName)})`, textX, currY);
       
       currY += 6;
       doc.text(`Reason: ${sanitizeText(log.reason)}`, textX, currY);
+      
+      currY += 6;
+      doc.text(`Status: ${sanitizeText(log.status).toUpperCase()}`, textX, currY);
 
       const rightX = pageWidth - margin - 5;
-      currY = startY + 12;
-
-      let statusColor = [226, 232, 240];
-      let statusTextColor = [100, 116, 139];
-      if (log.status === 'approved') { statusColor = [209, 250, 229]; statusTextColor = [4, 120, 87]; }
-      else if (log.status === 'rejected') { statusColor = [254, 226, 226]; statusTextColor = [185, 28, 28]; }
-      else if (log.status === 'pending') { statusColor = [254, 243, 199]; statusTextColor = [180, 83, 9]; }
-
-      doc.setFillColor(statusColor[0], statusColor[1], statusColor[2]);
-      doc.roundedRect(rightX - 25, currY - 6, 25, 8, 2, 2, 'F');
-      doc.setTextColor(statusTextColor[0], statusTextColor[1], statusTextColor[2]);
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text(log.status.toUpperCase(), rightX - 12.5, currY - 0.5, { align: 'center' });
-
-      currY += 10;
+      currY = startY + 10;
       doc.setTextColor(100, 116, 139);
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       doc.text('FROM:', rightX, currY, { align: 'right' });
       
       currY += 5;
       doc.setTextColor(15, 23, 42);
       doc.setFont('helvetica', 'bold');
-      doc.text(new Date(log.dateFrom).toLocaleDateString('en-IN'), rightX, currY, { align: 'right' });
+      doc.text(new Date(log.dateFrom).toLocaleString('en-IN'), rightX, currY, { align: 'right' });
 
       currY += 8;
       doc.setTextColor(100, 116, 139);
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text('TO:', rightX, currY, { align: 'right' });
       
       currY += 5;
       doc.setTextColor(15, 23, 42);
       doc.setFont('helvetica', 'bold');
-      doc.text(new Date(log.dateTo).toLocaleDateString('en-IN'), rightX, currY, { align: 'right' });
-
-      if (isAdmin && (log.ipAddress || log.deviceImei)) {
-        currY += 7;
-        doc.setTextColor(100, 116, 139);
-        doc.setFontSize(6);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`IP: ${log.ipAddress || 'N/A'} | SN: ${log.deviceImei || 'N/A'}`, rightX, currY, { align: 'right' });
-      }
+      doc.text(new Date(log.dateTo).toLocaleString('en-IN'), rightX, currY, { align: 'right' });
 
       startY += cardHeight + cardSpacing;
       currentLogIndex++;
     }
-    
+
     doc.setTextColor(148, 163, 184);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
@@ -621,12 +602,11 @@ export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, 
     await drawPDFHeader(doc, title, subtitle, pageWidth);
     doc.setTextColor(148, 163, 184);
     doc.setFontSize(12);
-    doc.text('No amenity records found for the selected criteria.', pageWidth / 2, 80, { align: 'center' });
+    doc.text('No amenity bookings found.', pageWidth / 2, 80, { align: 'center' });
   }
 
   doc.save(`Orchid_Heights_Amenities_${new Date().getTime()}.pdf`);
 };
-
 
 export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: string, owners: any[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -664,23 +644,44 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
       doc.setDrawColor(226, 232, 240);
       doc.roundedRect(margin, startY, contentWidth, cardHeight, 3, 3, 'FD');
 
+      let headerName = ownerName;
+      if (log.memberPhone) {
+        if (ownerMatch && ownerMatch.phone === log.memberPhone) {
+          headerName = `${ownerName} (${log.memberPhone})`;
+        } else if (ownerMatch && ownerMatch.members) {
+          const matchedMember = ownerMatch.members.find((m: string) => m.includes(log.memberPhone));
+          if (matchedMember) {
+            headerName = matchedMember;
+          } else {
+            headerName = `${sanitizeText(log.memberName, ownerName)} (${log.memberPhone})`;
+          }
+        } else {
+          headerName = `${sanitizeText(log.memberName, ownerName)} (${log.memberPhone})`;
+        }
+      } else {
+        headerName = sanitizeText(log.memberName, ownerName);
+      }
+      
+      // Fallback sanitize for the full headerName just in case it contains Gujarati
+      headerName = sanitizeText(headerName, ownerName);
+
       const textX = margin + 5;
       let currY = startY + 10;
-
+      
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(sanitizeText(log.memberName, ownerName).toUpperCase(), textX, currY);
-
+      doc.text(headerName.toUpperCase(), textX, currY);
+      
       currY += 6;
       doc.setTextColor(71, 85, 105);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.text(`Flat: ${log.flatId} (${sanitizeText(ownerName)})`, textX, currY);
       
-      if (log.memberPhone) {
+      if (ownerMatch && ownerMatch.phone) {
           currY += 5;
-          doc.text(`Phone: ${log.memberPhone}`, textX, currY);
+          doc.text(`Phone: ${ownerMatch.phone}`, textX, currY);
       }
 
       const rightX = pageWidth - margin - 5;
