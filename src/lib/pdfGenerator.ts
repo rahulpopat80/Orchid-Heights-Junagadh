@@ -2,10 +2,12 @@ import jsPDF from 'jspdf';
 import { Visitor, GymTheatreLog, AmenityBooking } from '../types';
 import { downloadChunkedFile } from './fileStorage';
 
-const sanitizeText = (str: string) => {
-  if (!str) return '';
-  // Return original string to support local names
-  return str.trim();
+const sanitizeText = (str: string, fallback: string = 'Resident') => {
+  if (!str) return fallback;
+  // jsPDF default fonts only support ASCII. We must strip non-ASCII characters 
+  // (like Gujarati) to prevent them from rendering as gibberish (mojibake).
+  const clean = str.replace(/[^\x00-\x7F]/g, '').trim();
+  return clean || fallback;
 };
 
 const getBase64ImageFromURL = async (url: string): Promise<string> => {
@@ -130,7 +132,7 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.setFontSize(13);
       doc.setFont('helvetica', 'bold');
       const truncatedVisitorName = log.fullName.length > 18 ? log.fullName.substring(0, 18) + '...' : log.fullName;
-      doc.text(`${currentLogIndex + 1}. ` + sanitizeText(truncatedVisitorName).toUpperCase(), textX, currY);
+      doc.text(`${currentLogIndex + 1}. ` + sanitizeText(truncatedVisitorName, 'Visitor').toUpperCase(), textX, currY);
 
       currY += 5.5;
       doc.setTextColor(71, 85, 105);
@@ -444,7 +446,7 @@ export const generateMoviePDF = async (logs: any[], title: string, subtitle: str
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
-      doc.text(sanitizeText(log.title).toUpperCase(), textX, currY);
+      doc.text(sanitizeText(log.title, 'Movie/Event').toUpperCase(), textX, currY);
 
       // Genre & Rating
       currY += 7;
@@ -668,7 +670,7 @@ export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: 
       doc.setTextColor(15, 23, 42);
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(sanitizeText(log.memberName || ownerName).toUpperCase(), textX, currY);
+      doc.text(sanitizeText(log.memberName, ownerName).toUpperCase(), textX, currY);
 
       currY += 6;
       doc.setTextColor(71, 85, 105);
