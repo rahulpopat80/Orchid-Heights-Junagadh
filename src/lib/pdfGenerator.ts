@@ -4,8 +4,8 @@ import { downloadChunkedFile } from './fileStorage';
 
 const sanitizeText = (str: string) => {
   if (!str) return '';
-  const clean = str.replace(/[^\x00-\x7F]/g, '').trim();
-  return clean || '[Local Name]';
+  // Return original string to support local names
+  return str.trim();
 };
 
 const getBase64ImageFromURL = async (url: string): Promise<string> => {
