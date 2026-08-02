@@ -661,7 +661,7 @@ export default function AmenitiesSection({
                     {/* Media render */}
                     <div className="relative h-44 w-full bg-slate-900 border-b border-slate-100 flex items-center justify-center overflow-hidden">
                       {movie.posterUrl?.startsWith('file_') ? (
-                        <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} />
+                        <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} variant="raw" className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-102" />
                       ) : (
                         <img
                           src={movie.posterUrl || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=300&q=80'}

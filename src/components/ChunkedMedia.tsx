@@ -7,9 +7,11 @@ interface ChunkedMediaProps {
   type: string;
   fallbackName: string;
   key?: any;
+  variant?: 'default' | 'raw';
+  className?: string;
 }
 
-export default function ChunkedMedia({ fileId, type, fallbackName }: ChunkedMediaProps) {
+export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'default', className }: ChunkedMediaProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [mediaUrl, setMediaUrl] = useState<string>('');
@@ -41,6 +43,13 @@ export default function ChunkedMedia({ fileId, type, fallbackName }: ChunkedMedi
   }, [fileId]);
 
   if (loading) {
+    if (variant === 'raw') {
+      return (
+        <div className={`flex items-center justify-center bg-slate-100 ${className}`}>
+           <Loader2 className="w-4 h-4 text-indigo-500 animate-spin" />
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center p-4 bg-slate-50 border border-slate-150 rounded-xl min-h-[90px] w-full">
         <Loader2 className="w-4 h-4 text-indigo-500 animate-spin mr-2" />
@@ -50,6 +59,13 @@ export default function ChunkedMedia({ fileId, type, fallbackName }: ChunkedMedi
   }
 
   if (error) {
+    if (variant === 'raw') {
+      return (
+        <div className={`flex items-center justify-center bg-red-50 text-red-500 ${className}`}>
+           !
+        </div>
+      );
+    }
     return (
       <div className="flex items-center justify-center p-4 bg-red-50 border border-red-150 text-red-700 rounded-xl min-h-[90px] w-full">
         <span className="text-[10px] font-bold">Failed to load attachment</span>
@@ -58,8 +74,18 @@ export default function ChunkedMedia({ fileId, type, fallbackName }: ChunkedMedi
   }
 
   if (type?.startsWith('image/')) {
+    if (variant === 'raw') {
+      return (
+        <img
+          src={mediaUrl}
+          alt={fallbackName}
+          className={className || "w-full h-full object-cover"}
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
     return (
-      <div className="rounded-xl border border-slate-200/60 overflow-hidden bg-slate-50 flex flex-col items-center justify-center p-1 w-full">
+      <div className={"rounded-xl border border-slate-200/60 overflow-hidden bg-slate-50 flex flex-col items-center justify-center p-1 " + (className || "w-full")}>
         <img
           src={mediaUrl}
           alt={fallbackName}

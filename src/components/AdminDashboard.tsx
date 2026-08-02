@@ -2726,7 +2726,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             {movie.posterUrl && (
                               movie.posterUrl.startsWith('file_') ? (
                                 <div className="w-12 h-16 rounded border border-slate-200 overflow-hidden shrink-0">
-                                  <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} />
+                                  <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} variant="raw" className="w-full h-full object-cover" />
                                 </div>
                               ) : (
                                 <img
