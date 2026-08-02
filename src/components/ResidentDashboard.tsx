@@ -1619,7 +1619,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                     </h4>
                   </div>
 
-                  {/* Block 4: Amenities Bookings */}
+                  {/* Block 4: Amenities */}
                   <div
                     id="block-amenity"
                     onClick={() => {
@@ -1634,7 +1634,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                       <Sparkles className="w-7 h-7" />
                     </div>
                     <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
-                      Amenities Bookings
+                      Amenities
                     </h4>
                   </div>
 

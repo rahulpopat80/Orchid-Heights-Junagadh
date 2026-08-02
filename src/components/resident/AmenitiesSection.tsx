@@ -238,10 +238,6 @@ export default function AmenitiesSection({
       setMoviePostError('Timing is required.');
       return;
     }
-    if (!mLength.trim()) {
-      setMoviePostError('Picture Length / Duration is required.');
-      return;
-    }
 
     setIsUploadingPoster(true);
     let finalPosterUrl = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=300&q=80';
@@ -364,19 +360,6 @@ export default function AmenitiesSection({
               </div>
               <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
                 Movie Theatre Schedule
-              </h4>
-            </div>
-
-            {/* Sub-Block 3: Function Hall Booking Suite */}
-            <div
-              onClick={() => navigateToRoute('/amenities/booking', 'bookings')}
-              className="bg-white rounded-none p-6 border shadow-sm flex flex-col items-center justify-center min-h-[140px] text-center hover:shadow-md transition cursor-pointer relative group border-slate-200/60"
-            >
-              <div className="w-14 h-14 rounded-none bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 shadow-sm mb-3 group-hover:scale-105 transition-transform duration-300">
-                <Calendar className="w-7 h-7" />
-              </div>
-              <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
-                Function Hall Bookings
               </h4>
             </div>
           </div>
@@ -580,10 +563,9 @@ export default function AmenitiesSection({
                 </div>
 
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Length / Duration *</label>
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Length / Duration</label>
                   <input
                     type="text"
-                    required
                     value={mLength}
                     onChange={(e) => setMLength(e.target.value)}
                     placeholder="e.g. 2h 40m"
@@ -760,228 +742,6 @@ export default function AmenitiesSection({
         </motion.div>
       )}
 
-      {/* ==================== SCREEN: FUNCTION HALL BOOKINGS & DECISION ENGINE ==================== */}
-      {activeSub === 'bookings' && (
-        <motion.div key="bookings" initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-10}} transition={{duration:0.2}} className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-6">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-            <button
-              onClick={() => navigateToRoute('/amenities', 'menu')}
-              className="flex items-center space-x-2 text-sm font-black text-indigo-700 hover:text-indigo-900 cursor-pointer transition select-none bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-5 py-2.5 rounded-full shadow-sm active:scale-95"
-            >
-              <ArrowLeft className="w-4 h-4 -ml-1" />
-              <span className="uppercase tracking-widest text-[10px]">Back</span>
-            </button>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono">
-              Booking Suite
-            </span>
-          </div>
-
-          <div>
-            <h3 className="font-display font-black text-slate-800 text-base">Function Hall Bookings Suite</h3>
-            <p className="text-[10px] text-slate-400 font-medium mt-0.5 font-sans">
-              Host family events, request community votes, and monitor the committee 72-hour review deadline limit.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Booking Form */}
-            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 p-4 sm:p-5 rounded-2xl space-y-4 text-left">
-              <div className="flex items-center space-x-1.5 text-slate-800">
-                <PlusCircle className="w-4 h-4 text-indigo-600" />
-                <h4 className="font-display font-bold text-xs uppercase tracking-wider">Request Venue</h4>
-              </div>
-
-              {amenityBookingError && <div className="bg-red-50 text-red-700 p-3 rounded-xl border border-red-100 text-xs">{amenityBookingError}</div>}
-              {amenityBookingSuccess && <div className="bg-emerald-50 text-emerald-700 p-3 rounded-xl border border-emerald-100 text-xs font-bold">{amenityBookingSuccess}</div>}
-
-              <form onSubmit={handleAddAmenityBooking} className="space-y-4 text-xs font-semibold">
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">Location / Venue Property *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Clubhouse Party Hall"
-                    value={fPropertyName}
-                    onChange={(e) => setFPropertyName(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">Start Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={fDateFrom}
-                      onChange={(e) => setFDateFrom(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold outline-none focus:border-indigo-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">End Date & Time</label>
-                    <input
-                      type="datetime-local"
-                      required
-                      value={fDateTo}
-                      onChange={(e) => setFDateTo(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">Purpose of Event / Function *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Daughter's 5th Birthday Celebration"
-                    value={fReason}
-                    onChange={(e) => setFReason(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">Required Materials / Setup *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. sound system, 100 chairs, buffet tables, generator"
-                    value={fStuffNeeded}
-                    onChange={(e) => setFStuffNeeded(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-500 mb-1.5 uppercase">Special Requests & Gate Permissions *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 10 visitor parking slots, late extension till 11 PM"
-                    value={fParkingRequest}
-                    onChange={(e) => setFParkingRequest(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-amber-800 text-[10px] font-medium leading-relaxed">
-                  ⚠️ <strong>72-Hour Decision Rule:</strong> The Administration must respond with approval status within 72 hours of submission.
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-sans font-black py-2.5 rounded-xl text-xs uppercase tracking-wider transition cursor-pointer shadow-sm select-none"
-                >
-                  Submit Booking Request
-                </button>
-              </form>
-            </div>
-
-            {/* Bookings Queue */}
-            <div className="lg:col-span-7 space-y-4">
-              <h4 className="font-display font-black text-xs uppercase tracking-wider text-slate-500 border-b border-slate-100 pb-2">
-                Active Bookings & Voting Boards
-              </h4>
-
-              {filteredBookings.length === 0 ? (
-                <div className="py-12 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 bg-slate-50/20">
-                  <Calendar className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                  <p className="text-xs">No active pavilion or hall reservations requested yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
-                  {filteredBookings.map((b) => {
-                    const isMyBooking = b.flatId === myFlatId;
-                    const votesCount = b.approvedFlats?.length || 0;
-                    const alreadyVoted = b.approvedFlats?.includes(myFlatId);
-                    
-                    // 72 hours deadline countdown
-                    const submissionTime = b.createdAt ? new Date(b.createdAt).getTime() : Date.now();
-                    const deadlineTime = submissionTime + 72 * 60 * 60 * 1000;
-                    const hoursLeft = Math.max(0, Math.round((deadlineTime - Date.now()) / (60 * 60 * 1000)));
-
-                    return (
-                      <div key={b.id} className="border border-slate-200 p-4 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition space-y-3.5">
-                        <div className="flex justify-between items-start gap-3">
-                          <div>
-                            <span className="font-mono bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded text-[9px] uppercase border border-amber-150">
-                              🏠 {b.propertyName}
-                            </span>
-                            <p className="text-[10px] text-slate-400 font-mono mt-1">Requested by: Flat {b.flatId}</p>
-                          </div>
-
-                          <div className="text-right">
-                            {hoursLeft > 0 ? (
-                              <span className="bg-rose-50 text-rose-700 border border-rose-200 px-2.5 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase tracking-wider flex items-center shrink-0">
-                                <Timer className="w-3 h-3 mr-1" /> {hoursLeft} hrs left
-                              </span>
-                            ) : (
-                              <span className="bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full text-[8px] font-mono font-bold uppercase shrink-0">
-                                Deadline Expired
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="bg-white border border-slate-150 p-3 rounded-xl text-xs space-y-2 text-left">
-                          <p className="text-slate-700 font-bold text-xs uppercase leading-tight">
-                            🎯 Event Purpose: <span className="font-sans font-black text-slate-900">{b.reason}</span>
-                          </p>
-                          
-                          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono border-t border-slate-100 pt-1.5 mt-1">
-                            <p className="text-slate-500">From: <strong className="text-slate-700 block mt-0.5">{new Date(b.dateFrom).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></p>
-                            <p className="text-slate-500">To: <strong className="text-slate-700 block mt-0.5">{new Date(b.dateTo).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</strong></p>
-                          </div>
-
-                          <div className="border-t border-slate-100 pt-1.5 space-y-1">
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">Setup Material List</p>
-                            <p className="text-[11px] text-slate-600 font-medium font-sans leading-relaxed">🛠️ {b.stuffNeeded}</p>
-                          </div>
-
-                          <div className="border-t border-slate-100 pt-1.5 space-y-1">
-                            <p className="text-[9px] font-bold text-slate-400 uppercase">Special Permissions Asked</p>
-                            <p className="text-[11px] text-slate-600 font-medium font-sans leading-relaxed">🔒 {b.parkingRequest || 'None requested'}</p>
-                          </div>
-                        </div>
-
-                        {/* Vote board */}
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-white border border-slate-200/60 p-3 rounded-xl">
-                          <div className="text-left font-sans">
-                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest font-mono">Resident Approval Votes</p>
-                            <p className="text-slate-800 font-extrabold text-xs mt-1">
-                              🗳️ {votesCount} / {THRESHOLD} flat approvals
-                            </p>
-                            <p className="text-[9px] text-slate-400">
-                              Requires 49 flats to vote before automatic committee confirmation triggers.
-                            </p>
-                          </div>
-
-                          {!isMyBooking && (
-                            <button
-                              onClick={() => handleVoteAmenityBooking(b.id)}
-                              className={`py-1.5 px-3 rounded-xl text-[10px] font-extrabold uppercase transition select-none cursor-pointer border ${
-                                alreadyVoted
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 shadow-sm'
-                              }`}
-                            >
-                              {alreadyVoted ? 'Approved ✓' : 'Approve Reservation'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-      {/* Exit Photo Modal */}
       {showExitPhotoModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowExitPhotoModal(false)}></div>
