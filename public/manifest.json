@@ -1,6 +1,6 @@
 {
-  "name": "Orchid Heights Gatekeeper",
-  "short_name": "Orchid Gate",
+  "name": "Orchid Heights",
+  "short_name": "Orchid Heights",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
+      "src": "https://i.ibb.co/LhCSwNr9/Untitled-design-20260802-230144-0000.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://i.ibb.co/zT5tpcdY/1000296229-1.png",
+      "src": "https://i.ibb.co/LhCSwNr9/Untitled-design-20260802-230144-0000.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
