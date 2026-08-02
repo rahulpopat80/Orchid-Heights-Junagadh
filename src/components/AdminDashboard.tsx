@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { api } from '../lib/api';
 import { db, collection, doc, query, onSnapshot, orderBy, updateDoc, deleteDoc, getDocs, clearAllSocietyNotifications } from '../lib/firebase';
 import AdminVisitorRecords from './admin/AdminVisitorRecords';
+import ChunkedMedia from './ChunkedMedia';
 import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF } from '../lib/pdfGenerator';
 import AdminLocalServices from './admin/AdminLocalServices';
 
@@ -2723,12 +2724,18 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             )}</div>
                           <div className="flex items-center gap-2">
                             {movie.posterUrl && (
-                              <img
-                                src={movie.posterUrl}
-                                alt="poster"
-                                className="w-12 h-16 object-contain rounded border border-slate-200 bg-slate-900"
-                                referrerPolicy="no-referrer"
-                              />
+                              movie.posterUrl.startsWith('file_') ? (
+                                <div className="w-12 h-16 rounded border border-slate-200 overflow-hidden shrink-0">
+                                  <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} />
+                                </div>
+                              ) : (
+                                <img
+                                  src={movie.posterUrl}
+                                  alt="poster"
+                                  className="w-12 h-16 object-cover rounded border border-slate-200 bg-slate-900 shrink-0"
+                                  referrerPolicy="no-referrer"
+                                />
+                              )
                             )}
                             <button
                               onClick={async () => {
