@@ -473,6 +473,71 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     }
   };
 
+    const handleEditMemberInFlat = async (wing: string, flatNo: number, indexToEdit: number) => {
+    const freshOwner = owners.find((o) => o.wing === wing && o.flatNo === flatNo);
+    if (!freshOwner) return;
+    
+    const currentMember = freshOwner.members?.[indexToEdit];
+    if (!currentMember) return;
+    
+    const newName = window.prompt("Edit Member (Name or 'Name (Phone)' format):", currentMember);
+    if (newName === null || newName.trim() === '') return;
+    
+    const updatedMembers = [...(freshOwner.members || [])];
+    updatedMembers[indexToEdit] = newName.trim();
+    
+    try {
+      const res = await api.updateOwner(wing, flatNo, { members: updatedMembers });
+      if (res.success) {
+        onRefreshOwners();
+      } else {
+        alert(res.message || 'Failed to update member.');
+      }
+    } catch (e) {
+      alert('Error updating member.');
+    }
+  };
+
+  const handleEditVehicleInFlat = async (wing: string, flatNo: number, vehicleIdToEdit: string) => {
+    const freshOwner = owners.find((o) => o.wing === wing && o.flatNo === flatNo);
+    if (!freshOwner) return;
+    
+    const currentVehicle = freshOwner.vehicles?.find(v => v.id === vehicleIdToEdit);
+    if (!currentVehicle) return;
+    
+    const newPlate = window.prompt("Edit Vehicle Plate Number:", currentVehicle.plateNumber);
+    if (newPlate === null || newPlate.trim() === '') return;
+    
+    const newModel = window.prompt("Edit Vehicle Brand/Model:", currentVehicle.brandModel);
+    if (newModel === null || newModel.trim() === '') return;
+    
+    const newParking = window.prompt("Edit Parking Plot (Leave empty if none):", currentVehicle.parkingPlot || '');
+    if (newParking === null) return;
+    
+    const updatedVehicles = (freshOwner.vehicles || []).map(v => {
+      if (v.id === vehicleIdToEdit) {
+        return {
+          ...v,
+          plateNumber: newPlate.trim().toUpperCase(),
+          brandModel: newModel.trim(),
+          parkingPlot: newParking.trim() || undefined
+        };
+      }
+      return v;
+    });
+    
+    try {
+      const res = await api.updateOwner(wing, flatNo, { vehicles: updatedVehicles });
+      if (res.success) {
+        onRefreshOwners();
+      } else {
+        alert(res.message || 'Failed to update vehicle.');
+      }
+    } catch (e) {
+      alert('Error updating vehicle.');
+    }
+  };
+
   // Admin-side CRUD for household members
   const handleAddMemberToFlat = async (wing: string, flatNo: number) => {
     if (!adminNewMember.trim()) return;
@@ -1454,12 +1519,20 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             {selectedFlat.members.map((m, index) => (
                               <div key={index} className="flex justify-between items-center border border-slate-200 rounded-xl p-2 bg-slate-50/50">
                                 <span className="text-xs font-bold text-slate-700 uppercase px-1">{m}</span>
+                                <div className="flex gap-1">
+                                <button
+                                  onClick={() => handleEditMemberInFlat(selectedFlat.wing, selectedFlat.flatNo, index)}
+                                  className="text-slate-400 hover:text-indigo-600 p-1 rounded-md transition cursor-pointer"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
                                 <button
                                   onClick={() => handleDeleteMemberFromFlat(selectedFlat.wing, selectedFlat.flatNo, index)}
                                   className="text-slate-400 hover:text-red-600 p-1 rounded-md transition cursor-pointer"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
-                                </button></div>
+                                </button>
+                              </div></div>
                             ))}</div>
                         ) : (
                           <p className="text-[10px] text-slate-400 font-medium bg-slate-50 border border-slate-150 p-2 rounded-lg inline-block">No registered members</p>
@@ -1501,12 +1574,20 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                     <p className="font-bold text-slate-800 uppercase">{v.plateNumber}</p>
                                     <p className="text-[10px] text-slate-500">{v.brandModel} • {v.type === 'twowheeler' ? '2-Wheeler' : '4-Wheeler'}</p>
                                     {v.type === 'fourwheeler' && v.parkingPlot && <p className="text-[10px] text-indigo-600 font-bold mt-0.5">Plot: {v.parkingPlot}</p>}</div>
+                                  <div className="flex gap-1">
+                                  <button
+                                    onClick={() => handleEditVehicleInFlat(selectedFlat.wing, selectedFlat.flatNo, v.id)}
+                                    className="text-slate-400 hover:text-indigo-600 p-1 rounded-md transition cursor-pointer"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
                                   <button
                                     onClick={() => handleDeleteVehicleFromFlat(selectedFlat.wing, selectedFlat.flatNo, v.id)}
                                     className="text-slate-400 hover:text-red-600 p-1 rounded-md transition cursor-pointer"
                                   >
                                     <Trash2 className="w-3.5 h-3.5" />
-                                  </button></div>
+                                  </button>
+                                </div></div>
                               ))}</div>
                           ) : (
                             <p className="text-[10px] text-slate-400 font-medium bg-slate-50 border border-slate-150 p-2 rounded-lg inline-block">No registered vehicles</p>
