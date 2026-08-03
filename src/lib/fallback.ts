@@ -248,6 +248,7 @@ export function adminChangePasswordLocal(wing: string, flatNo: number, newPasswo
 }
 
 export function resetDatabaseToDefaultLocal(): boolean {
+  // Syncing changes for GitHub export
   // DO NOT remove 'orchid_local_owners' and 'orchid_local_passwords' to preserve user data
   localStorage.removeItem('orchid_local_visitors');
   localStorage.removeItem('orchid_local_announcements');
@@ -258,7 +259,7 @@ export function resetDatabaseToDefaultLocal(): boolean {
   
   // Re-seed owners but merge with existing to preserve passwords and devices
   const existingOwners = getLocalOwners();
-  const defaultOwners = require('./initialOwners').initialOwners;
+  const defaultOwners = getInitialOwners();
   const mergedOwners = existingOwners.map(eo => {
     const defaultOwner = defaultOwners.find(do1 => do1.wing === eo.wing && do1.flatNo === eo.flatNo);
     if (defaultOwner) {

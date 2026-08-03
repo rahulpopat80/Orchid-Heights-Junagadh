@@ -556,6 +556,7 @@ export async function adminChangePassword(wing: string, flatNo: number, newPassw
 }
 
 export async function resetDatabaseToDefault(): Promise<boolean> {
+  // Syncing changes for GitHub export
   if (isQuotaExceeded) return fallback.resetDatabaseToDefaultLocal();
   try {
     // DO NOT DELETE 'owners' and 'passwords' collections entirely!
