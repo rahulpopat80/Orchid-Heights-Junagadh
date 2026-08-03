@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell, XCircle } from 'lucide-react';
+import { Shield, Plus, Clock, Search, AlertCircle, CheckCircle2, Trash2, RefreshCw, Layers, Sparkles, QrCode, X, Camera, LogOut, Phone, Users, Dumbbell, XCircle, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FlatOwner, Visitor, DailyHelper } from '../types';
 import WebcamCapture from './WebcamCapture';
@@ -792,6 +792,9 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           </button>
         </div>
       </div>
+      <div className="w-full flex justify-end">
+        <PWAInstallButton />
+      </div>
 
       {showStatusAlert && (
         <div className={`fixed inset-x-0 top-16 z-50 p-4 border-b animate-bounce ${
@@ -1529,3 +1532,46 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
 }
 
 
+
+function PWAInstallButton() {
+  const [isInstalled, setIsInstalled] = React.useState(false);
+
+  React.useEffect(() => {
+    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+      setIsInstalled(true);
+    }
+  }, []);
+
+  if (isInstalled) return null;
+
+  const handleInstallClick = async () => {
+    const promptEvent = (window as any).deferredPrompt;
+    if (!promptEvent) {
+      const isIos = /ipad|iphone|ipod/.test(navigator.userAgent.toLowerCase());
+      if (isIos) {
+        alert("Apple iOS does not allow direct WebApp downloads. To install on iPhone/iPad, you MUST tap the Share icon at the bottom of your screen and select 'Add to Home Screen'.");
+      } else {
+        alert("Native install prompt is not available right now. This usually means the app is already installed, or you are viewing it inside a preview window. Please open the app in a new dedicated browser tab to download it, or use the browser menu 'Add to Home Screen'.");
+      }
+      return;
+    }
+    // Show the install prompt
+    promptEvent.prompt();
+    // Wait for the user to respond to the prompt
+    await promptEvent.userChoice;
+    // We've used the prompt, and can't use it again, throw it away
+    (window as any).deferredPrompt = null;
+  };
+
+  return (
+    <button
+      onClick={handleInstallClick}
+      className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-xl text-lg transition-colors shadow-sm flex items-center justify-center space-x-2 mt-4"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+      </svg>
+      <span>Download WebApp (PWA)</span>
+    </button>
+  );
+}
