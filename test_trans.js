@@ -1,0 +1,38 @@
+const gujaratiToLatinMap = {
+    // Vowels
+    'અ': 'a', 'આ': 'aa', 'ઇ': 'i', 'ઈ': 'ii', 'ઉ': 'u', 'ઊ': 'uu',
+    'ઋ': 'ru', 'ૠ': 'ru', 'એ': 'e', 'ઐ': 'ai', 'ઓ': 'o', 'ઔ': 'au',
+    // Consonants
+    'ક': 'k', 'ખ': 'kh', 'ગ': 'g', 'ઘ': 'gh', 'ઙ': 'ng',
+    'ચ': 'ch', 'છ': 'chh', 'જ': 'j', 'ઝ': 'jh', 'ઞ': 'ny',
+    'ટ': 't', 'ઠ': 'th', 'ડ': 'd', 'ઢ': 'dh', 'ણ': 'n',
+    'ત': 't', 'થ': 'th', 'દ': 'd', 'ધ': 'dh', 'ન': 'n',
+    'પ': 'p', 'ફ': 'f', 'બ': 'b', 'ભ': 'bh', 'મ': 'm',
+    'ય': 'y', 'ર': 'r', 'લ': 'l', 'ળ': 'ld', 'વ': 'v',
+    'શ': 'sh', 'ષ': 'sh', 'સ': 's', 'હ': 'h',
+    // Vowel Signs
+    'ા': 'a', 'િ': 'i', 'ી': 'ii', 'ુ': 'u', 'ૂ': 'uu',
+    'ૃ': 'ru', 'ૄ': 'ru', 'ે': 'e', 'ૈ': 'ai', 'ો': 'o', 'ૌ': 'au',
+    // Other
+    'ં': 'n', 'ઃ': 'h', '્': '', 'ૐ': 'om'
+};
+
+function transliterateGujaratiToLatin(str) {
+    if (!str) return '';
+    let res = '';
+    for (let i = 0; i < str.length; i++) {
+        const char = str[i];
+        if (gujaratiToLatinMap[char] !== undefined) {
+            res += gujaratiToLatinMap[char];
+        } else {
+            res += char;
+        }
+    }
+    // Cleanup repeating 'a's after vowels or consonants if needed, but simple is fine
+    return res;
+}
+
+console.log(transliterateGujaratiToLatin('રાહુલ')); // Should be r a h u l -> rahaula?
+// Wait, 'ર' + 'ા' + 'હ' + 'ુ' + 'લ'
+// 'r' + 'a' + 'h' + 'u' + 'l' -> 'rahul'
+// Let's test it!
