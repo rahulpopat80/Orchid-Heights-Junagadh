@@ -289,9 +289,22 @@ export async function seedDatabaseIfNeeded() {
       const initialOwners = getInitialOwners();
       for (const owner of initialOwners) {
         const id = `${owner.wing}-${owner.flatNo}`;
-        await setDoc(doc(db, 'owners', id), owner);
+        
+        const ownerRef = doc(db, 'owners', id);
+        const ownerSnap = await getDoc(ownerRef);
+        if (ownerSnap.exists()) {
+          const currentData = ownerSnap.data();
+          await setDoc(ownerRef, { ...owner, ...currentData, devices: currentData.devices || [], members: currentData.members || owner.members, vehicles: currentData.vehicles || [] }, { merge: true });
+        } else {
+          await setDoc(ownerRef, owner);
+        }
+
         const password = 'admin@123';
-        await setDoc(doc(db, 'passwords', id), { wing: owner.wing, flatNo: owner.flatNo, password });
+        const pwdRef = doc(db, 'passwords', id);
+        const pwdSnap = await getDoc(pwdRef);
+        if (!pwdSnap.exists()) {
+          await setDoc(pwdRef, { wing: owner.wing, flatNo: owner.flatNo, password });
+        }
       }
       console.log('--- Firestore database seeded successfully! ---');
     }
@@ -545,15 +558,29 @@ export async function adminChangePassword(wing: string, flatNo: number, newPassw
 export async function resetDatabaseToDefault(): Promise<boolean> {
   if (isQuotaExceeded) return fallback.resetDatabaseToDefaultLocal();
   try {
-    const snap = await getDocs(collection(db, 'owners'));
-    for (const d of snap.docs) {
-      await deleteDoc(doc(db, 'owners', d.id));
-      await deleteDoc(doc(db, 'passwords', d.id));
-    }
+    // DO NOT DELETE 'owners' and 'passwords' collections entirely!
+    // We only want to delete transactional data, but keep resident accounts, devices, and passwords intact.
+    
+    // Clear all visitors
     const visitorsSnap = await getDocs(collection(db, 'visitors'));
     for (const d of visitorsSnap.docs) await deleteDoc(doc(db, 'visitors', d.id));
+    
+    // Clear notifications
     const notificationsSnap = await getDocs(collection(db, 'notifications'));
     for (const d of notificationsSnap.docs) await deleteDoc(doc(db, 'notifications', d.id));
+    
+    // Clear society_notifications
+    const socNotifSnap = await getDocs(collection(db, 'society_notifications'));
+    for (const d of socNotifSnap.docs) await deleteDoc(doc(db, 'society_notifications', d.id));
+
+    // Clear complaints
+    const complaintsSnap = await getDocs(collection(db, 'complaints'));
+    for (const d of complaintsSnap.docs) await deleteDoc(doc(db, 'complaints', d.id));
+
+    // Clear amenities bookings
+    const amenitiesSnap = await getDocs(collection(db, 'amenities_bookings'));
+    for (const d of amenitiesSnap.docs) await deleteDoc(doc(db, 'amenities_bookings', d.id));
+
   } catch (error) {
     if (isQuotaError(error)) {
       markQuotaExceeded();
