@@ -211,17 +211,22 @@ export function updateOwnerDetailsLocal(wing: string, flatNo: number, payload: a
   if (idx === -1) return { success: false, message: 'Flat owner not found.' };
   
   const currentOwner = owners[idx];
-  const { nameEn, nameGu, phone, secondaryContact, members, vehicles, password } = payload;
+  const { nameEn, nameGu, phone, secondaryContact, members, vehicles, password, devices } = payload;
   const updated = {
     ...currentOwner,
     ...(nameEn !== undefined && { nameEn }),
     ...(nameGu !== undefined && { nameGu }),
     ...(phone !== undefined && { phone }),
     ...(secondaryContact !== undefined && { secondaryContact }),
-    ...(members !== undefined && { members: members.slice(0, 2) }),
+    ...(members !== undefined && { members: members.slice(0, 5) }),
     ...(vehicles !== undefined && { vehicles }),
+    ...(devices !== undefined && { devices }),
     ...(payload.notificationsEnabled !== undefined && { notificationsEnabled: payload.notificationsEnabled })
   };
+  
+  if (devices === undefined && currentOwner.devices) {
+    updated.devices = currentOwner.devices;
+  }
   owners[idx] = updated;
   saveLocalOwners(owners);
 

@@ -499,7 +499,7 @@ export async function updateOwnerDetails(wing: string, flatNo: number, payload: 
     if (!ownerSnap.exists()) return { success: false, message: 'Flat owner not found.' };
 
     const currentOwner = ownerSnap.data() as FlatOwner;
-    const { nameEn, nameGu, phone, secondaryContact, members, vehicles, password } = payload;
+    const { nameEn, nameGu, phone, secondaryContact, members, vehicles, password, devices } = payload;
     const updated: any = { ...currentOwner };
     if (nameEn !== undefined) updated.nameEn = nameEn;
     if (nameGu !== undefined) updated.nameGu = nameGu;
@@ -507,9 +507,15 @@ export async function updateOwnerDetails(wing: string, flatNo: number, payload: 
     if (secondaryContact !== undefined) updated.secondaryContact = secondaryContact;
     if (members !== undefined) updated.members = members.slice(0, 5);
     if (vehicles !== undefined) updated.vehicles = vehicles;
+    if (devices !== undefined) updated.devices = devices;
     if (payload.notificationsEnabled !== undefined) updated.notificationsEnabled = payload.notificationsEnabled;
+    
+    // Explicitly preserve current devices if they exist and are not passed in payload
+    if (devices === undefined && currentOwner.devices) {
+      updated.devices = currentOwner.devices;
+    }
 
-    await setDoc(ownerRef, updated);
+    await setDoc(ownerRef, updated, { merge: true });
     if (password) await setDoc(doc(db, 'passwords', id), { wing, flatNo, password });
     return { success: true, owner: updated as FlatOwner };
   } catch (error) {
