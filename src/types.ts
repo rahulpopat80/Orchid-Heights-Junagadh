@@ -118,6 +118,7 @@ export interface Announcement {
 export interface Complaint {
   id: string;
   flatId: string;
+  ownerName?: string;
   title: string;
   description: string;
   mediaUrl?: string;

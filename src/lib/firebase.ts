@@ -1153,11 +1153,11 @@ export async function getComplaintsList(): Promise<Complaint[]> {
 
 export async function createComplaint(payload: any): Promise<Complaint> {
   if (isQuotaExceeded) return fallback.createComplaintLocal(payload);
-  const { id, flatId, wing, flatNo, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
+  const { id, flatId, wing, flatNo, ownerName, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
   const complaintId = id || 'comp_' + Math.random().toString(36).substring(2, 11);
   const derivedFlatId = flatId || (wing && flatNo ? `${wing}-${flatNo}` : 'B-1104');
   const newComplaint: Complaint = {
-    id: complaintId, flatId: derivedFlatId, title: title || '', description: description || '', mediaUrl: mediaUrl || '',
+    id: complaintId, flatId: derivedFlatId, ownerName: ownerName, title: title || '', description: description || '', mediaUrl: mediaUrl || '',
     mediaName: mediaName || '', mediaType: mediaType || '', status: status || 'open', createdAt: createdAt || new Date().toISOString(),
     resolvedAt: resolvedAt || null, resolvedBy: resolvedBy || null, processNotes: processNotes || '', attachments: attachments || []
   };

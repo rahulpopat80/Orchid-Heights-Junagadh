@@ -22,6 +22,7 @@ import ChunkedMedia from '../ChunkedMedia';
 interface HelpDeskSectionProps {
   wing: string;
   flatNo: number;
+  ownerName?: string;
   complaints: any[];
   loadingComplaints: boolean;
   financials: any[];
@@ -159,6 +160,7 @@ export default function HelpDeskSection({
         description: compDesc.trim(),
         wing,
         flatNo,
+        ownerName,
         attachments: compAttachments
       };
 
@@ -562,6 +564,11 @@ export default function HelpDeskSection({
                             <span className="ml-2 font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
                               Flat {item.flatId}
                             </span>
+                            {item.ownerName && (
+                               <span className="ml-2 font-mono bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                                 {item.ownerName}
+                               </span>
+                            )}
                             <h5 className="font-bold text-slate-800 mt-1 uppercase leading-snug">{item.title}</h5>
                           </div>
 

@@ -1827,6 +1827,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                   <HelpDeskSection
                     wing={wing}
                     flatNo={flatNo}
+                    ownerName={session.ownerName}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
                     financials={financials}
@@ -1856,6 +1857,7 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                   <HelpDeskSection
                     wing={wing}
                     flatNo={flatNo}
+                    ownerName={session.ownerName}
                     complaints={complaints}
                     loadingComplaints={loadingComplaints}
                     financials={financials}
