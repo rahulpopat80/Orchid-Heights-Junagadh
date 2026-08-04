@@ -1192,69 +1192,21 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     }
 
     // Build CSV Content
-    const rows: string[] = [];
-    rows.push(`"ORCHID HEIGHTS - MASTER ADMIN VISITOR REPORT"`);
-    rows.push(`"Report Filter: ${wingAndFlat} | Flat: ${wingAndFlat}"`);
-    rows.push(`"Generated: ${new Date().toLocaleString('en-IN')}"`);
-    rows.push(`""`);
-    rows.push([
-      '"Sr."',
-      '"Visitor Name"',
-      '"Mobile Number"',
-      '"Email"',
-      '"Wing"',
-      '"Flat No"',
-      '"Visitor Type"',
-      '"Entry Type"',
-      '"Reason"',
-      '"Status"',
-      '"Request Date"',
-      '"Request Time"',
-      '"Response Time"',
-      '"Approved / Rejected By"',
-      '"Exit Time"',
-      '"Duration Stayed"',
-      '"IP Address"',
-      '"Device SN"',
-      '"Rejection Reason"'
-    ].join(','));
+    let csvContent = `Orchid Heights Gatekeeper - 3-Month Visitor Report\r\n`;
+    csvContent += `Flat,${wingAndFlat}\r\n`;
+    csvContent += `Owner,"${owner.nameEn.toUpperCase()}"\r\n`;
+    csvContent += `Generated On,${new Date().toLocaleString('en-IN')}\r\n\r\n`;
+    csvContent += `"Visitor Name","Mobile Number","Email","Category/Type","Entry Type","Purpose of Visit","Entry Time","Exit Time","Duration Stayed","Status","Approved By","Status Flag"\r\n`;
 
-    filtered.forEach((v, idx) => {
-      const reqDate = new Date(v.requestTime);
-      const respDate = v.respondedTime ? new Date(v.respondedTime) : null;
-      const exitDate = v.exitTime ? new Date(v.exitTime) : null;
-      
-      const reqDateStr = reqDate.toLocaleDateString('en-IN');
-      const reqTimeStr = reqDate.toLocaleTimeString('en-IN', { hour12: false });
-      const respTimeStr = respDate ? respDate.toLocaleString('en-IN') : '-';
-      const exitTimeStr = exitDate ? exitDate.toLocaleString('en-IN') : '-';
-      
-      let statusStr = v.exited ? 'EXITED' : (v.status || '').toUpperCase();
-      
-      rows.push([
-        `"${idx + 1}"`,
-        `"${(v.fullName || '').replace(/"/g, '""')}"`,
-        `"${v.mobileNumber || ''}"`,
-        `"${(v.email || '').replace(/"/g, '""')}"`,
-        `"${v.wing}"`,
-        `"${v.flatNo}"`,
-        `"${v.guestType || ''}"`,
-        `"${v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry')}"`,
-        `"${(v.reason || '').replace(/"/g, '""')}"`,
-        `"${statusStr}"`,
-        `"${reqDateStr}"`,
-        `"${reqTimeStr}"`,
-        `"${respTimeStr}"`,
-        `"${(v.respondedBy || '-').replace(/"/g, '""')}"`,
-        `"${exitTimeStr}"`,
-        `"${(v.duration || '-').replace(/"/g, '""')}"`,
-        `"-"`,
-        `"-"`,
-        `"${(v.rejectReason || '-').replace(/"/g, '""')}"`
-      ].join(','));
+    filtered.forEach((v) => {
+      const entryTime = new Date(v.requestTime).toLocaleString('en-IN');
+      const exitTimeStr = v.exitTime ? new Date(v.exitTime).toLocaleString('en-IN') : '-';
+      const deletedTag = v.deletedByResident ? 'Deleted by Resident' : 'Active Log';
+      const entryType = v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry');
+      const statusStr = v.exited ? 'EXITED' : v.status.toUpperCase();
+      csvContent += `"${v.fullName.replace(/"/g, '""')}","${v.mobileNumber}","${(v.email || '').replace(/"/g, '""')}","${v.guestType}","${entryType}","${v.reason.replace(/"/g, '""')}","${entryTime}","${exitTimeStr}","${v.duration || '-'}","${statusStr}","${(v.respondedBy || '').replace(/"/g, '""')}","${deletedTag}"\r\n`;
     });
 
-    const csvContent = rows.join('\r\n');
     // Download Blob
     const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -1304,9 +1256,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
       // Build a well-formatted professional CSV
       const rows: string[] = [];
-      rows.push(`"ORCHID HEIGHTS - MASTER ADMIN VISITOR REPORT"`);
-      rows.push(`"Report Filter: ALL | Flat: ALL"`);
-      rows.push(`"Generated: ${new Date().toLocaleString('en-IN')}"`);
+      rows.push(`"ORCHID HEIGHTS - BUILDING MASTER VISITOR LOG"`);
+      rows.push(`"Filter Period: ${range.toUpperCase()} | Generated: ${new Date().toLocaleString('en-IN')}"`);
+      rows.push(`"Total Visitor Entries: ${filtered.length}"`);
       rows.push(`""`);
       rows.push([
         '"Sr."',
@@ -1315,33 +1267,26 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         '"Email"',
         '"Wing"',
         '"Flat No"',
+        '"Flat Owner Name"',
         '"Visitor Type"',
         '"Entry Type"',
-        '"Reason"',
+        '"Reason / Purpose"',
+        '"Count"',
         '"Status"',
         '"Request Date"',
         '"Request Time"',
         '"Response Time"',
-        '"Approved / Rejected By"',
+        '"Approved/Rejected By"',
         '"Exit Time"',
         '"Duration Stayed"',
-        '"IP Address"',
-        '"Device SN"',
-        '"Rejection Reason"'
+        '"Reject Reason"',
+        '"Log Status"'
       ].join(','));
 
       filtered.forEach((v, idx) => {
         const reqDate = new Date(v.requestTime);
         const respDate = v.respondedTime ? new Date(v.respondedTime) : null;
         const exitDate = v.exitTime ? new Date(v.exitTime) : null;
-        
-        const reqDateStr = reqDate.toLocaleDateString('en-IN');
-        const reqTimeStr = reqDate.toLocaleTimeString('en-IN', { hour12: false });
-        const respTimeStr = respDate ? respDate.toLocaleString('en-IN') : '-';
-        const exitTimeStr = exitDate ? exitDate.toLocaleString('en-IN') : '-';
-        
-        let statusStr = v.exited ? 'EXITED' : (v.status || '').toUpperCase();
-        
         rows.push([
           `"${idx + 1}"`,
           `"${(v.fullName || '').replace(/"/g, '""')}"`,
@@ -1349,19 +1294,20 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           `"${(v.email || '').replace(/"/g, '""')}"`,
           `"${v.wing}"`,
           `"${v.flatNo}"`,
+          `"${(v.flatOwnerName || '').replace(/"/g, '""')}"`,
           `"${v.guestType || ''}"`,
           `"${v.isPreEntry ? 'Pre-Entry' : (v.respondedBy?.includes('Through Call') ? 'Gate Entry (Call)' : 'Gate Entry')}"`,
           `"${(v.reason || '').replace(/"/g, '""')}"`,
-          `"${statusStr}"`,
-          `"${reqDateStr}"`,
-          `"${reqTimeStr}"`,
-          `"${respTimeStr}"`,
+          `"${v.visitorCount || 1}"`,
+          `"${v.exited ? 'EXITED' : (v.status || '').toUpperCase()}"`,
+          `"${reqDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}"`,
+          `"${reqDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}"`,
+          `"${respDate ? respDate.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}"`,
           `"${(v.respondedBy || '-').replace(/"/g, '""')}"`,
-          `"${exitTimeStr}"`,
+          `"${exitDate ? exitDate.toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true }) : '-'}"`,
           `"${(v.duration || '-').replace(/"/g, '""')}"`,
-          `"-"`,
-          `"-"`,
-          `"${(v.rejectReason || '-').replace(/"/g, '""')}"`
+          `"${(v.rejectReason || '-').replace(/"/g, '""')}"`,
+          `"${v.deletedByResident ? 'DELETED BY RESIDENT' : v.exited ? 'EXITED' : v.status === 'pending' ? 'PENDING (AWAITING)' : 'ACTIVE LOG'}"`
         ].join(','));
       });
 
