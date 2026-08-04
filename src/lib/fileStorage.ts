@@ -27,24 +27,31 @@ export async function uploadFileInChunks(
         const chunkSize = 700 * 1024; // 700KB chunks of base64 characters (~500KB binary data, well under 1MB)
         const totalChunks = Math.ceil(base64String.length / chunkSize);
 
+        const chunkPromises = [];
+        let completedChunks = 0;
+
         for (let i = 0; i < totalChunks; i++) {
           const start = i * chunkSize;
           const end = Math.min(start + chunkSize, base64String.length);
           const chunkData = base64String.substring(start, end);
 
           // Write each chunk as its own document
-          await setDoc(doc(db, 'file_chunks', `${fileId}_chunk_${i}`), {
+          const promise = setDoc(doc(db, 'file_chunks', `${fileId}_chunk_${i}`), {
             fileId,
             chunkIndex: i,
             totalChunks,
             data: chunkData,
             createdAt: new Date().toISOString()
+          }).then(() => {
+            completedChunks++;
+            if (onProgress) {
+              onProgress(Math.round((completedChunks / totalChunks) * 100));
+            }
           });
-
-          if (onProgress) {
-            onProgress(Math.round(((i + 1) / totalChunks) * 100));
-          }
+          chunkPromises.push(promise);
         }
+
+        await Promise.all(chunkPromises);
 
         const metadata: FileMetadata = {
           fileId,

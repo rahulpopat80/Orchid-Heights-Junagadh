@@ -24,6 +24,7 @@ export interface DeviceInfo {
   memberName?: string;
   wing?: string;
   flatNo?: number;
+  targetFlats?: string[];
 }
 
 export interface FlatOwner {
@@ -100,7 +101,7 @@ export interface UserSession {
 
 export interface Announcement {
   id: string;
-  target: 'all' | 'wing' | 'flat';
+  target: 'all' | 'wing' | 'flat' | 'multi';
   wing?: 'A' | 'B';
   flatNo?: number;
   text: string;
@@ -143,7 +144,10 @@ export interface FinancialReport {
   createdAt: string;
   uploadedBy: string;
   reportType?: 'expense' | 'welfare' | 'statement' | 'other';
-  attachments?: Array<{ url: string; name: string; type: string }>;
+  attachments?: Array<{ fileId?: string; url?: string; name: string; type: string }>;
+  csvRows?: Array<{ category: string; description: string; amount: number }>;
+  targetWings?: string[];
+  targetFlats?: string[];
 }
 
 export interface EssentialContact {

@@ -1238,13 +1238,14 @@ export async function getFinancialReportsList(): Promise<FinancialReport[]> {
 
 export async function createFinancialReport(payload: any): Promise<FinancialReport> {
   if (isQuotaExceeded) return fallback.createFinancialReportLocal(payload);
-  const { id, month, year, title, description, pdfUrl, fileName, fileType, totalExpense, uploadedBy, reportType, createdAt, attachments } = payload;
+  const { id, month, year, title, description, pdfUrl, fileName, fileType, totalExpense, uploadedBy, reportType, createdAt, attachments, csvRows, targetWings, targetFlats } = payload;
   const reportId = id || 'fin_' + Math.random().toString(36).substring(2, 11);
   const newReport: FinancialReport = {
     id: reportId, month: month || new Date().toLocaleString('default', { month: 'long' }), year: parseInt(year, 10) || new Date().getFullYear(),
     title: title || '', description: description || '', pdfUrl: pdfUrl || '', fileName: fileName || '', fileType: fileType || '',
     totalExpense: parseFloat(totalExpense) || 0, createdAt: createdAt || new Date().toISOString(), uploadedBy: uploadedBy || 'Rahul Popat (B-1104 / Admin)',
-    reportType: reportType || 'expense', attachments: attachments || []
+    reportType: reportType || 'expense', attachments: attachments || [],
+    csvRows: csvRows || [], targetWings: targetWings || [], targetFlats: targetFlats || []
   };
 
   try {
@@ -1291,11 +1292,11 @@ export async function getFlatPasswords(): Promise<Record<string, string>> {
 
 export async function createSocietyNotification(payload: {
   type: 'notice' | 'financial' | 'complaint' | 'visitor' | 'amenity_request' | 'movie_schedule' | 'absence_redirection' | 'visitor_request';
-  title: string; message: string; wing?: string; flatNo?: number; metadata?: any;
+  title: string; message: string; wing?: string; flatNo?: number; targetFlats?: string[]; metadata?: any;
 }): Promise<boolean> {
   if (isQuotaExceeded) return fallback.createSocietyNotificationLocal(payload);
   const id = 'notif_' + Math.random().toString(36).substring(2, 11);
-  const newNotif = { id, type: payload.type, title: payload.title, message: payload.message, wing: payload.wing || '', flatNo: payload.flatNo || 0, timestamp: new Date().toISOString(), metadata: payload.metadata || {} };
+  const newNotif = { id, type: payload.type, title: payload.title, message: payload.message, wing: payload.wing || '', flatNo: payload.flatNo || 0, targetFlats: payload.targetFlats || [], timestamp: new Date().toISOString(), metadata: payload.metadata || {} };
   try {
     await setDoc(doc(db, 'society_notifications', id), newNotif);
     
@@ -1544,7 +1545,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
     const filtered = list.filter(item => {
       const d = new Date(item.timestamp || new Date().toISOString());
       if (d < oneMonthAgo) return false;
-      return item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo);
+      return item.target === 'all' || (item.target === 'wing' && item.wing === wing) || (item.target === 'flat' && item.wing === wing && item.flatNo === flatNo) || (item.target === 'multi' && item.targetFlats && item.targetFlats.includes(wing + '-' + flatNo));
     });
     filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return filtered;
@@ -1603,7 +1604,8 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
       if (d < oneMonthAgo) return false;
       const isGlobal = !data.wing || Number(data.flatNo) === 0;
       const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
-      return isGlobal || isMine;
+      const isMulti = data.targetFlats && Array.isArray(data.targetFlats) && data.targetFlats.includes(wing.toUpperCase() + '-' + flatNo);
+      return isGlobal || isMine || isMulti;
     });
     filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return filtered;
@@ -1627,7 +1629,8 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
         if (d >= oneMonthAgo) {
           const isGlobal = !data.wing || Number(data.flatNo) === 0;
           const isMine = data.wing && data.flatNo && data.wing.toUpperCase() === wing.toUpperCase() && Number(data.flatNo) === Number(flatNo);
-          if (isGlobal || isMine) {
+          const isMulti = data.targetFlats && Array.isArray(data.targetFlats) && data.targetFlats.includes(wing.toUpperCase() + '-' + flatNo);
+          if (isGlobal || isMine || isMulti) {
             list.push({ id: docSnap.id, ...data });
           }
         }

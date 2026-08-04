@@ -221,7 +221,18 @@ export default function HelpDeskSection({
     return true;
   });
 
-  const filteredFinancials = (financials || []).filter(item => {
+    const filteredFinancials = (financials || []).filter(item => {
+    // Flat / Wing targeting
+    const targetWings = item.targetWings || [];
+    const targetFlats = item.targetFlats || [];
+    
+    if (targetWings.length > 0 || targetFlats.length > 0) {
+      let matched = false;
+      if (targetWings.includes(wing)) matched = true;
+      if (targetFlats.includes(flatNo.toString()) || targetFlats.includes(wing + '-' + flatNo)) matched = true;
+      if (!matched) return false; // not for this resident
+    }
+
     if (!financeSearchTerm.trim()) return true;
     const search = financeSearchTerm.toLowerCase();
     const title = (item.title || '').toLowerCase();
@@ -533,21 +544,23 @@ export default function HelpDeskSection({
 
               {loadingComplaints ? (
                 <div className="py-8 text-center text-slate-400">Loading tickets...</div>
-              ) : complaints.filter(c => c.flatId === `${wing}-${flatNo}`).length === 0 ? (
+              ) : complaints.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 border border-dashed rounded-xl bg-slate-50/20">
                   <ClipboardList className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                  <p className="text-xs">You have not filed any tickets yet.</p>
+                  <p className="text-xs">No active tickets.</p>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1 text-xs">
                   {complaints
-                    .filter((c) => c.flatId === `${wing}-${flatNo}`)
                     .map((item) => (
                       <div key={item.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="font-mono bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
                               Ticket #{item.id?.substring(0, 5) || 'COMP'}
+                            </span>
+                            <span className="ml-2 font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                              Flat {item.flatId}
                             </span>
                             <h5 className="font-bold text-slate-800 mt-1 uppercase leading-snug">{item.title}</h5>
                           </div>
@@ -665,6 +678,30 @@ export default function HelpDeskSection({
                           {report.description}
                         </p>
                       )}
+                      
+                      {report.csvRows && report.csvRows.length > 0 && (
+                        <div className="mt-3 overflow-x-auto">
+                          <table className="w-full text-left border-collapse min-w-[300px]">
+                            <thead>
+                              <tr className="bg-slate-100 text-[10px] text-slate-500 uppercase tracking-wider">
+                                <th className="p-2 border-b border-slate-200 rounded-tl-lg">Category</th>
+                                <th className="p-2 border-b border-slate-200">Description</th>
+                                <th className="p-2 border-b border-slate-200 text-right rounded-tr-lg">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="text-xs text-slate-700">
+                              {report.csvRows.map((row: any, idx: number) => (
+                                <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
+                                  <td className="p-2 font-bold">{row.category}</td>
+                                  <td className="p-2 text-slate-500">{row.description}</td>
+                                  <td className="p-2 text-right font-mono text-slate-900 font-bold">₹{row.amount.toLocaleString('en-IN')}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+
                     </div>
 
                     {/* Dynamic Chunked Attachments rendering for financials */}

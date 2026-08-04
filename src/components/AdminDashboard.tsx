@@ -18,6 +18,7 @@ import { db, collection, doc, query, onSnapshot, orderBy, updateDoc, deleteDoc, 
 import AdminVisitorRecords from './admin/AdminVisitorRecords';
 import ChunkedMedia from './ChunkedMedia';
 import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF } from '../lib/pdfGenerator';
+import { uploadFileInChunks, downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
 import AdminLocalServices from './admin/AdminLocalServices';
 
 interface AdminDashboardProps {
@@ -148,6 +149,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
   // Search through all owners
   const [adminSearch, setAdminSearch] = useState<string>('');
+  const [flatFilter, setFlatFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Selected Flat for detailed review
   const [selectedFlat, setSelectedFlat] = useState<FlatOwner | null>(null);
@@ -177,7 +179,11 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   // 1. Notice / Announcement State
   const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [showNoticeForm, setShowNoticeForm] = useState<boolean>(false);
-  const [noticeTarget, setNoticeTarget] = useState<'all' | 'wing' | 'flat'>('all');
+  const [noticeTarget, setNoticeTarget] = useState<'all' | 'wing' | 'flat' | 'multi'>('all');
+  const [noticeTargetFlats, setNoticeTargetFlats] = useState<string[]>([]);
+  const [isNoticeMultiSelectOpen, setIsNoticeMultiSelectOpen] = useState(false);
+  const [isFinMultiSelectOpen, setIsFinMultiSelectOpen] = useState(false);
+  const [multiSelectSearch, setMultiSelectSearch] = useState('');
   const [noticeWing, setNoticeWing] = useState<'A' | 'B'>('A');
   const [noticeFlatNo, setNoticeFlatNo] = useState<number>(101);
   const [noticeText, setNoticeText] = useState<string>('');
@@ -204,7 +210,27 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [finPdfUrl, setFinPdfUrl] = useState<string>('');
   const [finFileName, setFinFileName] = useState<string>('');
   const [finFileType, setFinFileType] = useState<string>('');
-  const [finAttachments, setFinAttachments] = useState<Array<{ url: string; name: string; type: string }>>([]);
+  const [finAttachments, setFinAttachments] = useState<Array<{ fileId?: string; url?: string; name: string; type: string; file?: File }>>([]);
+  const [finTargetWings, setFinTargetWings] = useState<string[]>([]);
+  const [finTargetFlats, setFinTargetFlats] = useState<string[]>([]);
+  const [finCsvRows, setFinCsvRows] = useState<Array<{category: string; description: string; amount: number}>>([]);
+  const [isFinUploading, setIsFinUploading] = useState(false);
+  const [finUploadProgress, setFinUploadProgress] = useState(0);
+
+  const handleDownloadAttachment = async (fileId: string, fallbackUrl: string, name: string) => {
+    if (fileId) {
+      try {
+        const { base64 } = await downloadChunkedFile(fileId);
+        triggerFileDownload(base64, name);
+      } catch (e) {
+        console.error(e);
+        if (fallbackUrl) triggerFileDownload(fallbackUrl, name);
+      }
+    } else if (fallbackUrl) {
+      triggerFileDownload(fallbackUrl, name);
+    }
+  };
+
   const [finExpense, setFinExpense] = useState<string>('');
   const [finSuccess, setFinSuccess] = useState<string>('');
   const [finType, setFinType] = useState<'expense' | 'welfare' | 'statement' | 'other'>('expense');
@@ -761,6 +787,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       if (noticeTarget === 'flat') {
         annPayload.flatNo = noticeFlatNo;
       }
+      if (noticeTarget === 'multi') {
+        annPayload.targetFlats = noticeTargetFlats;
+      }
     }
 
     const success = await api.saveAnnouncement(annPayload);
@@ -783,6 +812,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       setNoticeFileName('');
       setNoticeFileType('');
       setNoticeAttachments([]);
+      setNoticeTargetFlats([]);
       setEditingAnnouncement(null);
       setShowNoticeForm(false);
       loadAdminData();
@@ -794,7 +824,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
   const handleEditNotice = (ann: Announcement) => {
     setEditingAnnouncement(ann);
-    setNoticeTarget(ann.target);
+    setNoticeTarget(ann.target as any);
+    setNoticeTargetFlats(ann.targetFlats || []);
     setNoticeWing(ann.wing || 'A');
     setNoticeFlatNo(ann.flatNo || 101);
     setNoticeText(ann.text);
@@ -839,20 +870,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       alert('File too large (max 15MB).');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      if (e.target?.result) {
-        setFinAttachments(prev => [
-          ...prev,
-          {
-            url: e.target!.result as string,
-            name: file.name,
-            type: file.type
-          }
-        ]);
+    setFinAttachments(prev => [
+      ...prev,
+      {
+        url: URL.createObjectURL(file),
+        name: file.name,
+        type: file.type,
+        file: file
       }
-    };
-    reader.readAsDataURL(file);
+    ]);
   };
 
   const handleDeleteNotice = async (id: string) => {
@@ -922,7 +948,47 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     setFinSuccess('');
     if (!finTitle.trim()) return;
 
+    let currentCsvRows = finCsvRows;
+    if (rawCsvText.trim() && currentCsvRows.length === 0) {
+      try {
+        const lines = rawCsvText.split('\n');
+        const newRows = [];
+        const startIdx = lines[0].toLowerCase().includes('category') || lines[0].toLowerCase().includes('amount') ? 1 : 0;
+        for (let i = startIdx; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+          if (columns.length >= 2) {
+            const cat = columns[0].replace(/"/g, '').trim();
+            const desc = columns[1].replace(/"/g, '').trim();
+            let amount = 0;
+            if (columns.length >= 3) amount = parseFloat(columns[2].replace(/[^0-9.-]+/g, ""));
+            if (!isNaN(amount)) newRows.push({ category: cat, description: desc, amount });
+          }
+        }
+        if (newRows.length > 0) currentCsvRows = newRows;
+      } catch (e) {}
+    }
+
+
     try {
+      setIsFinUploading(true);
+      setFinUploadProgress(0);
+
+      const finalAttachments = [];
+      let i = 0;
+      for (const att of finAttachments) {
+        if (att.file && !att.fileId) {
+          const meta = await uploadFileInChunks(att.file, (p) => {
+            setFinUploadProgress(Math.round(((i * 100) + p) / finAttachments.length));
+          });
+          finalAttachments.push({ fileId: meta.fileId, name: att.name, type: att.type });
+        } else {
+          finalAttachments.push({ fileId: att.fileId, url: att.url, name: att.name, type: att.type });
+        }
+        i++;
+      }
+
       const finId = editingFinance ? editingFinance.id : 'fin_' + Math.random().toString(36).substring(2, 11);
       await api.createFinancialReport({
         id: finId,
@@ -937,7 +1003,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         uploadedBy: 'Orchid Heights Admin',
         reportType: finType,
         createdAt: editingFinance ? editingFinance.createdAt : new Date().toISOString(),
-        attachments: finAttachments
+        attachments: finalAttachments,
+        csvRows: currentCsvRows,
+        targetWings: finTargetWings.length > 0 ? finTargetWings : undefined,
+        targetFlats: finTargetFlats.length > 0 ? finTargetFlats : undefined
       });
 
       if (!editingFinance) {
@@ -958,12 +1027,19 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       setFinAttachments([]);
       setFinExpense('');
       setFinType('expense');
+      setFinTargetWings([]);
+      setFinTargetFlats([]);
+      setFinCsvRows([]);
       setEditingFinance(null);
       setShowFinanceForm(false);
       loadAdminData();
       setTimeout(() => setFinSuccess(''), 3000);
     } catch (err) {
       console.error(err);
+      setFinSuccess('');
+      alert('Error uploading ledger. Files might be too large.');
+    } finally {
+      setIsFinUploading(false);
     }
   };
 
@@ -983,6 +1059,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     setFinAttachments(initialAttachments);
     setFinExpense(report.totalExpense.toString());
     setFinType(report.reportType || 'expense');
+    setFinTargetWings(report.targetWings || []);
+    setFinTargetFlats(report.targetFlats || []);
+    setFinCsvRows(report.csvRows || []);
     setShowFinanceForm(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -999,7 +1078,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       const lines = rawCsvText.split('\n');
       let count = 0;
       let totalAmount = 0;
-      const parsedItems: string[] = [];
+      const newRows = [];
 
       // Skip header row if exists
       const startIdx = lines[0].toLowerCase().includes('category') || lines[0].toLowerCase().includes('amount') ? 1 : 0;
@@ -1018,7 +1097,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           if (cat && amount > 0) {
             totalAmount += amount;
             count++;
-            parsedItems.push(`• [${cat}] ${desc}: ₹${amount.toLocaleString('en-IN')}`);
+            newRows.push({ category: cat, description: desc, amount });
           }
         }
       }
@@ -1028,13 +1107,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         return;
       }
 
-      // Generate a detailed description from the imported rows
-      const combinedDesc = `Imported Ledger Summary:\n${parsedItems.join('\n')}\n\nTotal Sum: ₹${totalAmount.toLocaleString('en-IN')}`;
-      
       setFinTitle(`CSV Import: ${count} Ledger Records`);
-      setFinDesc(combinedDesc);
       setFinExpense(totalAmount.toString());
       setCsvImportedCount(count);
+      setFinCsvRows(newRows);
       setRawCsvText('');
     } catch (e) {
       setCsvError('Failed to parse CSV. Check formatting.');
@@ -1248,7 +1324,16 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
 
   // Filter flats list based on search query
+  const isOwnerActive = (owner: FlatOwner) => {
+    return (owner.devices && owner.devices.length > 0) || 
+           (owner.members && owner.members.length > 0) || 
+           !!owner.secondaryContact;
+  };
+
   const filteredOwners = owners.filter((owner) => {
+    if (flatFilter === 'active' && !isOwnerActive(owner)) return false;
+    if (flatFilter === 'inactive' && isOwnerActive(owner)) return false;
+
     const q = adminSearch.toLowerCase().trim();
     if (q === '') return true;
     return (
@@ -1335,17 +1420,30 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <p className="text-xs text-slate-400">Total 96 Apartments. Audit device logouts and retrieve flatowner passwords.</p></div>
                 
                 {/* Search */}
-                <div className="relative w-full sm:max-w-xs">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                    <Search className="w-3.5 h-3.5" /></div>
-                  <input
-                    type="text"
-                    placeholder="Search flat, occupant name, phone..."
-                    value={adminSearch}
-                    onChange={(e) => setAdminSearch(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl py-1.5 pl-8 pr-3 text-xs outline-none focus:bg-white"
-                  /></div></div>
-
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="relative w-full sm:w-64">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <Search className="w-3.5 h-3.5" />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Search flat, name..."
+                      value={adminSearch}
+                      onChange={(e) => setAdminSearch(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl py-1.5 pl-8 pr-3 text-xs outline-none focus:bg-white"
+                    />
+                  </div>
+                  <select
+                    value={flatFilter}
+                    onChange={(e) => setFlatFilter(e.target.value as any)}
+                    className="w-full sm:w-auto bg-slate-50 border border-slate-200 rounded-xl py-1.5 px-3 text-xs outline-none focus:bg-white font-semibold text-slate-700"
+                  >
+                    <option value="all">All Flats</option>
+                    <option value="active">Active Only</option>
+                    <option value="inactive">Non-Active Only</option>
+                  </select>
+                </div>
+              </div>
               {/* Inline Owner Editor Dialog (inside directory) */}
               {editOwner && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
@@ -2291,7 +2389,40 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                           ))}</div></div>
                     )}</div>
 
-                  <div>
+                    <div className="md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Target Wings (Optional, comma separated)</label>
+                      <input
+                        type="text"
+                        value={finTargetWings.join(', ')}
+                        onChange={(e) => setFinTargetWings(e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+                        placeholder="e.g. A, B"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-indigo-500 focus:bg-white transition"
+                      />
+                    </div>
+                    <div className="md:col-span-1">
+                      <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Target Flats (Optional, select multiple)</label>
+                      <div className="w-full relative">
+                      <div className="border border-slate-200 rounded-lg p-3 bg-slate-50">
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="text-xs font-bold text-indigo-700">{finTargetFlats.length} Flats Selected</span>
+                          <input type="text" placeholder="Search flat..." value={multiSelectSearch} onChange={e => setMultiSelectSearch(e.target.value)} className="border rounded px-2 py-1 text-xs outline-none w-24" />
+                        </div>
+                        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 max-h-48 overflow-y-auto">
+                          {owners.map(o => o.wing + '-' + o.flatNo).filter(f => f.toLowerCase().includes(multiSelectSearch.toLowerCase())).map(flatId => (
+                            <button
+                              key={flatId}
+                              type="button"
+                              onClick={() => setFinTargetFlats(prev => prev.includes(flatId) ? prev.filter(f => f !== flatId) : [...prev, flatId])}
+                              className={`py-1 rounded text-[10px] font-bold border transition-all text-center ${finTargetFlats.includes(flatId) ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-300 text-slate-700'}`}
+                            >
+                              {flatId}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  <div className="col-span-full">
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Description / Details Summary</label>
                     <textarea
                       rows={5} placeholder="Brief details about where the expense occurred..."
@@ -2301,8 +2432,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     /></div>
 
                   <div className="flex flex-col gap-2">
-                    <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition cursor-pointer">
-                      {editingFinance ? '✓ Update Ledger Entry' : 'Publish Ledger Entry'}
+                    <button type="submit" disabled={isFinUploading} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                      {isFinUploading ? `Publishing Ledger... ${finUploadProgress}%` : (editingFinance ? '✓ Update Ledger Entry' : 'Publish Ledger Entry')}
                     </button>
                     {editingFinance && (
                       <button
@@ -2406,6 +2537,29 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       <p className="text-xs text-slate-400 font-mono mt-0.5">Record ID: {report.id}</p></div>
 
                     <p className="text-xs text-slate-600 leading-relaxed font-semibold whitespace-pre-line">{report.description}</p>
+                    {report.csvRows && report.csvRows.length > 0 && (
+                      <div className="mt-3 overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[300px]">
+                          <thead>
+                            <tr className="bg-slate-100 text-[10px] text-slate-500 uppercase tracking-wider">
+                              <th className="p-2 border-b border-slate-200 rounded-tl-lg">Category</th>
+                              <th className="p-2 border-b border-slate-200">Description</th>
+                              <th className="p-2 border-b border-slate-200 text-right rounded-tr-lg">Amount</th>
+                            </tr>
+                          </thead>
+                          <tbody className="text-xs text-slate-700">
+                            {report.csvRows.map((row, idx) => (
+                              <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50 transition">
+                                <td className="p-2 font-bold">{row.category}</td>
+                                <td className="p-2 text-slate-500">{row.description}</td>
+                                <td className="p-2 text-right font-mono text-slate-900 font-bold">₹{row.amount.toLocaleString('en-IN')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
                     
                     <div className="bg-slate-50 border border-slate-150 p-3 rounded-xl flex items-center justify-between">
                       <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Expense / Ledger Amount:</span>
@@ -2428,19 +2582,25 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                         {/* Multi attachments list */}
                         {report.attachments && report.attachments.map((att: any, idx: number) => (
                           <div key={idx} className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex flex-col gap-1.5 shadow-sm text-left">
-                            {att.type?.startsWith('image/') ? (
+                            {att.type?.startsWith('image/') && att.url ? (
                               <div className="rounded border overflow-hidden max-h-[100px] bg-slate-100">
-                                <img src={att.url} className="w-full object-cover max-h-[100px]" referrerPolicy="no-referrer" /></div>
+                                <img src={att.url} className="w-full object-cover max-h-[100px]" referrerPolicy="no-referrer" />
+                              </div>
                             ) : (
                               <div className="flex items-center gap-1.5">
                                 <FileText className="w-5 h-5 text-indigo-500 shrink-0" />
-                                <p className="font-bold text-slate-700 truncate text-[10px] max-w-[120px]">{att.name}</p></div>
+                                <p className="font-bold text-slate-700 truncate text-[10px] max-w-[120px]">{att.name}</p>
+                              </div>
                             )}
                             <div className="flex items-center justify-between text-[10px]">
-                              {!att.type?.startsWith('image/') && (
+                              {(!att.type?.startsWith('image/') || !att.url) && (
                                 <span className="text-[8px] text-slate-400 font-mono uppercase">{att.type?.split('/')[1] || 'FILE'}</span>
                               )}
-                              <a href={att.url} download={att.name || 'Attachment'} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto">Download</a></div></div>
+                              <button onClick={() => handleDownloadAttachment(att.fileId, att.url, att.name || 'Attachment')} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto cursor-pointer">
+                                Download / View
+                              </button>
+                            </div>
+                          </div>
                         ))}</div></div>
                   )}
 

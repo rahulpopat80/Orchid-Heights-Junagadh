@@ -646,7 +646,7 @@ export function getFinancialReportsListLocal(): FinancialReport[] {
 }
 
 export function createFinancialReportLocal(payload: any): FinancialReport {
-  const { id, month, year, title, description, pdfUrl, fileName, fileType, totalExpense, uploadedBy, reportType, createdAt, attachments } = payload;
+  const { id, month, year, title, description, pdfUrl, fileName, fileType, totalExpense, uploadedBy, reportType, createdAt, attachments, csvRows, targetWings, targetFlats } = payload;
   const reportId = id || 'fin_' + Math.random().toString(36).substring(2, 11);
   const newReport: FinancialReport = {
     id: reportId,
@@ -659,9 +659,12 @@ export function createFinancialReportLocal(payload: any): FinancialReport {
     fileType: fileType || '',
     totalExpense: parseFloat(totalExpense) || 0,
     createdAt: createdAt || new Date().toISOString(),
-    uploadedBy: uploadedBy || 'Rahul Popat (B-1104 / Admin)',
+    uploadedBy: uploadedBy || 'Orchid Heights Admin',
     reportType: reportType || 'expense',
-    attachments: attachments || []
+    attachments: attachments || [],
+    csvRows: csvRows || [],
+    targetWings: targetWings || [],
+    targetFlats: targetFlats || []
   };
   const reports = getLocalFinancialReports();
   reports.push(newReport);
