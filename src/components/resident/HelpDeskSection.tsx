@@ -387,7 +387,7 @@ export default function HelpDeskSection({
                             {notice.attachments && notice.attachments.map((att: any, idx: number) => (
                               <ChunkedMedia
                                 key={idx}
-                                fileId={att.url}
+                                fileId={att.fileId || att.url}
                                 type={att.type}
                                 fallbackName={att.name || 'Notice_File'}
                               />
@@ -602,7 +602,7 @@ export default function HelpDeskSection({
                               {item.attachments && item.attachments.map((att: any, idx: number) => (
                                 <ChunkedMedia
                                   key={idx}
-                                  fileId={att.url}
+                                  fileId={att.fileId || att.url}
                                   type={att.type}
                                   fallbackName={att.name || 'Connected_File'}
                                 />
@@ -735,7 +735,7 @@ export default function HelpDeskSection({
                           {report.attachments && report.attachments.map((att: any, idx: number) => (
                             <ChunkedMedia
                               key={idx}
-                              fileId={att.url}
+                              fileId={att.fileId || att.url}
                               type={att.type}
                               fallbackName={att.name || 'Statement_File'}
                             />

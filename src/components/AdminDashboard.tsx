@@ -2024,7 +2024,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                               <div className="flex items-center space-x-2 truncate">
                                 <FileText className="w-6 h-6 text-indigo-500 shrink-0" />
                                 <span className="font-bold text-slate-700 truncate max-w-[150px] text-[10px]">{ann.fileName || 'document.pdf'}</span></div>
-                              <a href={ann.pdfUrl} download={ann.fileName || 'document.pdf'} className="text-indigo-600 hover:underline font-extrabold text-[10px]">Download</a></div>
+                              <button type="button" onClick={() => handleDownloadAttachment(ann.pdfUrl, ann.pdfUrl, ann.fileName || 'document.pdf')} className="text-indigo-600 hover:underline font-extrabold text-[10px] cursor-pointer">Download</button></div>
                           )}
 
                           {/* Multi attachments list */}
@@ -2044,7 +2044,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 {!att.type?.startsWith('image/') && !att.type?.startsWith('video/') && (
                                   <span className="text-[8px] text-slate-400 font-mono uppercase">{att.type?.split('/')[1] || 'FILE'}</span>
                                 )}
-                                <a href={att.url} download={att.name || 'Attachment'} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto">Download</a></div></div>
+                                <button type="button" onClick={() => handleDownloadAttachment(att.fileId, att.url, att.name || 'Attachment')} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto cursor-pointer">Download</button></div></div>
                           ))}</div></div>
                     )}</div>
 
@@ -2187,7 +2187,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                               <div className="flex items-center space-x-2 truncate">
                                 <FileText className="w-5 h-5 text-indigo-500 shrink-0" />
                                 <span className="font-bold text-slate-700 truncate max-w-[150px] text-[10px]">{comp.mediaName || 'Attachment'}</span></div>
-                              <a href={comp.mediaUrl} download={comp.mediaName || 'Attachment'} className="text-indigo-600 hover:underline font-extrabold text-[10px]">Download</a></div>
+                              <button type="button" onClick={() => handleDownloadAttachment(comp.mediaUrl, comp.mediaUrl, comp.mediaName || 'Attachment')} className="text-indigo-600 hover:underline font-extrabold text-[10px] cursor-pointer">Download</button></div>
                           )}
 
                           {/* Multi attachments */}
@@ -2207,7 +2207,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 {!att.type?.startsWith('image/') && !att.type?.startsWith('video/') && (
                                   <span className="text-[8px] text-slate-400 font-mono uppercase">{att.type?.split('/')[1] || 'FILE'}</span>
                                 )}
-                                <a href={att.url} download={att.name || 'Attachment'} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto">Download</a></div></div>
+                                <button type="button" onClick={() => handleDownloadAttachment(att.fileId, att.url, att.name || 'Attachment')} className="text-indigo-600 hover:underline font-extrabold text-[10px] ml-auto cursor-pointer">Download</button></div></div>
                           ))}</div></div>
                     )}
 
@@ -2580,7 +2580,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             <div className="flex items-center space-x-2 truncate">
                               <FileText className="w-5 h-5 text-indigo-500 shrink-0" />
                               <span className="font-bold text-slate-700 truncate max-w-[150px] text-[10px]">{report.fileName || 'document.pdf'}</span></div>
-                            <a href={report.pdfUrl} download={report.fileName || 'document.pdf'} className="text-indigo-600 hover:underline font-extrabold text-[10px]">Download</a></div>
+                            <button type="button" onClick={() => handleDownloadAttachment(report.pdfUrl, report.pdfUrl, report.fileName || 'document.pdf')} className="text-indigo-600 hover:underline font-extrabold text-[10px] cursor-pointer">Download</button></div>
                         )}
 
                         {/* Multi attachments list */}
