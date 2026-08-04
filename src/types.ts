@@ -95,6 +95,7 @@ export interface UserSession {
   role: UserRole;
   wing?: 'A' | 'B';
   flatNo?: number;
+  targetFlats?: string[];
   ownerName?: string;
   phone?: string;
 }
@@ -104,6 +105,7 @@ export interface Announcement {
   target: 'all' | 'wing' | 'flat' | 'multi';
   wing?: 'A' | 'B';
   flatNo?: number;
+  targetFlats?: string[];
   text: string;
   timestamp: string;
   sender: string;

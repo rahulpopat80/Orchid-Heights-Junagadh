@@ -56,6 +56,7 @@ interface HelpDeskSectionProps {
 export default function HelpDeskSection({
   wing,
   flatNo,
+  ownerName,
   complaints,
   loadingComplaints,
   financials,
