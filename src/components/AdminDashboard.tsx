@@ -1107,8 +1107,12 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         return;
       }
 
-      setFinTitle(`CSV Import: ${count} Ledger Records`);
-      setFinExpense(totalAmount.toString());
+      if (!finTitle.trim()) {
+        setFinTitle(`CSV Import: ${count} Ledger Records`);
+      }
+      if (!finExpense.trim() || finExpense === '0') {
+        setFinExpense(totalAmount.toString());
+      }
       setCsvImportedCount(count);
       setFinCsvRows(newRows);
       setRawCsvText('');

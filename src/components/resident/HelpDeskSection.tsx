@@ -670,9 +670,14 @@ export default function HelpDeskSection({
                         </span>
                       </div>
                       <h5 className="font-bold text-xs text-slate-800 uppercase leading-snug">{report.title}</h5>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        Date: {new Date(report.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
+                      <div className="flex gap-2">
+                        <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono w-max">
+                          {report.month} {report.year}
+                        </span>
+                        <p className="text-[10px] text-slate-500 font-mono py-0.5">
+                          Date: {new Date(report.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </p>
+                      </div>
                       {report.description && (
                         <p className="text-[11px] text-slate-600 bg-white p-2.5 border border-slate-150 rounded leading-relaxed whitespace-pre-line">
                           {report.description}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { downloadChunkedFile } from '../lib/fileStorage';
+import { downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
 import { FileText, Loader2, Download } from 'lucide-react';
 
 interface ChunkedMediaProps {
@@ -96,12 +96,7 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
           <span className="text-[9px] font-bold text-slate-500 truncate max-w-[140px]">{fallbackName}</span>
           <button
             onClick={() => {
-              const link = document.createElement('a');
-              link.href = mediaUrl;
-              link.download = fallbackName;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              triggerFileDownload(mediaUrl, fallbackName);
             }}
             className="text-indigo-600 hover:text-indigo-700 p-1 flex items-center gap-1 cursor-pointer"
           >
@@ -121,12 +116,7 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
           <span className="text-[9px] font-bold text-slate-300 truncate max-w-[140px]">{fallbackName}</span>
           <button
             onClick={() => {
-              const link = document.createElement('a');
-              link.href = mediaUrl;
-              link.download = fallbackName;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
+              triggerFileDownload(mediaUrl, fallbackName);
             }}
             className="text-indigo-400 hover:text-indigo-300 p-1 flex items-center gap-1 cursor-pointer"
           >
