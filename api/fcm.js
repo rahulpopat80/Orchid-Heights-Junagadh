@@ -38,7 +38,6 @@ export default async function handler(req, res) {
             scopes: ['https://www.googleapis.com/auth/firebase.messaging'],
           });
         }
-
         if (auth) {
           const client = await auth.getClient();
           const tokenRes = await client.getAccessToken();
@@ -51,7 +50,7 @@ export default async function handler(req, res) {
 
     if (!accessToken) {
       return res.status(500).json({
-        error: 'Failed to obtain Google OAuth access token for FCM. Ensure service-account.json is present in the project root or FIREBASE_SERVICE_ACCOUNT environment variable is set.'
+        error: 'Failed to obtain Google OAuth access token for FCM. Ensure service-account.json is present or FIREBASE_SERVICE_ACCOUNT is set.'
       });
     }
 
@@ -60,26 +59,46 @@ export default async function handler(req, res) {
       fcmPayload = { message: payload };
     }
 
-    // --- 1. CONVERT TO DATA-ONLY MESSAGE TO BYPASS DOZE MODE ---
+    // --- CRITICAL FIX: ENSURE ALL PAYLOAD VALUES ARE STRINGS FOR SERVICE WORKER ---
     if (fcmPayload.message.notification) {
       fcmPayload.message.data = fcmPayload.message.data || {};
-      fcmPayload.message.data.title = fcmPayload.message.data.title || fcmPayload.message.notification.title;
-      fcmPayload.message.data.body = fcmPayload.message.data.body || fcmPayload.message.notification.body;
-      fcmPayload.message.data.icon = fcmPayload.message.data.icon || fcmPayload.message.notification.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
+      fcmPayload.message.data.title = fcmPayload.message.data.title || fcmPayload.message.notification.title || 'Orchid Heights';
+      fcmPayload.message.data.body = fcmPayload.message.data.body || fcmPayload.message.notification.body || 'New alert received.';
+      fcmPayload.message.data.icon = fcmPayload.message.data.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
       
-      // Deleting this forces the Service Worker to wake up and handle it manually
+      // Remove notification block so Service Worker handles the display exclusively
       delete fcmPayload.message.notification;
     }
 
-    // --- 2. SET STRICT WEBPUSH HEADERS FOR BACKGROUND DELIVERY ---
-    fcmPayload.message.android = fcmPayload.message.android || { priority: "high" };
-    fcmPayload.message.webpush = fcmPayload.message.webpush || { 
-      headers: { 
+    // Ensure all data fields are flat strings (required by FCM data payload rules)
+    if (fcmPayload.message.data) {
+      const sanitizedData = {};
+      for (const [key, val] of Object.entries(fcmPayload.message.data)) {
+        sanitizedData[key] = typeof val === 'object' ? JSON.stringify(val) : String(val ?? '');
+      }
+      fcmPayload.message.data = sanitizedData;
+    }
+
+    // --- HIGH PRIORITY HEADERS TO WAKE UP SLEEPING / CLOSED DEVICES ---
+    fcmPayload.message.android = {
+      priority: "high",
+      ttl: "86400s"
+    };
+    
+    fcmPayload.message.webpush = {
+      headers: {
         "urgency": "high",
         "TTL": "86400"
-      } 
+      }
     };
-    fcmPayload.message.apns = fcmPayload.message.apns || { payload: { aps: { 'content-available': 1 } } };
+
+    fcmPayload.message.apns = {
+      payload: {
+        aps: {
+          'content-available': 1
+        }
+      }
+    };
 
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
@@ -95,6 +114,7 @@ export default async function handler(req, res) {
 
     if (!response.ok) {
       const errText = await response.text();
+      console.error(`[FCM Error] Status ${response.status}:`, errText);
       return res.status(response.status).json({ error: errText });
     }
 
