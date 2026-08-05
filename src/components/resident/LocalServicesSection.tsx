@@ -263,9 +263,10 @@ export default function LocalServicesSection({
                   <input
                     type="tel"
                     required
-                    placeholder="e.g. +91 9876543210"
+                    maxLength={10}
+                    placeholder="e.g. 9876543210"
                     value={helperPhone}
-                    onChange={(e) => setHelperPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                    onChange={(e) => setHelperPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold outline-none focus:border-indigo-500 transition"
                   />
                 </div>

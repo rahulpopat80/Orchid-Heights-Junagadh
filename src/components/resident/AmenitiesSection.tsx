@@ -400,10 +400,15 @@ export default function AmenitiesSection({
                   : 'Active';
                   
                 let duration = '0 mins';
-                if (log.durationMinutes) {
+                if (log.durationMinutes !== undefined) {
                   duration = `${log.durationMinutes} mins`;
-                } else if (!log.checkOutTime) {
-                  const diff = Math.floor((new Date().getTime() - new Date(log.createdAt).getTime()) / 60000);
+                } else if (log.checkOutTime) {
+                  const checkInTime = log.checkInTime || log.createdAt;
+                  const diff = Math.floor((new Date(log.checkOutTime).getTime() - new Date(checkInTime).getTime()) / 60000);
+                  duration = `${diff} mins`;
+                } else {
+                  const checkInTime = log.checkInTime || log.createdAt;
+                  const diff = Math.floor((new Date().getTime() - new Date(checkInTime).getTime()) / 60000);
                   duration = `${diff} mins`;
                 }
                 

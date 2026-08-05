@@ -312,7 +312,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
                     required
                     placeholder="Enter registered phone number"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    maxLength={10} onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 focus:border-indigo-500 focus:bg-white rounded-xl py-3 px-4 text-sm font-medium transition outline-none"
                   />
                 </div>

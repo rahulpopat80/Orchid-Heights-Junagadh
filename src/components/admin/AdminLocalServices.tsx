@@ -155,7 +155,7 @@ export default function AdminLocalServices() {
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Mobile Number *</label>
-                <input required type="text" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d+]/g, ''))} className="w-full bg-white border border-slate-200 p-2 rounded-lg text-xs font-semibold outline-none focus:border-indigo-500" />
+                <input required type="text" maxLength={10} value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} className="w-full bg-white border border-slate-200 p-2 rounded-lg text-xs font-semibold outline-none focus:border-indigo-500" />
               </div>
             </div>
             

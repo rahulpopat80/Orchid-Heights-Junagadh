@@ -959,8 +959,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
           if (!line) continue;
           const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
           if (columns.length >= 2) {
-            const cat = columns[0].replace(/"/g, '').trim();
-            const desc = columns[1].replace(/"/g, '').trim();
+            const cat = columns[0].replace(/\D/g, '').slice(0, 10).trim();
+            const desc = columns[1].replace(/\D/g, '').slice(0, 10).trim();
             let amount = 0;
             if (columns.length >= 3) amount = parseFloat(columns[2].replace(/[^0-9.-]+/g, ""));
             if (!isNaN(amount)) newRows.push({ category: cat, description: desc, amount });
@@ -1090,9 +1090,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         // Simple comma splitting handling optional quotes
         const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
         if (columns.length >= 2) {
-          const cat = columns[0].replace(/"/g, '').trim();
-          const desc = columns[1].replace(/"/g, '').trim();
-          const amount = parseFloat(columns[2]?.replace(/"/g, '').replace(/[^0-9.]/g, '') || '0');
+          const cat = columns[0].replace(/\D/g, '').slice(0, 10).trim();
+          const desc = columns[1].replace(/\D/g, '').slice(0, 10).trim();
+          const amount = parseFloat(columns[2]?.replace(/\D/g, '').slice(0, 10).replace(/[^0-9.]/g, '') || '0');
           
           if (cat && amount > 0) {
             totalAmount += amount;
@@ -1483,15 +1483,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Primary Phone</label>
                           <input
-                            type="tel" placeholder="10-digit primary"
-                            value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                            type="tel" maxLength={10} placeholder="10-digit primary"
+                            value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                             className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:border-indigo-500"
                           /></div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Alt Contact</label>
                           <input
-                            type="tel" placeholder="Alternate phone"
-                            value={editSecondary} onChange={(e) => setEditSecondary(e.target.value.replace(/[^\d+]/g, ''))}
+                            type="tel" maxLength={10} placeholder="Alternate phone"
+                            value={editSecondary} onChange={(e) => setEditSecondary(e.target.value.replace(/\D/g, '').slice(0, 10))}
                             className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:border-indigo-500"
                           /></div></div>
                       <div className="flex gap-2 justify-end pt-2 border-t border-indigo-100">
@@ -1643,10 +1643,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             className="flex-1 bg-slate-50 border border-slate-200 rounded p-1.5 uppercase outline-none focus:border-indigo-500 text-[11px]"
                           />
                           <input
-                            type="tel"
+                            type="tel" maxLength={10}
                             placeholder="Phone (opt)"
                             value={adminNewMemberPhone}
-                            onChange={(e) => setAdminNewMemberPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                            onChange={(e) => setAdminNewMemberPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                             className="w-24 bg-slate-50 border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 text-[11px]"
                           />
                           <button
@@ -2682,18 +2682,18 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Primary Mobile Number</label>
                     <input
-                      type="tel" required placeholder="10-digit number"
+                      type="tel" maxLength={10} required placeholder="10-digit number"
                       value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                      onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                     /></div></div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Alternate Number (Optional)</label>
                   <input
-                    type="tel" placeholder="Alt phone number"
+                    type="tel" maxLength={10} placeholder="Alt phone number"
                     value={contactAltPhone}
-                    onChange={(e) => setContactAltPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                    onChange={(e) => setContactAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 
@@ -3268,18 +3268,18 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <div>
                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Primary Mobile Number</label>
                     <input
-                      type="tel" required placeholder="10-digit number"
+                      type="tel" maxLength={10} required placeholder="10-digit number"
                       value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                      onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                     /></div></div>
 
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Alternate Number (Optional)</label>
                   <input
-                    type="tel" placeholder="Alt phone number"
+                    type="tel" maxLength={10} placeholder="Alt phone number"
                     value={contactAltPhone}
-                    onChange={(e) => setContactAltPhone(e.target.value.replace(/[^\d+]/g, ''))}
+                    onChange={(e) => setContactAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 

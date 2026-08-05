@@ -912,9 +912,10 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                 <input
                   type="tel"
                   required
+                  maxLength={10}
                   placeholder="૧૦-અંકનો મોબાઇલ નંબર લખો"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d+]/g, ''))}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-lg font-bold"
                 />
               </div>
