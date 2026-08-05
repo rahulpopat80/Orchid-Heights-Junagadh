@@ -28,37 +28,50 @@ self.addEventListener('push', function(event) {
   try {
     payload = event.data.json();
   } catch (e) {
+    console.error('[SW] Push event data is not JSON:', e);
     return;
   }
 
-  // This reads the clean data payload sent from your updated api/fcm.js
   const data = payload.data || {};
-  const title = data.title || 'Orchid Heights';
-  const body = data.body || 'New notification received.';
-  const icon = data.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
+  const notification = payload.notification || {};
+  const title = notification.title || data.title;
+
+  // CRITICAL FIX: Only stop propagation if it's a real user notification.
+  // This allows Firebase's internal silent pings (token refresh) to succeed!
+  if (title || notification.body || data.body) {
+    event.stopImmediatePropagation();
+  } else {
+    return; // Let Firebase handle silent internal pings
+  }
+
+  console.log('[SW] Push received:', payload);
+  
+  const finalTitle = title || 'Orchid Heights';
+  const body = notification.body || data.body || 'New notification received.';
+  const icon = notification.icon || data.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
   const type = data.type || 'society';
   const visitorId = data.visitorId || data.id || null;
-  const tag = data.tag || visitorId || type || 'orchid_notif';
+  const tag = notification.tag || visitorId || type || 'orchid_notif';
 
   const options = {
     body: body,
     icon: icon,
-    badge: 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
+    badge: notification.badge || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png',
     tag: tag,
     data: data,
     requireInteraction: type === 'visitor' || type === 'visitor_request' || type === 'sos',
-    vibrate: [300, 100, 300]
+    vibrate: [200, 100, 200]
   };
 
   if (type === 'visitor' || type === 'visitor_request') {
     options.actions = [
-      { action: 'approve', title: '✓ Approve Entry' },
-      { action: 'reject', title: '✕ Reject' }
+      { action: 'approve', title: 'Approve Entry' },
+      { action: 'reject', title: 'Reject' }
     ];
   }
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(finalTitle, options)
   );
 });
 
