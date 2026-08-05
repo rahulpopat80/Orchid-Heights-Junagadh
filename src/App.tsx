@@ -14,7 +14,8 @@ import ResidentDashboard from './components/ResidentDashboard';
 import Directory from './components/Directory';
 import AdminPage from './components/AdminPage';
 import { api, detectServerEnvironment } from './lib/api';
-import { registerFCMToken, subscribeToForegroundMessages } from './lib/firebase';
+import { registerFCMToken, subscribeToForegroundMessages, auth } from './lib/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
 export default function App() {
@@ -75,6 +76,22 @@ export default function App() {
     });
 
     return () => unsubscribe();
+  }, []);
+
+  // Silent Login on Load: Background auth recovery
+  useEffect(() => {
+    const checkBackgroundAuth = async () => {
+      const hasSession = localStorage.getItem('orchid_gate_session') || localStorage.getItem('orchid_admin_session');
+      if (hasSession && !auth.currentUser) {
+        try {
+          await signInAnonymously(auth);
+          console.log('[Auth] Background auth recovered.');
+        } catch (error) {
+          console.warn('[Auth] Background auth recovery failed:', error);
+        }
+      }
+    };
+    checkBackgroundAuth();
   }, []);
 
   // Register service worker and aggressively request Notification permission on startup
