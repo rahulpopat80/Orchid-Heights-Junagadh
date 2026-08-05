@@ -64,12 +64,8 @@ export interface Visitor {
   qrStatus?: 'Used' | 'Pending'; // status of the QR code
   entryDate?: string; // format: DD/MM/YYYY
   entryTime?: string; // format: HH:MM:SS
-  isPreEntry?: boolean;
-  preEntryId?: string; // flag to distinguish Pre-Entry records
-  exited?: boolean;
-  entryMethod?: 'Pre-Entry' | 'Call Entry' | 'System-Auto Entry' | 'General Entry';
-  preEntryUses?: number;
-  preEntryMaxUses?: number; // flag indicating visitor has checked out / exited
+  isPreEntry?: boolean; // flag to distinguish Pre-Entry records
+  exited?: boolean; // flag indicating visitor has checked out / exited
   exitTime?: string; // ISO timestamp when visitor exited
   duration?: string; // formatted duration stayed e.g. "45 mins" or "1 hr 20 mins"
 }
@@ -81,8 +77,6 @@ export interface PreEntry {
   guestType: string;
   reason: string;
   visitorCount: number;
-  maxUses?: number;
-  uses?: number;
   photoUrl: string;
   wing: 'A' | 'B';
   flatNo: number;

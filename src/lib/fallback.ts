@@ -582,13 +582,12 @@ export function getComplaintsListLocal(): Complaint[] {
 }
 
 export function createComplaintLocal(payload: any): Complaint {
-  const { id, flatId, wing, flatNo, ownerName, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
+  const { id, flatId, wing, flatNo, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
   const complaintId = id || 'comp_' + Math.random().toString(36).substring(2, 11);
   const derivedFlatId = flatId || (wing && flatNo ? `${wing}-${flatNo}` : 'B-1104');
   const newComplaint: Complaint = {
     id: complaintId,
     flatId: derivedFlatId,
-    ownerName: ownerName,
     title: title || '',
     description: description || '',
     mediaUrl: mediaUrl || '',
@@ -754,12 +753,7 @@ export function usePreEntryLocal(id: string): boolean {
     return false;
   }
   
-  const maxUses = list[idx].maxUses || 1;
-  const currentUses = (list[idx].uses || 0) + 1;
-  list[idx].uses = currentUses;
-  if (currentUses >= maxUses) {
-    list[idx].status = 'Used';
-  }
+  list[idx].status = 'Used';
   saveLocalPreEntries(list);
   
   // Register as Entered in visitor logs
@@ -792,10 +786,6 @@ export function usePreEntryLocal(id: string): boolean {
     entryDate,
     entryTime,
     isPreEntry: true,
-    preEntryId: id,
-    entryMethod: 'Pre-Entry',
-    preEntryUses: currentUses,
-    preEntryMaxUses: maxUses,
     ipAddress: data.ipAddress,
     deviceImei: data.deviceImei
   };

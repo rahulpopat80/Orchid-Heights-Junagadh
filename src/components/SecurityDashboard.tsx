@@ -230,26 +230,12 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         return;
       }
 
-      // Check if this pass is currently active (visitor inside)
-      const isCurrentlyInside = visitors.some(v => v.preEntryId === pass.id && !v.exited && (v.status === 'Entered' || v.status === 'approved'));
-      if (isCurrentlyInside) {
-        setScanResult({
-          status: 'invalid',
-          message: 'આ પાસ વાળો વ્યક્તિ પહેલેથી જ અંદર છે! (Visitor is already inside and has not exited yet)',
-          data: pass
-        });
-        playDecisionSound('rejected');
-        return;
-      }
-
       // If valid, apply usage & save visitor log
       const ok = await api.usePreEntry(pass.id);
       if (ok) {
-        const currentUses = (pass.uses || 0) + 1;
-        const maxUses = pass.maxUses || 1;
         setScanResult({
           status: 'success',
-          message: `✅ એન્ટ્રી મંજૂર: ${pass.fullName} માટે પ્રવેશ સફળતાપૂર્વક સ્વીકારવામાં આવ્યો છે! (Access Granted) - [${currentUses}/${maxUses} Uses]`,
+          message: `✅ એન્ટ્રી મંજૂર: ${pass.fullName} માટે પ્રવેશ સફળતાપૂર્વક સ્વીકારવામાં આવ્યો છે! (Access Granted)`,
           data: { ...pass, status: 'Approved' }
         });
         playDecisionSound('approved');
@@ -567,8 +553,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
           flatOwnerName: ownerName,
           visitorCount: isDailyHelperType ? 1 : visitorCount,
           ipAddress: deviceIp,
-          deviceImei: deviceImei,
-          entryMethod: isBypassed ? 'System-Auto Entry' : 'Call Entry'
+          deviceImei: deviceImei
         };
 
         let redirectAlert = '';

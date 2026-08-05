@@ -35,7 +35,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
   const [guestType, setGuestType] = useState<string>('Guest');
   const [reason, setReason] = useState<string>('General Visit');
   const [visitorCount, setVisitorCount] = useState<number>(1);
-  const [maxUses, setMaxUses] = useState<number>(1);
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [formError, setFormError] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -163,8 +162,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
         guestType,
         reason,
         visitorCount,
-        maxUses,
-        uses: 0,
         photoUrl: photoUrl || '',
         wing,
         flatNo,
@@ -181,7 +178,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
         setMobileNumber('');
         setPhotoUrl('');
         setVisitorCount(1);
-        setMaxUses(1);
         
         // Show success modal & reload list
         setShowSuccessModal(record);
@@ -298,7 +294,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
     drawRow('Visitors Count:', String(entry.visitorCount));
     drawRow('Target Flat:', `Wing ${entry.wing} - Flat ${entry.flatNo}`);
     drawRow('Invited By:', entry.householdMemberName);
-    drawRow('Pass Uses:', `${entry.uses || 0} / ${entry.maxUses || 1}`);
 
     doc.line(10, currY - 2, 90, currY - 2);
 
@@ -400,7 +395,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
     drawRow('Visitors Count:', String(entry.visitorCount));
     drawRow('Target Flat:', `Wing ${entry.wing} - Flat ${entry.flatNo}`);
     drawRow('Invited By:', entry.householdMemberName);
-    drawRow('Pass Uses:', `${entry.uses || 0} / ${entry.maxUses || 1}`);
 
     doc.line(10, currY - 2, 90, currY - 2);
 
@@ -702,24 +696,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
               </div>
             </div>
 
-            {/* Max Uses */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Max Pass Usage (Times)
-              </label>
-              <input
-                type="number"
-                min="1"
-                max="30"
-                value={maxUses}
-                onChange={(e) => setMaxUses(Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1)))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-sm font-semibold outline-none focus:border-indigo-500 focus:bg-white"
-              />
-              <p className="text-[10px] text-slate-500 font-medium mt-1">
-                Specifies how many times this pass can be used. Max 30. Default 1.
-              </p>
-            </div>
-
             {/* Reason to Visit */}
             <div className="space-y-2">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -796,7 +772,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
             <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
               {preEntries.map((entry) => {
                 const { expired, text: countdownText } = getCountdownText(entry.expiresAt);
-                const currentStatus = entry.status === 'Used' ? 'Used' : (expired ? 'Expired' : entry.status);
+                const currentStatus = expired ? 'Expired' : entry.status;
                 
                 return (
                   <div
@@ -828,9 +804,6 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                             currentStatus === 'Used' ? 'text-emerald-600' : 'text-slate-400'
                           }`}>
                             {currentStatus === 'Pending' ? countdownText : currentStatus}
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded ml-2">
-                            Uses: {entry.uses || 0}/{entry.maxUses || 1}
                           </span>
                         </div>
                       </div>
@@ -913,15 +886,9 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                     <span className="block text-slate-400 font-medium">Approved By</span>
                     <span className="font-bold text-slate-800 truncate block">{selectedPass.householdMemberName}</span>
                   </div>
-                  <div className="col-span-2 mt-1 flex justify-between">
-                    <div>
-                      <span className="block text-slate-400 font-medium">Reason</span>
-                      <span className="font-bold text-slate-800 block">{selectedPass.reason} ({selectedPass.visitorCount} Visitors)</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="block text-slate-400 font-medium">Uses</span>
-                      <span className="font-bold text-slate-800 block">{selectedPass.uses || 0} / {selectedPass.maxUses || 1}</span>
-                    </div>
+                  <div className="col-span-2 mt-1">
+                    <span className="block text-slate-400 font-medium">Reason</span>
+                    <span className="font-bold text-slate-800 block">{selectedPass.reason} ({selectedPass.visitorCount} Visitors)</span>
                   </div>
                 </div>
 

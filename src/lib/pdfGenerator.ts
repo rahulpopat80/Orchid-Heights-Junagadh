@@ -181,12 +181,6 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
         ? `Type: ${sanitizeText(log.guestType).toUpperCase()} (PRE-ENTRY)`
         : `Type: ${sanitizeText(log.guestType).toUpperCase()}`;
       doc.text(typeStr, textX, currY);
-      
-      if (log.isPreEntry && log.preEntryMaxUses) {
-        doc.setTextColor(30, 64, 175);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Uses: ${log.preEntryUses || 1}/${log.preEntryMaxUses}`, textX + 60, currY);
-      }
 
       currY += 4.5;
       const truncatedReason = (log.reason || 'General Visit').length > 20 ? (log.reason || 'General Visit').substring(0, 20) + '...' : (log.reason || 'General Visit');
@@ -232,15 +226,7 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       doc.text(displayStatus, rightX - 12.5, currY - 0.5, { align: 'center' });
 
       // If Pre-Entry, place PRE-ENTRY badge directly beside Status badge (at rightX - 53)
-      let entryMethodBadge = log.entryMethod ? log.entryMethod.toUpperCase() : (log.isPreEntry ? 'PRE-ENTRY' : (log.respondedBy?.includes('Through Call') ? 'CALL ENTRY' : ''));
-      if (entryMethodBadge) {
-        doc.setFillColor(219, 234, 254); // Blue-100
-        doc.roundedRect(rightX - 55, currY - 6, 28, 8, 2, 2, 'F');
-        doc.setTextColor(30, 64, 175); // Blue-800
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'bold');
-        doc.text(entryMethodBadge, rightX - 41, currY - 0.5, { align: 'center' });
-      } else if (false) {
+      if (log.isPreEntry) {
         doc.setFillColor(219, 234, 254); // Blue-100
         doc.roundedRect(rightX - 53, currY - 6, 26, 8, 2, 2, 'F');
         doc.setTextColor(30, 64, 175); // Blue-800
