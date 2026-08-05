@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FlatOwner } from '../types';
 import AdminDashboard from './AdminDashboard';
-import { auth } from '../lib/firebase';
-import { signInAnonymously } from 'firebase/auth';
 
 interface AdminLoginFormProps {
   onLoginSuccess: (sess: any) => void;
@@ -16,15 +14,10 @@ function AdminLoginForm({ onLoginSuccess, onGoBack }: AdminLoginFormProps) {
   const [error, setError] = useState('');
   const [showPass, setShowPass] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     if (username.trim().toLowerCase() === 'admin' && password.trim() === 'Rahul#80810') {
-      try {
-        await signInAnonymously(auth);
-      } catch (err) {
-        console.warn('Failed background auth during admin login:', err);
-      }
       onLoginSuccess({ username: 'admin', role: 'admin' });
     } else {
       setError('Invalid admin credentials. Access Denied.');

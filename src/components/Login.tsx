@@ -7,8 +7,6 @@ import React, { useState } from 'react';
 import { Shield, Home, Key, ArrowRight, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { UserSession, DeviceInfo } from '../types';
 import { api } from '../lib/api';
-import { auth } from '../lib/firebase';
-import { signInAnonymously } from 'firebase/auth';
 
 interface LoginProps {
   onLoginSuccess: (session: UserSession) => void;
@@ -119,11 +117,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await api.login(payload);
 
       if (data.success && data.session) {
-        try {
-          await signInAnonymously(auth);
-        } catch (e) {
-          console.warn('Failed background auth during login:', e);
-        }
         onLoginSuccess(data.session);
       } else if ((data as any).code === 'DEVICE_LIMIT_EXCEEDED') {
         setIsDeviceBlocked(true);
