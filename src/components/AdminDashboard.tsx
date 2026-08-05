@@ -2153,7 +2153,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                 <div key={comp.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between text-left">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono">Flat {comp.flatId} {comp.ownerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">{comp.ownerName}</span>}</span>
+                      <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono flex items-center">
+                        Flat {comp.flatId} 
+                        {comp.ownerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">{comp.ownerName}</span>}
+                      </span>
                       <div className="flex gap-1">
                         <button
                           onClick={() => setEditingComplaint(comp)}

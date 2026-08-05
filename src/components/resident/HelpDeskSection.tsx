@@ -84,6 +84,7 @@ export default function HelpDeskSection({
 }: HelpDeskSectionProps) {
   
   // Set initial screen
+  const [showComplaintForm, setShowComplaintForm] = useState(false);
   const [activeSub, setActiveSub] = useState<'menu' | 'notices' | 'complaints' | 'financials'>(
     viewMode === 'complaints' ? 'complaints' : 'menu'
   );
@@ -419,9 +420,22 @@ export default function HelpDeskSection({
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-display font-bold text-xs uppercase tracking-wider text-slate-600">
+              Resolution Board
+            </h4>
+            <button
+              onClick={() => setShowComplaintForm(!showComplaintForm)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-xl text-[10px] uppercase tracking-wider transition cursor-pointer shadow-sm select-none"
+            >
+              {showComplaintForm ? 'Close Form' : 'File Complaint'}
+            </button>
+          </div>
+
+          <div className="space-y-6 items-start">
             {/* Form */}
-            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4 text-left">
+            {showComplaintForm && (
+            <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4 text-left">
               <div className="flex items-center space-x-1.5">
                 <AlertCircle className="w-4.5 h-4.5 text-red-500" />
                 <h4 className="font-display font-bold text-xs uppercase tracking-wider text-slate-800">File a Society Ticket</h4>
@@ -538,12 +552,10 @@ export default function HelpDeskSection({
                 </button>
               </form>
             </div>
+            )}
 
             {/* Complaints Board */}
-            <div className="lg:col-span-7 space-y-4">
-              <h4 className="font-display font-bold text-xs uppercase tracking-wider text-slate-600 border-b border-slate-100 pb-2.5">
-                Resolution Board
-              </h4>
+            <div className="space-y-4">
 
               {loadingComplaints ? (
                 <div className="py-8 text-center text-slate-400">Loading tickets...</div>
@@ -564,13 +576,10 @@ export default function HelpDeskSection({
                                 Ticket #{item.id?.substring(0, 5) || 'COMP'}
                               </span>
                               <span className="font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                                Flat {item.flatId}
+                                Flat {item.flatId} {item.ownerName && <span className="ml-1 pl-1 border-l border-slate-300 text-slate-600">{item.ownerName}</span>}
                               </span>
                             </div>
                             <h5 className="font-bold text-slate-800 uppercase leading-snug">{item.title}</h5>
-                            {item.ownerName && (
-                               <p className="text-[10px] text-slate-500 font-medium mt-0.5">Raised by: <span className="font-bold text-slate-700">{item.ownerName}</span></p>
-                            )}
                           </div>
 
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${
