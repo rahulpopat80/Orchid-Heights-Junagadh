@@ -4,6 +4,7 @@
  */
 
 import { initializeApp } from 'firebase/app';
+import { getAuth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
   getFirestore,
   collection as rawCollection,
@@ -29,6 +30,7 @@ import firebaseConfig from '../../firebase-applet-config.json';
 import * as fallback from './fallback';
 
 const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 // Initialize Firebase Messaging (only in browser with service worker support)
