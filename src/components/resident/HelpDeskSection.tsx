@@ -559,18 +559,18 @@ export default function HelpDeskSection({
                       <div key={item.id} className="border border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition space-y-3">
                         <div className="flex justify-between items-start">
                           <div>
-                            <span className="font-mono bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                              Ticket #{item.id?.substring(0, 5) || 'COMP'}
-                            </span>
-                            <span className="ml-2 font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                              Flat {item.flatId}
-                            </span>
+                            <div className="flex flex-wrap gap-2 items-center mb-1">
+                              <span className="font-mono bg-indigo-100 text-indigo-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                                Ticket #{item.id?.substring(0, 5) || 'COMP'}
+                              </span>
+                              <span className="font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
+                                Flat {item.flatId}
+                              </span>
+                            </div>
+                            <h5 className="font-bold text-slate-800 uppercase leading-snug">{item.title}</h5>
                             {item.ownerName && (
-                               <span className="ml-2 font-mono bg-indigo-50 text-indigo-700 border border-indigo-100 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                                 {item.ownerName}
-                               </span>
+                               <p className="text-[10px] text-slate-500 font-medium mt-0.5">Raised by: <span className="font-bold text-slate-700">{item.ownerName}</span></p>
                             )}
-                            <h5 className="font-bold text-slate-800 mt-1 uppercase leading-snug">{item.title}</h5>
                           </div>
 
                           <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase ${
@@ -612,10 +612,10 @@ export default function HelpDeskSection({
                         )}
 
                         {/* Process feedback notes */}
-                        {item.resolutionNotes && (
+                        {(item.resolutionNotes || item.processNotes) && (
                           <div className="bg-indigo-50 border border-indigo-100 p-3 rounded-xl text-indigo-900 space-y-1">
-                            <p className="font-bold uppercase tracking-wider text-[8px] text-indigo-600">Secretary Update:</p>
-                            <p className="font-medium text-left">{item.resolutionNotes}</p>
+                            <p className="font-bold uppercase tracking-wider text-[8px] text-indigo-600">Secretary Review & Actions Done:</p>
+                            <p className="font-medium text-left">{item.processNotes || item.resolutionNotes}</p>
                           </div>
                         )}
                       </div>
