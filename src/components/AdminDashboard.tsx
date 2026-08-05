@@ -1484,14 +1484,14 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                           <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Primary Phone</label>
                           <input
                             type="tel" placeholder="10-digit primary"
-                            value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/[^\d+]/g, ''))}
                             className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:border-indigo-500"
                           /></div>
                         <div>
                           <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Alt Contact</label>
                           <input
                             type="tel" placeholder="Alternate phone"
-                            value={editSecondary} onChange={(e) => setEditSecondary(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            value={editSecondary} onChange={(e) => setEditSecondary(e.target.value.replace(/[^\d+]/g, ''))}
                             className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:border-indigo-500"
                           /></div></div>
                       <div className="flex gap-2 justify-end pt-2 border-t border-indigo-100">
@@ -1646,7 +1646,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             type="tel"
                             placeholder="Phone (opt)"
                             value={adminNewMemberPhone}
-                            onChange={(e) => setAdminNewMemberPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                            onChange={(e) => setAdminNewMemberPhone(e.target.value.replace(/[^\d+]/g, ''))}
                             className="w-24 bg-slate-50 border border-slate-200 rounded p-1.5 outline-none focus:border-indigo-500 text-[11px]"
                           />
                           <button
@@ -2684,7 +2684,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <input
                       type="tel" required placeholder="10-digit number"
                       value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, ''))}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                     /></div></div>
 
@@ -2693,7 +2693,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <input
                     type="tel" placeholder="Alt phone number"
                     value={contactAltPhone}
-                    onChange={(e) => setContactAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) => setContactAltPhone(e.target.value.replace(/[^\d+]/g, ''))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 
@@ -3270,7 +3270,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <input
                       type="tel" required placeholder="10-digit number"
                       value={contactPhone}
-                      onChange={(e) => setContactPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                      onChange={(e) => setContactPhone(e.target.value.replace(/[^\d+]/g, ''))}
                       className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                     /></div></div>
 
@@ -3279,7 +3279,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                   <input
                     type="tel" placeholder="Alt phone number"
                     value={contactAltPhone}
-                    onChange={(e) => setContactAltPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onChange={(e) => setContactAltPhone(e.target.value.replace(/[^\d+]/g, ''))}
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs outline-none font-semibold focus:bg-white"
                   /></div>
 

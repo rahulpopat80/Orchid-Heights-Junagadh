@@ -914,7 +914,7 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                   required
                   placeholder="૧૦-અંકનો મોબાઇલ નંબર લખો"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d+]/g, ''))}
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl py-3 px-4 text-lg font-bold"
                 />
               </div>

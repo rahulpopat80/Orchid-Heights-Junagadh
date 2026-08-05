@@ -656,10 +656,9 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
                 <input
                   type="tel"
                   required
-                  maxLength={10}
                   placeholder="e.g. 9898180810"
                   value={mobileNumber}
-                  onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onChange={(e) => setMobileNumber(e.target.value.replace(/[^\d+]/g, ''))}
                   className="w-full bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:bg-white rounded-xl py-3 pl-10 pr-4 text-sm font-semibold outline-none transition"
                 />
               </div>
