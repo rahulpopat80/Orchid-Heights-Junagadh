@@ -21,7 +21,7 @@ import {
   ChevronRight,
   ArrowLeft,
   Timer,
-  Camera
+  Camera, Phone
 } from 'lucide-react';
 import { AmenityBooking, GymTheatreLog } from '../../types';
 import { db, collection, onSnapshot, doc, setDoc, deleteDoc, createSocietyNotification } from '../../lib/firebase';
@@ -430,10 +430,16 @@ export default function AmenitiesSection({
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end">
+                    <div className="flex flex-col items-end gap-1.5">
                       <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">
                         Duration: {duration}
                       </span>
+                      {log.memberPhone && (
+                        <a href={`tel:${log.memberPhone}`} className="text-[10px] font-bold text-slate-600 bg-white hover:bg-slate-50 hover:text-slate-900 border border-slate-200 px-2 py-1 rounded transition flex items-center space-x-1 cursor-pointer">
+                          <Phone className="w-3 h-3 text-emerald-600" />
+                          <span>Call</span>
+                        </a>
+                      )}
                     </div>
                   </div>
                 );
