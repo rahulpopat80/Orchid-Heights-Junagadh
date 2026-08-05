@@ -60,11 +60,26 @@ export default async function handler(req, res) {
       fcmPayload = { message: payload };
     }
 
-    // --- ADDED: FORCE HIGH PRIORITY TO WAKE UP SLEEPING DEVICES ---
+    // --- 1. CONVERT TO DATA-ONLY MESSAGE TO BYPASS DOZE MODE ---
+    if (fcmPayload.message.notification) {
+      fcmPayload.message.data = fcmPayload.message.data || {};
+      fcmPayload.message.data.title = fcmPayload.message.data.title || fcmPayload.message.notification.title;
+      fcmPayload.message.data.body = fcmPayload.message.data.body || fcmPayload.message.notification.body;
+      fcmPayload.message.data.icon = fcmPayload.message.data.icon || fcmPayload.message.notification.icon || 'https://i.ibb.co/zT5tpcdY/1000296229-1.png';
+      
+      // Deleting this forces the Service Worker to wake up and handle it manually
+      delete fcmPayload.message.notification;
+    }
+
+    // --- 2. SET STRICT WEBPUSH HEADERS FOR BACKGROUND DELIVERY ---
     fcmPayload.message.android = fcmPayload.message.android || { priority: "high" };
-    fcmPayload.message.webpush = fcmPayload.message.webpush || { headers: { Urgency: "high" } };
+    fcmPayload.message.webpush = fcmPayload.message.webpush || { 
+      headers: { 
+        "urgency": "high",
+        "TTL": "86400"
+      } 
+    };
     fcmPayload.message.apns = fcmPayload.message.apns || { payload: { aps: { 'content-available': 1 } } };
-    // --------------------------------------------------------------
 
     const response = await fetch(
       `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
