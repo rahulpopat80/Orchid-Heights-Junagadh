@@ -34,6 +34,7 @@ import {
   updateComplaintStatus,
   deleteComplaint,
   getFinancialReportsList,
+  subscribeToFinancialReports,
   createFinancialReport,
   deleteFinancialReport,
   getFlatPasswords,
@@ -248,6 +249,9 @@ export const api = {
   },
 
   // Financial Reports
+  subscribeToFinancialReports: (onUpdate: (reports: FinancialReport[]) => void) => {
+    return subscribeToFinancialReports(onUpdate);
+  },
   getFinancialReports: async (): Promise<FinancialReport[]> => {
     return getFinancialReportsList();
   },

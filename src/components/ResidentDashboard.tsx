@@ -1068,8 +1068,18 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
       Notification.requestPermission().catch((err) => console.warn('Notification permission rejected:', err));
     }
     fetchComplaints();
-    fetchFinancials();
+    
+    setLoadingFinancials(true);
+    const unsubFinancials = api.subscribeToFinancialReports((list) => {
+      setFinancials(list);
+      setLoadingFinancials(false);
+    });
+    
     fetchContacts();
+    
+    return () => {
+      if (unsubFinancials) unsubFinancials();
+    };
   }, []);
 
   // Initialize form states from loaded database

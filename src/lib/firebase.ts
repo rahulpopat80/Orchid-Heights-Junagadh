@@ -1221,6 +1221,42 @@ export async function deleteComplaint(complaintId: string): Promise<boolean> {
   }
 }
 
+
+export function subscribeToFinancialReports(onUpdate: (reports: FinancialReport[]) => void) {
+  if (isQuotaExceeded) {
+    onUpdate(fallback.getFinancialReportsListLocal());
+    return () => {};
+  }
+  try {
+    const unsubscribe = rawOnSnapshot(
+      rawCollection(db, 'financial_reports'),
+      (snapshot) => {
+        const reports: FinancialReport[] = [];
+        snapshot.forEach((docSnap) => {
+          reports.push(docSnap.data() as FinancialReport);
+        });
+        reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        onUpdate(reports);
+      },
+      (error) => {
+        if (isQuotaError(error)) {
+          markQuotaExceeded();
+          onUpdate(fallback.getFinancialReportsListLocal());
+        } else {
+          console.error("Firestore Error in subscribeToFinancialReports:", error);
+        }
+      }
+    );
+    return unsubscribe;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      onUpdate(fallback.getFinancialReportsListLocal());
+    }
+    return () => {};
+  }
+}
+
 export async function getFinancialReportsList(): Promise<FinancialReport[]> {
   if (isQuotaExceeded) return fallback.getFinancialReportsListLocal();
   try {
