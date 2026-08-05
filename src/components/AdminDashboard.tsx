@@ -898,6 +898,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       await api.createComplaint({
         id: editingComplaint.id,
         flatId: editingComplaint.flatId,
+        ownerName: editingComplaint.ownerName,
         title: editingComplaint.title,
         description: editingComplaint.description,
         mediaUrl: editingComplaint.mediaUrl || '',
@@ -907,7 +908,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         createdAt: editingComplaint.createdAt,
         resolvedAt: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedAt || new Date().toISOString()) : null,
         resolvedBy: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedBy || 'Secretary Rahul Popat') : null,
-        processNotes: editingComplaint.processNotes || ''
+        processNotes: editingComplaint.processNotes || '',
+        attachments: editingComplaint.attachments || []
       });
 
       if (editingComplaint.status === 'resolved') {
@@ -2155,7 +2157,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono flex items-center">
                         Flat {comp.flatId} 
-                        {comp.ownerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">{comp.ownerName}</span>}
+                        {comp.ownerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">By: {comp.ownerName}</span>}
                       </span>
                       <div className="flex gap-1">
                         <button

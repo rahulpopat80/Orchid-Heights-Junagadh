@@ -727,8 +727,15 @@ export async function usePreEntry(id: string): Promise<boolean> {
       return false;
     }
     
-    // Update status to Used
-    await updateDoc(docRef, { status: 'Used' });
+    // Update status to Used if maxUses reached
+    const maxUses = data.maxUses || 1;
+    const currentUses = (data.uses || 0) + 1;
+    
+    if (currentUses >= maxUses) {
+      await updateDoc(docRef, { status: 'Used', uses: currentUses });
+    } else {
+      await updateDoc(docRef, { uses: currentUses });
+    }
     
     // Generate a new Visitor log automatically
     const now = new Date();
@@ -760,6 +767,10 @@ export async function usePreEntry(id: string): Promise<boolean> {
       entryDate,
       entryTime,
       isPreEntry: true,
+      preEntryId: id,
+      entryMethod: 'Pre-Entry',
+      preEntryUses: currentUses,
+      preEntryMaxUses: maxUses,
       ipAddress: data.ipAddress,
       deviceImei: data.deviceImei
     };

@@ -42,11 +42,13 @@ export default function VisitorsSection({
   const [searchStartTime, setSearchStartTime] = useState('');
   const [searchEndTime, setSearchEndTime] = useState('');
   const [searchType, setSearchType] = useState('');
+  const [searchEntryMethod, setSearchEntryMethod] = useState('');
 
   const filteredHistory = guestHistory.filter(log => {
     let match = true;
     if (searchName && !log.fullName.toLowerCase().includes(searchName.toLowerCase())) match = false;
     if (searchType && log.guestType.toLowerCase() !== searchType.toLowerCase()) match = false;
+    if (searchEntryMethod && log.entryMethod !== searchEntryMethod) match = false;
     if (searchDate) {
       const logDate = new Date(log.requestTime).toISOString().split('T')[0];
       if (logDate !== searchDate) match = false;
@@ -237,6 +239,20 @@ export default function VisitorsSection({
               className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
             />
           </div>
+          <div className="relative w-full md:w-auto">
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Entry Method</label>
+            <select
+              value={searchEntryMethod}
+              onChange={(e) => setSearchEntryMethod(e.target.value)}
+              className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
+            >
+              <option value="">All Entries</option>
+              <option value="Pre-Entry">Pre-Entry</option>
+              <option value="Call Entry">Call Entry</option>
+              <option value="System-Auto Entry">System-Auto Entry</option>
+              <option value="General Entry">General Entry</option>
+            </select>
+          </div>
           <div className="relative w-full md:w-auto col-span-2 sm:col-span-1">
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">સમયગાળો (Time Duration)</label>
             <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg py-1 px-2 focus-within:border-indigo-500 transition">
@@ -311,7 +327,14 @@ export default function VisitorsSection({
                     <img src={log.photoUrl} alt={log.fullName} className="w-11 h-11 rounded-lg object-cover border bg-slate-200 shrink-0" referrerPolicy="no-referrer" />
                     <div className="flex-1 min-w-0">
                       <span className="text-xs font-bold text-slate-800 truncate uppercase block">{log.fullName}</span>
-                      <p className="text-[10px] text-slate-500 mt-0.5 font-mono">{log.mobileNumber} • {log.guestType}</p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <p className="text-[10px] text-slate-500 font-mono">{log.mobileNumber} • {log.guestType}</p>
+                        {log.entryMethod && (
+                          <span className="text-[8px] px-1.5 py-0.5 rounded-sm font-bold uppercase tracking-wide bg-indigo-100 text-indigo-700">
+                            {log.entryMethod}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
