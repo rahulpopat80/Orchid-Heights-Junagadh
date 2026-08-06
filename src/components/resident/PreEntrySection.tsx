@@ -772,7 +772,7 @@ export default function PreEntrySection({ wing, flatNo, session }: PreEntrySecti
             <div className="space-y-4 max-h-[550px] overflow-y-auto pr-1">
               {preEntries.map((entry) => {
                 const { expired, text: countdownText } = getCountdownText(entry.expiresAt);
-                const currentStatus = expired ? 'Expired' : entry.status;
+                const currentStatus = entry.status === 'Used' ? 'Used' : (expired ? 'Expired' : entry.status);
                 
                 return (
                   <div

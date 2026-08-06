@@ -197,19 +197,6 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         return;
       }
 
-      const expiresDate = new Date(pass.expiresAt);
-      const isExpired = new Date() > expiresDate;
-
-      if (isExpired) {
-        setScanResult({
-          status: 'expired',
-          message: `આ પાસની મર્યાદા પૂરી થઈ ગઈ છે! (Pass Expired) સમય: ${expiresDate.toLocaleString('en-IN')}`,
-          data: pass
-        });
-        playDecisionSound('rejected');
-        return;
-      }
-
       if (pass.status === 'Used') {
         setScanResult({
           status: 'used',
@@ -220,10 +207,13 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
         return;
       }
 
-      if (pass.status === 'Expired') {
+      const expiresDate = new Date(pass.expiresAt);
+      const isExpired = new Date() > expiresDate;
+
+      if (isExpired || pass.status === 'Expired') {
         setScanResult({
           status: 'expired',
-          message: `આ પાસની સમય મર્યાદા પૂરી થઈ ગઈ છે! (Pass expired)`,
+          message: `આ પાસની મર્યાદા પૂરી થઈ ગઈ છે! (Pass Expired) સમય: ${expiresDate.toLocaleString('en-IN')}`,
           data: pass
         });
         playDecisionSound('rejected');
