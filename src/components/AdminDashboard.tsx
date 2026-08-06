@@ -898,6 +898,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       await api.createComplaint({
         id: editingComplaint.id,
         flatId: editingComplaint.flatId,
+        ownerName: editingComplaint.ownerName,
         title: editingComplaint.title,
         description: editingComplaint.description,
         mediaUrl: editingComplaint.mediaUrl || '',
@@ -907,7 +908,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         createdAt: editingComplaint.createdAt,
         resolvedAt: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedAt || new Date().toISOString()) : null,
         resolvedBy: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedBy || 'Secretary Rahul Popat') : null,
-        processNotes: editingComplaint.processNotes || ''
+        processNotes: editingComplaint.processNotes || '',
+        attachments: editingComplaint.attachments || []
       });
 
       if (editingComplaint.status === 'resolved') {
