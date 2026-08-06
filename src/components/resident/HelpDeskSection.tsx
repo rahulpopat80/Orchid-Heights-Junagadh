@@ -576,7 +576,7 @@ export default function HelpDeskSection({
                                 Ticket #{item.id?.substring(0, 5) || 'COMP'}
                               </span>
                               <span className="font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                                Flat {item.flatId} {item.ownerName && <span className="ml-1 pl-1 border-l border-slate-300 text-slate-600">{item.ownerName}</span>}
+                                Flat {item.flatId} {(item.ownerName || ownerName) && <span className="ml-1 pl-1 border-l border-slate-300 text-slate-600">{item.ownerName || ownerName}</span>}
                               </span>
                             </div>
                             <h5 className="font-bold text-slate-800 uppercase leading-snug">{item.title}</h5>

@@ -2149,14 +2149,22 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
             {/* List of complaints */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {complaints.map((comp) => (
+              {complaints.map((comp) => {
+                const flatOwner = owners.find(o => `${o.wing}-${o.flatNo}` === comp.flatId);
+                const finalOwnerName = comp.ownerName || (flatOwner ? flatOwner.nameEn : null);
+                return (
                 <div key={comp.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between text-left">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
-                      <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono flex items-center">
-                        Flat {comp.flatId} 
-                        {comp.ownerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">{comp.ownerName}</span>}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2 py-0.5 rounded font-black font-mono uppercase">
+                          Ticket #{comp.id?.substring(0, 5) || 'COMP'}
+                        </span>
+                        <span className="text-[10px] bg-slate-100 border border-slate-200 px-2 py-0.5 rounded font-black font-mono flex items-center uppercase">
+                          Flat {comp.flatId} 
+                          {finalOwnerName && <span className="ml-2 text-indigo-700 border-l border-slate-300 pl-2">{finalOwnerName}</span>}
+                        </span>
+                      </div>
                       <div className="flex gap-1">
                         <button
                           onClick={() => setEditingComplaint(comp)}
@@ -2228,7 +2236,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       {comp.status}
                     </span>
                     <span>Created: {new Date(comp.createdAt).toLocaleDateString('en-IN')}</span></div></div>
-              ))}
+                );
+              })}
 
               {complaints.length === 0 && (
                 <div className="col-span-full text-center py-16 bg-white border border-dashed border-slate-200 rounded-2xl text-slate-400">
