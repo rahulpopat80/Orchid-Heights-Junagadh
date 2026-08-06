@@ -122,6 +122,7 @@ export default function HelpDeskSection({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [compAttachments, setCompAttachments] = useState<Array<{ url: string; name: string; type: string }>>([]);
+  const [compRaisedBy, setCompRaisedBy] = useState<string>(ownerName || '');
 
   const addCompAttachment = (file: File) => {
     if (!file) return;
@@ -162,7 +163,7 @@ export default function HelpDeskSection({
         description: compDesc.trim(),
         wing,
         flatNo,
-        ownerName,
+        ownerName: compRaisedBy.trim() || ownerName,
         attachments: compAttachments
       };
 
@@ -445,6 +446,18 @@ export default function HelpDeskSection({
               {compSuccess && <div className="bg-emerald-50 text-emerald-700 p-3 rounded-lg text-xs border border-emerald-100">{compSuccess}</div>}
 
               <form onSubmit={handleCreateComplaint} className="space-y-4 text-xs font-medium">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Ticket Raised By (Name)</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Enter your name"
+                    value={compRaisedBy}
+                    onChange={(e) => setCompRaisedBy(e.target.value)}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2.5 text-xs font-semibold outline-none focus:border-indigo-500 transition"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Ticket Title</label>
                   <input
