@@ -603,11 +603,26 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const handleDownloadDeviceHistory = async () => {
     if (!selectedFlat) return;
     
-    const allSessions = selectedFlat.deviceSessions || [];
+    const historicalSessions = selectedFlat.deviceSessions || [];
+    const activeDevices = selectedFlat.devices || [];
+    
+    // Create a copy to merge active and history
+    const allSessions = [...historicalSessions];
+    
+    // Add any active devices that aren't already represented in the history
+    activeDevices.forEach(activeDevice => {
+      const exists = allSessions.some(
+        s => s.deviceId === activeDevice.deviceId && s.lastLogin === activeDevice.lastLogin
+      );
+      if (!exists) {
+        allSessions.push(activeDevice);
+      }
+    });
+
     const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
     
     // Filter sessions to last 3 months and sort descending by login time
-    const sortedSessions = [...allSessions]
+    const sortedSessions = allSessions
       .filter(s => s.lastLogin >= threeMonthsAgo)
       .sort((a, b) => new Date(b.lastLogin).getTime() - new Date(a.lastLogin).getTime());
 

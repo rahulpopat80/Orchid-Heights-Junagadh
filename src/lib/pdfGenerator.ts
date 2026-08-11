@@ -678,42 +678,31 @@ export const generateDeviceHistoryPDF = async (sessions: any[], title: string, s
       
       const phoneDisplay = session.phoneNumber ? `(${session.phoneNumber})` : '';
       const name = session.memberName || ownerName;
-      doc.text(`${sanitizeText(name).toUpperCase()} ${phoneDisplay}`, textX, currY);
-
-      currY += 8;
-      doc.setTextColor(71, 85, 105);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${session.os || 'Unknown OS'} • ${session.browser || 'Unknown Browser'} • ${deviceType}`, textX, currY);
+      const isMobile = session.os === 'Android' || session.os === 'iOS';
+      const icon = isMobile ? 'Mobile: ' : 'PC: ';
       
-      currY += 8;
+      doc.text(`${icon}${sanitizeText(name).toUpperCase()} ${phoneDisplay}`, textX, currY);
+
+      currY += 7;
+      doc.setTextColor(71, 85, 105);
       doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${session.os || 'Unknown OS'} • ${session.browser || 'Unknown Browser'} • ${isMobile ? 'Phone' : 'Laptop'}`, textX, currY);
+      
+      currY += 6;
+      doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text(`IMEI: ${session.imei || 'N/A'}`, textX, currY);
       
-      currY += 6;
+      currY += 5;
       doc.text(`IP: ${session.ipAddress || 'Unknown'}`, textX, currY);
 
-      const rightX = pageWidth - margin - 5;
-      currY = startY + 12;
-      
-      doc.setTextColor(100, 116, 139);
-      doc.setFontSize(9);
-      doc.text('Login:', rightX, currY, { align: 'right' });
       currY += 5;
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
-      doc.text(new Date(session.lastLogin).toLocaleString('en-IN'), rightX, currY, { align: 'right' });
+      doc.text(`Login: ${new Date(session.lastLogin).toLocaleString('en-IN')}`, textX, currY);
       
-      currY += 8;
-      doc.setTextColor(100, 116, 139);
-      doc.setFont('helvetica', 'normal');
-      doc.text('Logout:', rightX, currY, { align: 'right' });
       currY += 5;
-      doc.setTextColor(15, 23, 42);
-      doc.setFont('helvetica', 'bold');
       const logoutText = session.logoutTime ? new Date(session.logoutTime).toLocaleString('en-IN') : '........';
-      doc.text(logoutText, rightX, currY, { align: 'right' });
+      doc.text(`Logout: ${logoutText}`, textX, currY);
 
       startY += cardHeight + cardSpacing;
       currentLogIndex++;
