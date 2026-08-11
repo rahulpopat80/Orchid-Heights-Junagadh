@@ -199,6 +199,32 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   // 2. Complaint State
   const [editingComplaint, setEditingComplaint] = useState<Complaint | null>(null);
   const [complaintSuccess, setComplaintSuccess] = useState<string>('');
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [commentSubmitting, setCommentSubmitting] = useState<string | null>(null);
+
+  const toggleComments = (id: string) => {
+    setExpandedComments(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePostComment = async (e: React.FormEvent, complaintId: string) => {
+    e.preventDefault();
+    const text = commentTexts[complaintId]?.trim();
+    if (!text) return;
+
+    setCommentSubmitting(complaintId);
+    try {
+      const success = await api.addComplaintComment(complaintId, text, 'Admin (Secretary)', 'Admin');
+      if (success) {
+        setCommentTexts(prev => ({ ...prev, [complaintId]: '' }));
+        loadAdminData(); // Fetch the latest data to show comments
+      }
+    } catch (err) {
+      console.error('Failed to post comment', err);
+    } finally {
+      setCommentSubmitting(null);
+    }
+  };
 
   // 3. Financial Ledger State
   const [showFinanceForm, setShowFinanceForm] = useState<boolean>(false);
@@ -909,7 +935,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         resolvedAt: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedAt || new Date().toISOString()) : null,
         resolvedBy: editingComplaint.status === 'resolved' ? (editingComplaint.resolvedBy || 'Secretary Rahul Popat') : null,
         processNotes: editingComplaint.processNotes || '',
-        attachments: editingComplaint.attachments || []
+        attachments: editingComplaint.attachments || [],
+        comments: editingComplaint.comments || []
       });
 
       if (editingComplaint.status === 'resolved') {
@@ -2153,7 +2180,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {complaints.map((comp) => {
                 const flatOwner = owners.find(o => `${o.wing}-${o.flatNo}` === comp.flatId);
-                const finalOwnerName = comp.ownerName || (flatOwner ? flatOwner.nameEn : null);
+                const finalOwnerName = comp.ownerName;
                 return (
                 <div key={comp.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4 flex flex-col justify-between text-left">
                   <div className="space-y-3">
@@ -2228,7 +2255,51 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       <div className="bg-slate-50 border border-slate-150 rounded-xl p-2.5 text-[10px] text-slate-600 leading-normal">
                         <p className="font-bold text-slate-400 uppercase text-[9px] tracking-wider mb-0.5">Secretary Review & Actions Done:</p>
                         <p className="font-medium whitespace-pre-line text-slate-700">{comp.processNotes}</p></div>
-                    )}</div>
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 pt-3">
+                    <button
+                      onClick={() => toggleComments(comp.id)}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider select-none flex items-center space-x-1 mb-2"
+                    >
+                      <span>💬 {expandedComments[comp.id] ? 'Hide Comments' : `Comments (${comp.comments?.length || 0})`}</span>
+                    </button>
+
+                    {expandedComments[comp.id] && (
+                      <div className="space-y-3">
+                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                          {comp.comments?.length ? comp.comments.map((cmt: any) => (
+                            <div key={cmt.id} className="bg-slate-50 p-2 rounded-lg border border-slate-200">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-bold text-[10px] text-slate-800">{cmt.authorName} {cmt.authorFlat && cmt.authorFlat !== 'Admin' && `(Flat ${cmt.authorFlat})`}</span>
+                                <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
+                              </div>
+                              <p className="text-slate-600 text-xs">{cmt.text}</p>
+                            </div>
+                          )) : (
+                            <p className="text-xs text-slate-400 italic">No comments yet.</p>
+                          )}
+                        </div>
+                        <form onSubmit={(e) => handlePostComment(e, comp.id)} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={commentTexts[comp.id] || ''}
+                            onChange={(e) => setCommentTexts(prev => ({ ...prev, [comp.id]: e.target.value }))}
+                            placeholder="Add a comment..."
+                            className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none"
+                          />
+                          <button
+                            type="submit"
+                            disabled={!commentTexts[comp.id]?.trim() || commentSubmitting === comp.id}
+                            className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                          >
+                            {commentSubmitting === comp.id ? '...' : 'Post'}
+                          </button>
+                        </form>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="border-t border-slate-100 pt-3 flex justify-between items-center text-[10px] text-slate-400 font-mono">
                     <span className={`uppercase font-black border px-2 py-0.5 rounded-full ${
@@ -2809,7 +2880,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 {log.memberName || 'Member'} • {log.memberPhone}
                               </p>
                             )}
-                            <p className="text-[10px] text-slate-400 font-mono">In: {new Date(log.checkInTime).toLocaleTimeString('en-IN')}</p></div>
+                            <p className="text-[10px] text-slate-400 font-mono">
+                              In: {new Date(log.checkInTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} 
+                              {log.checkOutTime && ` • Out: ${new Date(log.checkOutTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                            </p></div>
                           <button
                             onClick={() => handleAdminCheckOutLog(log.id)}
                             className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-[9px] uppercase transition cursor-pointer shadow-sm"
@@ -2842,8 +2916,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 {log.memberName || 'Member'} • {log.memberPhone}
                               </p>
                             )}
-                            <p className="text-[9px] text-slate-400 font-mono">
-                              In: {new Date(log.checkInTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} • Out: {new Date(log.checkOutTime!).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            <p className="text-[9px] text-slate-400 font-mono leading-relaxed mt-0.5">
+                              In: {new Date(log.checkInTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })} <br/>
+                              Out: {new Date(log.checkOutTime!).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             </p>
                             <span className="inline-block text-[8px] bg-slate-250 text-slate-800 border border-slate-350 px-1.5 py-0.5 rounded font-mono font-bold uppercase leading-none">
                               {formatDuration(log.checkInTime, log.checkOutTime!)}
@@ -2889,10 +2964,15 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       No movies currently scheduled.</div>
                   ) : (
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                      {moviesSchedule.map((movie) => (
+                      {moviesSchedule.map((movie) => {
+                        const isWatched = movie.date ? new Date(movie.date + 'T23:59:59').getTime() < new Date().getTime() : false;
+                        return (
                         <div key={movie.id} className="bg-slate-50 border border-slate-150 p-3 rounded-xl flex items-center justify-between text-xs gap-3 font-medium">
                           <div className="text-left space-y-1 min-w-0 flex-1">
-                            <h5 className="font-bold text-slate-800 uppercase">{movie.title}</h5>
+                            <h5 className="font-bold text-slate-800 uppercase flex items-center gap-2">
+                              {movie.title}
+                              {isWatched && <span className="bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[8px] tracking-wider uppercase font-black">Watched</span>}
+                            </h5>
                             <p className="text-[10px] text-slate-500 font-medium">Day: {movie.day} • {movie.date}</p>
                             <p className="text-[10px] text-slate-500 font-mono">Time: {movie.timing} • Length: {movie.length}</p>
                             {movie.trailerUrl && (
@@ -2930,7 +3010,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             >
                               ✕
                             </button></div></div>
-                      ))}</div>
+                      );
+                    })}</div>
                   )}</div></div></div></div>
         )}
 

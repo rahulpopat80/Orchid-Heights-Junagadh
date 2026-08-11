@@ -1155,13 +1155,14 @@ export async function getComplaintsList(): Promise<Complaint[]> {
 
 export async function createComplaint(payload: any): Promise<Complaint> {
   if (isQuotaExceeded) return fallback.createComplaintLocal(payload);
-  const { id, flatId, wing, flatNo, ownerName, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
+  const { id, flatId, wing, flatNo, ownerName, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments, comments } = payload;
   const complaintId = id || 'comp_' + Math.random().toString(36).substring(2, 11);
   const derivedFlatId = flatId || (wing && flatNo ? `${wing}-${flatNo}` : 'B-1104');
   const newComplaint: Complaint = {
     id: complaintId, flatId: derivedFlatId, ownerName: ownerName, title: title || '', description: description || '', mediaUrl: mediaUrl || '',
     mediaName: mediaName || '', mediaType: mediaType || '', status: status || 'open', createdAt: createdAt || new Date().toISOString(),
-    resolvedAt: resolvedAt || null, resolvedBy: resolvedBy || null, processNotes: processNotes || '', attachments: attachments || []
+    resolvedAt: resolvedAt || null, resolvedBy: resolvedBy || null, processNotes: processNotes || '', attachments: attachments || [],
+    comments: comments || []
   };
 
   try {
@@ -1202,6 +1203,28 @@ export async function updateComplaintStatus(
     if (isQuotaError(error)) {
       markQuotaExceeded();
       return fallback.updateComplaintStatusLocal(complaintId, status, resolvedBy, processNotes);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
+export async function addComplaintComment(complaintId: string, comment: any): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.addComplaintCommentLocal(complaintId, comment);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      const comments = data.comments || [];
+      comments.push(comment);
+      await setDoc(docRef, { ...data, comments });
+      return true;
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.addComplaintCommentLocal(complaintId, comment);
     }
     handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
   }

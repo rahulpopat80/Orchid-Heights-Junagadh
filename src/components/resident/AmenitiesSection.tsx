@@ -392,12 +392,12 @@ export default function AmenitiesSection({
           <div className="space-y-3 mt-4">
             {gymLogs15Days.length > 0 ? (
               gymLogs15Days.filter(log => log.amenity === 'Gym').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(log => {
-                const checkIn = new Date(log.createdAt).toLocaleString('en-IN', {
-                  day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-                });
-                const checkOut = log.checkOutTime 
-                  ? new Date(log.checkOutTime).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' }) 
-                  : 'Active';
+                  const checkIn = new Date(log.checkInTime || log.createdAt).toLocaleString('en-IN', {
+                    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                  });
+                  const checkOut = log.checkOutTime 
+                    ? new Date(log.checkOutTime).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) 
+                    : 'Active';
                   
                 let duration = '0 mins';
                 if (log.durationMinutes !== undefined) {
@@ -659,12 +659,13 @@ export default function AmenitiesSection({
           {movies.length === 0 ? (
             <div className="py-12 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 bg-slate-50/20">
               <Film className="w-8 h-8 text-slate-200 mx-auto mb-2 animate-pulse" />
-              <p className="text-xs font-semibold">No active upcoming screenings. Schedule a movie above!</p>
+              <p className="text-xs font-semibold">No recent or upcoming screenings. Schedule a movie above!</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {movies.map((movie) => {
                 const isMyPosting = movie.postedBy === myFlatId;
+                const isWatched = movie.date ? new Date(movie.date + 'T23:59:59').getTime() < new Date().getTime() : false;
 
                 return (
                   <div key={movie.id} className="bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between hover:border-slate-300 transition group relative">
@@ -672,17 +673,22 @@ export default function AmenitiesSection({
                     {/* Media render */}
                     <div className="relative h-44 w-full bg-slate-900 border-b border-slate-100 flex items-center justify-center overflow-hidden">
                       {movie.posterUrl?.startsWith('file_') ? (
-                        <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} variant="raw" className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-102" />
+                        <ChunkedMedia fileId={movie.posterUrl} type="image/jpeg" fallbackName={movie.title} variant="raw" className={`max-h-full max-w-full object-contain transition duration-300 group-hover:scale-102 ${isWatched ? 'opacity-50 grayscale' : ''}`} />
                       ) : (
                         <img
                           src={movie.posterUrl || 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=300&q=80'}
-                          className="max-h-full max-w-full object-contain transition duration-300 group-hover:scale-102"
+                          className={`max-h-full max-w-full object-contain transition duration-300 group-hover:scale-102 ${isWatched ? 'opacity-50 grayscale' : ''}`}
                           alt={movie.title}
                           referrerPolicy="no-referrer"
                         />
                       )}
                       
-                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                      <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 flex-wrap">
+                        {isWatched && (
+                          <span className="text-[8px] bg-slate-800/80 backdrop-blur-xs text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider font-mono border border-slate-700">
+                            ✓ WATCHED
+                          </span>
+                        )}
                         <span className="text-[8px] bg-slate-950/80 backdrop-blur-xs text-white font-black px-1.5 py-0.5 rounded uppercase tracking-wider font-mono border border-slate-800">
                           {movie.rating}
                         </span>

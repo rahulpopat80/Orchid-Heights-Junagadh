@@ -32,6 +32,7 @@ import {
   getComplaintsList,
   createComplaint,
   updateComplaintStatus,
+  addComplaintComment,
   deleteComplaint,
   getFinancialReportsList,
   subscribeToFinancialReports,
@@ -243,6 +244,15 @@ export const api = {
   },
   updateComplaintStatus: async (id: string, status: 'open' | 'in-progress' | 'resolved', resolvedBy?: string): Promise<boolean> => {
     return updateComplaintStatus(id, status, resolvedBy);
+  },
+  addComplaintComment: async (id: string, text: string, authorName: string, authorFlat: string): Promise<boolean> => {
+    return addComplaintComment(id, {
+      id: 'cmt_' + Math.random().toString(36).substring(2, 11),
+      text,
+      authorName,
+      authorFlat,
+      createdAt: new Date().toISOString()
+    });
   },
   deleteComplaint: async (id: string): Promise<boolean> => {
     return deleteComplaint(id);

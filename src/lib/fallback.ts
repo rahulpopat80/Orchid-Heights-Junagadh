@@ -582,12 +582,13 @@ export function getComplaintsListLocal(): Complaint[] {
 }
 
 export function createComplaintLocal(payload: any): Complaint {
-  const { id, flatId, wing, flatNo, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments } = payload;
+  const { id, flatId, wing, flatNo, title, description, mediaUrl, mediaName, mediaType, status, createdAt, resolvedAt, resolvedBy, processNotes, attachments, comments, ownerName } = payload;
   const complaintId = id || 'comp_' + Math.random().toString(36).substring(2, 11);
   const derivedFlatId = flatId || (wing && flatNo ? `${wing}-${flatNo}` : 'B-1104');
   const newComplaint: Complaint = {
     id: complaintId,
     flatId: derivedFlatId,
+    ownerName: ownerName,
     title: title || '',
     description: description || '',
     mediaUrl: mediaUrl || '',
@@ -598,7 +599,8 @@ export function createComplaintLocal(payload: any): Complaint {
     resolvedAt: resolvedAt || null,
     resolvedBy: resolvedBy || null,
     processNotes: processNotes || '',
-    attachments: attachments || []
+    attachments: attachments || [],
+    comments: comments || []
   };
   const complaints = getLocalComplaints();
   complaints.push(newComplaint);
@@ -623,6 +625,18 @@ export function updateComplaintStatusLocal(
       resolvedBy: status === 'resolved' ? resolvedBy || 'Secretary' : null,
       processNotes: processNotes !== undefined ? processNotes : (data.processNotes || '')
     };
+    saveLocalComplaints(complaints);
+    return true;
+  }
+  return false;
+}
+
+export function addComplaintCommentLocal(complaintId: string, comment: any): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1) {
+    if (!complaints[index].comments) complaints[index].comments = [];
+    complaints[index].comments!.push(comment);
     saveLocalComplaints(complaints);
     return true;
   }

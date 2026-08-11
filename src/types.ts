@@ -117,6 +117,14 @@ export interface Announcement {
   attachments?: Array<{ url: string; name: string; type: string }>;
 }
 
+export interface ComplaintComment {
+  id: string;
+  text: string;
+  authorName: string;
+  authorFlat: string;
+  createdAt: string;
+}
+
 export interface Complaint {
   id: string;
   flatId: string;
@@ -132,6 +140,7 @@ export interface Complaint {
   resolvedBy?: string;
   processNotes?: string;
   attachments?: Array<{ url: string; name: string; type: string }>;
+  comments?: ComplaintComment[];
 }
 
 export interface FinancialReport {

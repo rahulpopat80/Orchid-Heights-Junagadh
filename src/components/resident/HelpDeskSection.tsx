@@ -122,6 +122,32 @@ export default function HelpDeskSection({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [compAttachments, setCompAttachments] = useState<Array<{ url: string; name: string; type: string }>>([]);
+  const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
+  const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
+  const [commentSubmitting, setCommentSubmitting] = useState<string | null>(null);
+
+  const toggleComments = (id: string) => {
+    setExpandedComments(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handlePostComment = async (e: React.FormEvent, complaintId: string) => {
+    e.preventDefault();
+    const text = commentTexts[complaintId]?.trim();
+    if (!text) return;
+
+    setCommentSubmitting(complaintId);
+    try {
+      const success = await api.addComplaintComment(complaintId, text, ownerName || `Flat ${wing}-${flatNo}`, `${wing}-${flatNo}`);
+      if (success) {
+        setCommentTexts(prev => ({ ...prev, [complaintId]: '' }));
+        onRefreshComplaints();
+      }
+    } catch (err) {
+      console.error('Failed to post comment', err);
+    } finally {
+      setCommentSubmitting(null);
+    }
+  };
 
   const addCompAttachment = (file: File) => {
     if (!file) return;
@@ -576,7 +602,7 @@ export default function HelpDeskSection({
                                 Ticket #{item.id?.substring(0, 5) || 'COMP'}
                               </span>
                               <span className="font-mono bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded text-[9px] uppercase">
-                                Flat {item.flatId} {(item.ownerName || ownerName) && <span className="ml-1 pl-1 border-l border-slate-300 text-slate-600">{item.ownerName || ownerName}</span>}
+                                Flat {item.flatId} {item.ownerName && <span className="ml-1 pl-1 border-l border-slate-300 text-slate-600">{item.ownerName}</span>}
                               </span>
                             </div>
                             <h5 className="font-bold text-slate-800 uppercase leading-snug">{item.title}</h5>
@@ -627,6 +653,49 @@ export default function HelpDeskSection({
                             <p className="font-medium text-left">{item.processNotes || item.resolutionNotes}</p>
                           </div>
                         )}
+
+                        <div className="pt-2 border-t border-slate-200">
+                          <button
+                            onClick={() => toggleComments(item.id)}
+                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider select-none flex items-center space-x-1"
+                          >
+                            <span>💬 {expandedComments[item.id] ? 'Hide Comments' : `Comments (${item.comments?.length || 0})`}</span>
+                          </button>
+
+                          {expandedComments[item.id] && (
+                            <div className="mt-3 space-y-3">
+                              <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                                {item.comments?.length ? item.comments.map((cmt: any) => (
+                                  <div key={cmt.id} className="bg-white p-2 rounded-lg border border-slate-200 shadow-sm">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="font-bold text-[10px] text-slate-800">{cmt.authorName} (Flat {cmt.authorFlat})</span>
+                                      <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
+                                    </div>
+                                    <p className="text-slate-600 text-xs">{cmt.text}</p>
+                                  </div>
+                                )) : (
+                                  <p className="text-xs text-slate-400 italic">No comments yet. Be the first to comment!</p>
+                                )}
+                              </div>
+                              <form onSubmit={(e) => handlePostComment(e, item.id)} className="flex items-center space-x-2 mt-2">
+                                <input
+                                  type="text"
+                                  value={commentTexts[item.id] || ''}
+                                  onChange={(e) => setCommentTexts(prev => ({ ...prev, [item.id]: e.target.value }))}
+                                  placeholder="Add a comment..."
+                                  className="flex-1 bg-white border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                />
+                                <button
+                                  type="submit"
+                                  disabled={!commentTexts[item.id]?.trim() || commentSubmitting === item.id}
+                                  className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold uppercase disabled:opacity-50"
+                                >
+                                  {commentSubmitting === item.id ? '...' : 'Post'}
+                                </button>
+                              </form>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))}
                 </div>
