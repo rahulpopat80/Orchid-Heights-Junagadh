@@ -15,6 +15,7 @@ import Directory from './components/Directory';
 import AdminPage from './components/AdminPage';
 import { api, detectServerEnvironment } from './lib/api';
 import { registerFCMToken, subscribeToForegroundMessages, auth } from './lib/firebase';
+import { playNotificationSound } from './lib/notificationSound';
 import { signInAnonymously } from 'firebase/auth';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -165,6 +166,7 @@ export default function App() {
       // Subscribe to foreground FCM messages (when app is OPEN)
       const unsubFCM = subscribeToForegroundMessages((payload) => {
         console.log('[FCM Foreground] Message received:', payload);
+        playNotificationSound();
         // Show OS notification for foreground messages too (otherwise they only show in-app)
         if ('Notification' in window && Notification.permission === 'granted') {
           const data = payload.data || {};
@@ -182,7 +184,8 @@ export default function App() {
                 tag: visitorId || type || 'foreground_notif',
                 data: data,
                 requireInteraction: type === 'visitor' || type === 'visitor_request',
-                vibrate: [200, 100, 200]
+                vibrate: [200, 100, 200, 100, 200, 100, 200],
+                sound: '/notification.wav'
               };
               if (type === 'visitor' || type === 'visitor_request') {
                 opts.actions = [
