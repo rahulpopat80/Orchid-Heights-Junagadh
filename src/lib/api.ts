@@ -35,6 +35,9 @@ import {
   addComplaintComment,
   updateComplaintComment,
   deleteComplaintComment,
+  addComplaintReply,
+  updateComplaintReply,
+  deleteComplaintReply,
   deleteComplaint,
   getFinancialReportsList,
   subscribeToFinancialReports,
@@ -261,6 +264,21 @@ export const api = {
   },
   deleteComplaintComment: async (complaintId: string, commentId: string): Promise<boolean> => {
     return deleteComplaintComment(complaintId, commentId);
+  },
+  addComplaintReply: async (complaintId: string, commentId: string, text: string, authorName: string, authorFlat: string): Promise<boolean> => {
+    return addComplaintReply(complaintId, commentId, {
+      id: 'rep_' + Math.random().toString(36).substring(2, 11),
+      text,
+      authorName,
+      authorFlat,
+      createdAt: new Date().toISOString()
+    });
+  },
+  updateComplaintReply: async (complaintId: string, commentId: string, replyId: string, text: string): Promise<boolean> => {
+    return updateComplaintReply(complaintId, commentId, replyId, text);
+  },
+  deleteComplaintReply: async (complaintId: string, commentId: string, replyId: string): Promise<boolean> => {
+    return deleteComplaintReply(complaintId, commentId, replyId);
   },
   deleteComplaint: async (id: string): Promise<boolean> => {
     return deleteComplaint(id);

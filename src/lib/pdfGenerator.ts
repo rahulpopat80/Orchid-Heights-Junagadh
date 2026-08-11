@@ -644,6 +644,97 @@ export const generateAmenityPDF = async (logs: AmenityBooking[], title: string, 
   doc.save(`Orchid_Heights_Amenities_${new Date().getTime()}.pdf`);
 };
 
+export const generateDeviceHistoryPDF = async (sessions: any[], title: string, subtitle: string, ownerName: string) => {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
+  const logsPerPage = 4;
+  const cardHeight = 55;
+  const cardSpacing = 5;
+
+  let currentLogIndex = 0;
+
+  while (currentLogIndex < sessions.length) {
+    if (currentLogIndex > 0) doc.addPage();
+    await drawPDFHeader(doc, title, subtitle, pageWidth);
+    
+    let startY = 43;
+    for (let i = 0; i < logsPerPage && currentLogIndex < sessions.length; i++) {
+      const session = sessions[currentLogIndex];
+      
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(226, 232, 240);
+      doc.roundedRect(margin, startY, contentWidth, cardHeight, 3, 3, 'FD');
+
+      const textX = margin + 5;
+      let currY = startY + 10;
+      
+      const deviceType = session.os === 'Android' || session.os === 'iOS' ? 'Phone' : 'Laptop';
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      
+      const phoneDisplay = session.phoneNumber ? `(${session.phoneNumber})` : '';
+      const name = session.memberName || ownerName;
+      doc.text(`${sanitizeText(name).toUpperCase()} ${phoneDisplay}`, textX, currY);
+
+      currY += 8;
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${session.os || 'Unknown OS'} • ${session.browser || 'Unknown Browser'} • ${deviceType}`, textX, currY);
+      
+      currY += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`IMEI: ${session.imei || 'N/A'}`, textX, currY);
+      
+      currY += 6;
+      doc.text(`IP: ${session.ipAddress || 'Unknown'}`, textX, currY);
+
+      const rightX = pageWidth - margin - 5;
+      currY = startY + 12;
+      
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(9);
+      doc.text('Login:', rightX, currY, { align: 'right' });
+      currY += 5;
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      doc.text(new Date(session.lastLogin).toLocaleString('en-IN'), rightX, currY, { align: 'right' });
+      
+      currY += 8;
+      doc.setTextColor(100, 116, 139);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Logout:', rightX, currY, { align: 'right' });
+      currY += 5;
+      doc.setTextColor(15, 23, 42);
+      doc.setFont('helvetica', 'bold');
+      const logoutText = session.logoutTime ? new Date(session.logoutTime).toLocaleString('en-IN') : '........';
+      doc.text(logoutText, rightX, currY, { align: 'right' });
+
+      startY += cardHeight + cardSpacing;
+      currentLogIndex++;
+    }
+
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Page ${doc.internal.pages.length - 1}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+  }
+
+  if (sessions.length === 0) {
+    await drawPDFHeader(doc, title, subtitle, pageWidth);
+    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(12);
+    doc.text('No device session history found.', pageWidth / 2, 80, { align: 'center' });
+  }
+  
+  doc.save(`Orchid_Heights_Devices_${new Date().getTime()}.pdf`);
+};
+
 export const generateGymEntryPDF = async (logs: any[], title: string, subtitle: string, owners: any[] = []) => {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();

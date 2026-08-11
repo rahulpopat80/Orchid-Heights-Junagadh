@@ -672,6 +672,19 @@ export default function HelpDeskSection({
                                       <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
                                     </div>
                                     <p className="text-slate-600 text-xs">{cmt.text}</p>
+                                    {cmt.replies && cmt.replies.length > 0 && (
+                                      <div className="mt-2 space-y-2 border-l-2 border-slate-200 pl-3 ml-2">
+                                        {cmt.replies.map((reply: any) => (
+                                          <div key={reply.id} className="bg-slate-50 p-2 rounded border border-slate-100">
+                                            <div className="flex justify-between items-center mb-1">
+                                              <span className="font-bold text-[10px] text-slate-800">{reply.authorName} {reply.authorFlat && reply.authorFlat !== 'Admin' && `(Flat ${reply.authorFlat})`}</span>
+                                              <span className="text-[9px] text-slate-400 font-mono">{new Date(reply.createdAt).toLocaleString()}</span>
+                                            </div>
+                                            <p className="text-slate-600 text-[11px]">{reply.text}</p>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 )) : (
                                   <p className="text-xs text-slate-400 italic">No comments yet. Be the first to comment!</p>

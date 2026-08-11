@@ -1046,10 +1046,24 @@ export async function registerUserDevice(wing: string, flatNo: number, device: D
         return !isSameDevice && !isSamePhone && !isSameMember;
       });
       
-      const newDevice = { ...device, lastLogin: new Date().toISOString() };
+      const now = new Date().toISOString();
+      const newDevice = { ...device, lastLogin: now };
       filteredDevices.push(newDevice);
 
-      await setDoc(ownerRef, { devices: filteredDevices }, { merge: true });
+      // Track deviceSessions
+      const sessions = ownerData.deviceSessions || [];
+      const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const cleanedSessions = sessions
+        .filter(s => s.lastLogin >= threeMonthsAgo)
+        .map(s => {
+          if (!s.logoutTime && ((s.phoneNumber && s.phoneNumber === device.phoneNumber) || (s.memberId && s.memberId === device.memberId) || (s.deviceId === device.deviceId))) {
+            return { ...s, logoutTime: now };
+          }
+          return s;
+        });
+      cleanedSessions.push(newDevice);
+
+      await setDoc(ownerRef, { devices: filteredDevices, deviceSessions: cleanedSessions }, { merge: true });
     }
   } catch (error) {
     if (isQuotaError(error)) {
@@ -1071,7 +1085,20 @@ export async function deregisterUserDevice(wing: string, flatNo: number, deviceI
       const ownerData = ownerSnap.data() as FlatOwner;
       const currentDevices = ownerData.devices || [];
       const updatedDevices = currentDevices.filter((d) => d.deviceId !== deviceId);
-      await setDoc(ownerRef, { devices: updatedDevices }, { merge: true });
+
+      const sessions = ownerData.deviceSessions || [];
+      const now = new Date().toISOString();
+      const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+      const cleanedSessions = sessions
+        .filter(s => s.lastLogin >= threeMonthsAgo)
+        .map(s => {
+          if (!s.logoutTime && s.deviceId === deviceId) {
+            return { ...s, logoutTime: now };
+          }
+          return s;
+        });
+
+      await setDoc(ownerRef, { devices: updatedDevices, deviceSessions: cleanedSessions }, { merge: true });
       return true;
     }
   } catch (error) {
@@ -1271,6 +1298,93 @@ export async function deleteComplaintComment(complaintId: string, commentId: str
     if (isQuotaError(error)) {
       markQuotaExceeded();
       return fallback.deleteComplaintCommentLocal(complaintId, commentId);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
+export async function addComplaintReply(complaintId: string, commentId: string, reply: any): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.addComplaintReplyLocal(complaintId, commentId, reply);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      if (data.comments) {
+        const comments = data.comments.map(c => {
+          if (c.id === commentId) {
+            const replies = c.replies || [];
+            return { ...c, replies: [...replies, reply] };
+          }
+          return c;
+        });
+        await updateDoc(docRef, { comments });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.addComplaintReplyLocal(complaintId, commentId, reply);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
+export async function updateComplaintReply(complaintId: string, commentId: string, replyId: string, text: string): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.updateComplaintReplyLocal(complaintId, commentId, replyId, text);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      if (data.comments) {
+        const comments = data.comments.map(c => {
+          if (c.id === commentId && c.replies) {
+            const replies = c.replies.map(r => r.id === replyId ? { ...r, text } : r);
+            return { ...c, replies };
+          }
+          return c;
+        });
+        await updateDoc(docRef, { comments });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.updateComplaintReplyLocal(complaintId, commentId, replyId, text);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
+export async function deleteComplaintReply(complaintId: string, commentId: string, replyId: string): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.deleteComplaintReplyLocal(complaintId, commentId, replyId);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      if (data.comments) {
+        const comments = data.comments.map(c => {
+          if (c.id === commentId && c.replies) {
+            const replies = c.replies.filter(r => r.id !== replyId);
+            return { ...c, replies };
+          }
+          return c;
+        });
+        await updateDoc(docRef, { comments });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.deleteComplaintReplyLocal(complaintId, commentId, replyId);
     }
     handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
   }

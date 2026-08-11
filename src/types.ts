@@ -27,6 +27,10 @@ export interface DeviceInfo {
   targetFlats?: string[];
 }
 
+export interface DeviceSession extends DeviceInfo {
+  logoutTime?: string;
+}
+
 export interface FlatOwner {
   wing: 'A' | 'B';
   flatNo: number;
@@ -38,6 +42,7 @@ export interface FlatOwner {
   vehicles: Vehicle[];
   notificationsEnabled?: boolean; // toggle to enable/disable alerts
   devices?: DeviceInfo[]; // Registered devices tracking
+  deviceSessions?: DeviceSession[]; // History of past sessions
 }
 
 export interface Visitor {
@@ -123,6 +128,7 @@ export interface ComplaintComment {
   authorName: string;
   authorFlat: string;
   createdAt: string;
+  replies?: ComplaintComment[];
 }
 
 export interface Complaint {

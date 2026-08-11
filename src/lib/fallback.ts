@@ -530,10 +530,24 @@ export function registerUserDeviceLocal(wing: string, flatNo: number, device: De
       return !isSameDevice && !isSamePhone && !isSameMember;
     });
     
-    const newDevice = { ...device, lastLogin: new Date().toISOString() };
+    const now = new Date().toISOString();
+    const newDevice = { ...device, lastLogin: now };
     filteredDevices.push(newDevice);
 
+    const sessions = ownerData.deviceSessions || [];
+    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const cleanedSessions = sessions
+      .filter(s => s.lastLogin >= threeMonthsAgo)
+      .map(s => {
+        if (!s.logoutTime && ((s.phoneNumber && s.phoneNumber === device.phoneNumber) || (s.memberId && s.memberId === device.memberId) || (s.deviceId === device.deviceId))) {
+          return { ...s, logoutTime: now };
+        }
+        return s;
+      });
+    cleanedSessions.push(newDevice);
+
     owners[idx].devices = filteredDevices;
+    owners[idx].deviceSessions = cleanedSessions;
     saveLocalOwners(owners);
   }
 }
@@ -545,7 +559,21 @@ export function deregisterUserDeviceLocal(wing: string, flatNo: number, deviceId
     const ownerData = owners[idx];
     const currentDevices = ownerData.devices || [];
     const updatedDevices = currentDevices.filter((d) => d.deviceId !== deviceId);
+    
+    const sessions = ownerData.deviceSessions || [];
+    const now = new Date().toISOString();
+    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    const cleanedSessions = sessions
+      .filter(s => s.lastLogin >= threeMonthsAgo)
+      .map(s => {
+        if (!s.logoutTime && s.deviceId === deviceId) {
+          return { ...s, logoutTime: now };
+        }
+        return s;
+      });
+
     owners[idx].devices = updatedDevices;
+    owners[idx].deviceSessions = cleanedSessions;
     saveLocalOwners(owners);
     return true;
   }
@@ -665,6 +693,52 @@ export function deleteComplaintCommentLocal(complaintId: string, commentId: stri
   if (index !== -1) {
     if (complaints[index].comments) {
       complaints[index].comments = complaints[index].comments!.filter((c: any) => c.id !== commentId);
+      saveLocalComplaints(complaints);
+      return true;
+    }
+  }
+  return false;
+}
+
+export function addComplaintReplyLocal(complaintId: string, commentId: string, reply: any): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1 && complaints[index].comments) {
+    const cIndex = complaints[index].comments!.findIndex((c: any) => c.id === commentId);
+    if (cIndex !== -1) {
+      if (!complaints[index].comments![cIndex].replies) complaints[index].comments![cIndex].replies = [];
+      complaints[index].comments![cIndex].replies!.push(reply);
+      saveLocalComplaints(complaints);
+      return true;
+    }
+  }
+  return false;
+}
+
+export function updateComplaintReplyLocal(complaintId: string, commentId: string, replyId: string, text: string): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1 && complaints[index].comments) {
+    const cIndex = complaints[index].comments!.findIndex((c: any) => c.id === commentId);
+    if (cIndex !== -1 && complaints[index].comments![cIndex].replies) {
+      const rIndex = complaints[index].comments![cIndex].replies!.findIndex((r: any) => r.id === replyId);
+      if (rIndex !== -1) {
+        complaints[index].comments![cIndex].replies![rIndex].text = text;
+        saveLocalComplaints(complaints);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function deleteComplaintReplyLocal(complaintId: string, commentId: string, replyId: string): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1 && complaints[index].comments) {
+    const cIndex = complaints[index].comments!.findIndex((c: any) => c.id === commentId);
+    if (cIndex !== -1 && complaints[index].comments![cIndex].replies) {
+      complaints[index].comments![cIndex].replies = complaints[index].comments![cIndex].replies!.filter((r: any) => r.id !== replyId);
       saveLocalComplaints(complaints);
       return true;
     }

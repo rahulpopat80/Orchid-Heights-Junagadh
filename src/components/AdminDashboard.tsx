@@ -17,7 +17,7 @@ import { api } from '../lib/api';
 import { db, collection, doc, query, onSnapshot, orderBy, updateDoc, deleteDoc, getDocs, clearAllSocietyNotifications } from '../lib/firebase';
 import AdminVisitorRecords from './admin/AdminVisitorRecords';
 import ChunkedMedia from './ChunkedMedia';
-import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF } from '../lib/pdfGenerator';
+import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF, generateDeviceHistoryPDF } from '../lib/pdfGenerator';
 import { uploadFileInChunks, downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
 import AdminLocalServices from './admin/AdminLocalServices';
 
@@ -204,6 +204,10 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [commentSubmitting, setCommentSubmitting] = useState<string | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editCommentText, setEditCommentText] = useState<string>('');
+  const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState<string>('');
+  const [editingReplyId, setEditingReplyId] = useState<string | null>(null);
+  const [editReplyText, setEditReplyText] = useState<string>('');
 
   const toggleComments = (id: string) => {
     setExpandedComments(prev => ({ ...prev, [id]: !prev[id] }));
@@ -225,6 +229,48 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       console.error('Failed to post comment', err);
     } finally {
       setCommentSubmitting(null);
+    }
+  };
+
+  const handlePostReply = async (e: React.FormEvent, complaintId: string, commentId: string) => {
+    e.preventDefault();
+    const text = replyText.trim();
+    if (!text) return;
+    try {
+      const success = await api.addComplaintReply(complaintId, commentId, text, 'Admin (Secretary)', 'Admin');
+      if (success) {
+        setReplyingToCommentId(null);
+        setReplyText('');
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUpdateReply = async (complaintId: string, commentId: string, replyId: string) => {
+    if (!editReplyText.trim()) return;
+    try {
+      const success = await api.updateComplaintReply(complaintId, commentId, replyId, editReplyText);
+      if (success) {
+        setEditingReplyId(null);
+        setEditReplyText('');
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteReply = async (complaintId: string, commentId: string, replyId: string) => {
+    if (!window.confirm("Delete this reply?")) return;
+    try {
+      const success = await api.deleteComplaintReply(complaintId, commentId, replyId);
+      if (success) {
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -551,6 +597,30 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       }
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleDownloadDeviceHistory = async () => {
+    if (!selectedFlat) return;
+    
+    const allSessions = selectedFlat.deviceSessions || [];
+    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+    
+    // Filter sessions to last 3 months and sort descending by login time
+    const sortedSessions = [...allSessions]
+      .filter(s => s.lastLogin >= threeMonthsAgo)
+      .sort((a, b) => new Date(b.lastLogin).getTime() - new Date(a.lastLogin).getTime());
+
+    try {
+      await generateDeviceHistoryPDF(
+        sortedSessions,
+        `Device Login Audit`,
+        `Flat ${selectedFlat.wing}-${selectedFlat.flatNo} • Last 3 Months`,
+        selectedFlat.nameEn
+      );
+    } catch (error) {
+      console.error('Failed to generate device history PDF', error);
+      alert('Failed to generate PDF. Please try again.');
     }
   };
 
@@ -1790,10 +1860,20 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
                       {/* Sub-section 2: Logged in Devices Audit with Remote Logout */}
                       <div className="space-y-3">
-                        <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
-                          <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
-                          <span>Logged in Devices ({selectedFlat.devices?.length || 0})</span>
-                        </h4>
+                        <div className="flex justify-between items-center">
+                          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1">
+                            <Smartphone className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>Logged in Devices ({selectedFlat.devices?.length || 0})</span>
+                          </h4>
+                          <button
+                            onClick={handleDownloadDeviceHistory}
+                            className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md transition"
+                            title="Download 3-Month History PDF"
+                          >
+                            <Download className="w-3 h-3" />
+                            <span>History PDF</span>
+                          </button>
+                        </div>
                         {selectedFlat.devices && selectedFlat.devices.length > 0 ? (
                           <div className="space-y-2">
                             {(() => {
@@ -2303,7 +2383,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                 <span className="font-bold text-[10px] text-slate-800">{cmt.authorName} {cmt.authorFlat && cmt.authorFlat !== 'Admin' && `(Flat ${cmt.authorFlat})`}</span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
-                                  {cmt.authorFlat === 'Admin' && editingCommentId !== cmt.id && (
+                                  {editingCommentId !== cmt.id && (
                                     <div className="flex items-center gap-1">
                                       <button onClick={() => { setEditingCommentId(cmt.id); setEditCommentText(cmt.text); }} className="text-indigo-600 hover:text-indigo-800" title="Edit">
                                         <Edit3 className="w-3 h-3" />
@@ -2327,7 +2407,64 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                                   <button onClick={() => setEditingCommentId(null)} className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-bold">Cancel</button>
                                 </div>
                               ) : (
-                                <p className="text-slate-600 text-xs">{cmt.text}</p>
+                                <div>
+                                  <p className="text-slate-600 text-xs">{cmt.text}</p>
+                                  <button onClick={() => setReplyingToCommentId(cmt.id)} className="text-[10px] text-indigo-600 hover:underline font-bold mt-1">Reply</button>
+                                </div>
+                              )}
+
+                              {replyingToCommentId === cmt.id && (
+                                <form onSubmit={(e) => handlePostReply(e, comp.id, cmt.id)} className="mt-2 flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder="Write a reply..."
+                                    className="flex-1 bg-white border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                                    autoFocus
+                                  />
+                                  <button type="submit" disabled={!replyText.trim()} className="bg-indigo-600 text-white px-2 py-1 rounded text-[10px] font-bold disabled:opacity-50">Post</button>
+                                  <button type="button" onClick={() => { setReplyingToCommentId(null); setReplyText(''); }} className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-bold">Cancel</button>
+                                </form>
+                              )}
+
+                              {cmt.replies && cmt.replies.length > 0 && (
+                                <div className="mt-2 space-y-2 border-l-2 border-slate-200 pl-3 ml-2">
+                                  {cmt.replies.map((reply: any) => (
+                                    <div key={reply.id} className="bg-white p-2 rounded border border-slate-100">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="font-bold text-[10px] text-slate-800">{reply.authorName} {reply.authorFlat && reply.authorFlat !== 'Admin' && `(Flat ${reply.authorFlat})`}</span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-[9px] text-slate-400 font-mono">{new Date(reply.createdAt).toLocaleString()}</span>
+                                          {editingReplyId !== reply.id && (
+                                            <div className="flex items-center gap-1">
+                                              <button onClick={() => { setEditingReplyId(reply.id); setEditReplyText(reply.text); }} className="text-indigo-600 hover:text-indigo-800" title="Edit">
+                                                <Edit3 className="w-3 h-3" />
+                                              </button>
+                                              <button onClick={() => handleDeleteReply(comp.id, cmt.id, reply.id)} className="text-red-500 hover:text-red-700" title="Delete">
+                                                <Trash2 className="w-3 h-3" />
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {editingReplyId === reply.id ? (
+                                        <div className="mt-1 flex items-center gap-2">
+                                          <input
+                                            type="text"
+                                            value={editReplyText}
+                                            onChange={(e) => setEditReplyText(e.target.value)}
+                                            className="flex-1 bg-slate-50 border border-slate-300 rounded px-2 py-1 text-[11px] focus:ring-1 focus:ring-indigo-500 outline-none"
+                                          />
+                                          <button onClick={() => handleUpdateReply(comp.id, cmt.id, reply.id)} className="bg-indigo-600 text-white px-2 py-1 rounded text-[9px] font-bold">Save</button>
+                                          <button onClick={() => setEditingReplyId(null)} className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[9px] font-bold">Cancel</button>
+                                        </div>
+                                      ) : (
+                                        <p className="text-slate-600 text-[11px]">{reply.text}</p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           )) : (
