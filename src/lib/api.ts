@@ -33,6 +33,8 @@ import {
   createComplaint,
   updateComplaintStatus,
   addComplaintComment,
+  updateComplaintComment,
+  deleteComplaintComment,
   deleteComplaint,
   getFinancialReportsList,
   subscribeToFinancialReports,
@@ -253,6 +255,12 @@ export const api = {
       authorFlat,
       createdAt: new Date().toISOString()
     });
+  },
+  updateComplaintComment: async (complaintId: string, commentId: string, text: string): Promise<boolean> => {
+    return updateComplaintComment(complaintId, commentId, text);
+  },
+  deleteComplaintComment: async (complaintId: string, commentId: string): Promise<boolean> => {
+    return deleteComplaintComment(complaintId, commentId);
   },
   deleteComplaint: async (id: string): Promise<boolean> => {
     return deleteComplaint(id);

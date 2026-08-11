@@ -202,6 +202,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [commentTexts, setCommentTexts] = useState<Record<string, string>>({});
   const [commentSubmitting, setCommentSubmitting] = useState<string | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentText, setEditCommentText] = useState<string>('');
 
   const toggleComments = (id: string) => {
     setExpandedComments(prev => ({ ...prev, [id]: !prev[id] }));
@@ -223,6 +225,32 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
       console.error('Failed to post comment', err);
     } finally {
       setCommentSubmitting(null);
+    }
+  };
+
+  const handleUpdateComment = async (complaintId: string, commentId: string) => {
+    if (!editCommentText.trim()) return;
+    try {
+      const success = await api.updateComplaintComment(complaintId, commentId, editCommentText);
+      if (success) {
+        setEditingCommentId(null);
+        setEditCommentText('');
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteComment = async (complaintId: string, commentId: string) => {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      const success = await api.deleteComplaintComment(complaintId, commentId);
+      if (success) {
+        loadAdminData();
+      }
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -2273,9 +2301,34 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                             <div key={cmt.id} className="bg-slate-50 p-2 rounded-lg border border-slate-200">
                               <div className="flex justify-between items-center mb-1">
                                 <span className="font-bold text-[10px] text-slate-800">{cmt.authorName} {cmt.authorFlat && cmt.authorFlat !== 'Admin' && `(Flat ${cmt.authorFlat})`}</span>
-                                <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[9px] text-slate-400 font-mono">{new Date(cmt.createdAt).toLocaleString()}</span>
+                                  {cmt.authorFlat === 'Admin' && editingCommentId !== cmt.id && (
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => { setEditingCommentId(cmt.id); setEditCommentText(cmt.text); }} className="text-indigo-600 hover:text-indigo-800" title="Edit">
+                                        <Edit3 className="w-3 h-3" />
+                                      </button>
+                                      <button onClick={() => handleDeleteComment(comp.id, cmt.id)} className="text-red-500 hover:text-red-700" title="Delete">
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                              <p className="text-slate-600 text-xs">{cmt.text}</p>
+                              {editingCommentId === cmt.id ? (
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editCommentText}
+                                    onChange={(e) => setEditCommentText(e.target.value)}
+                                    className="flex-1 bg-white border border-slate-300 rounded px-2 py-1 text-xs focus:ring-1 focus:ring-indigo-500 outline-none"
+                                  />
+                                  <button onClick={() => handleUpdateComment(comp.id, cmt.id)} className="bg-indigo-600 text-white px-2 py-1 rounded text-[10px] font-bold">Save</button>
+                                  <button onClick={() => setEditingCommentId(null)} className="bg-slate-200 text-slate-700 px-2 py-1 rounded text-[10px] font-bold">Cancel</button>
+                                </div>
+                              ) : (
+                                <p className="text-slate-600 text-xs">{cmt.text}</p>
+                              )}
                             </div>
                           )) : (
                             <p className="text-xs text-slate-400 italic">No comments yet.</p>

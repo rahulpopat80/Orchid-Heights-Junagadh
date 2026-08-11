@@ -643,6 +643,35 @@ export function addComplaintCommentLocal(complaintId: string, comment: any): boo
   return false;
 }
 
+export function updateComplaintCommentLocal(complaintId: string, commentId: string, text: string): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1) {
+    if (complaints[index].comments) {
+      const cIndex = complaints[index].comments!.findIndex((c: any) => c.id === commentId);
+      if (cIndex !== -1) {
+        complaints[index].comments![cIndex].text = text;
+        saveLocalComplaints(complaints);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+export function deleteComplaintCommentLocal(complaintId: string, commentId: string): boolean {
+  const complaints = getLocalComplaints();
+  const index = complaints.findIndex(c => c.id === complaintId);
+  if (index !== -1) {
+    if (complaints[index].comments) {
+      complaints[index].comments = complaints[index].comments!.filter((c: any) => c.id !== commentId);
+      saveLocalComplaints(complaints);
+      return true;
+    }
+  }
+  return false;
+}
+
 export function deleteComplaintLocal(complaintId: string): boolean {
   const complaints = getLocalComplaints();
   const filtered = complaints.filter(c => c.id !== complaintId);

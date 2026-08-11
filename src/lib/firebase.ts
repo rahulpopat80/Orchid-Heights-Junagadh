@@ -1230,6 +1230,52 @@ export async function addComplaintComment(complaintId: string, comment: any): Pr
   }
 }
 
+export async function updateComplaintComment(complaintId: string, commentId: string, text: string): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.updateComplaintCommentLocal(complaintId, commentId, text);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      if (data.comments) {
+        const comments = data.comments.map(c => c.id === commentId ? { ...c, text } : c);
+        await updateDoc(docRef, { comments });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.updateComplaintCommentLocal(complaintId, commentId, text);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
+export async function deleteComplaintComment(complaintId: string, commentId: string): Promise<boolean> {
+  if (isQuotaExceeded) return fallback.deleteComplaintCommentLocal(complaintId, commentId);
+  const docRef = doc(db, 'complaints', complaintId);
+  try {
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      const data = snap.data() as Complaint;
+      if (data.comments) {
+        const comments = data.comments.filter(c => c.id !== commentId);
+        await updateDoc(docRef, { comments });
+        return true;
+      }
+    }
+    return false;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return fallback.deleteComplaintCommentLocal(complaintId, commentId);
+    }
+    handleFirestoreError(error, OperationType.WRITE, `complaints/${complaintId}`);
+  }
+}
+
 export async function deleteComplaint(complaintId: string): Promise<boolean> {
   if (isQuotaExceeded) return fallback.deleteComplaintLocal(complaintId);
   try {
