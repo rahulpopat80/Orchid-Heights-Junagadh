@@ -8,7 +8,7 @@ import {
   Key, Edit3, Trash2, Database, AlertTriangle, ShieldCheck, Check, 
   RefreshCw, X, Search, Phone, Megaphone, Plus, Smartphone, FileText, 
   ClipboardList, BookOpen, Eye, EyeOff, Upload, Download, Image, User, 
-  Bell, LogOut, Mail, Clock, ShieldAlert, FileSpreadsheet, Dumbbell, Sparkles, Film, CheckSquare, Calendar, ArrowLeft, Grid
+  Bell, LogOut, Mail, Clock, MessageCircle, Copy, Send, ShieldAlert, FileSpreadsheet, Dumbbell, Sparkles, Film, CheckSquare, Calendar, ArrowLeft, Grid
 } from 'lucide-react';
 import { FlatOwner, Announcement, Complaint, FinancialReport, EssentialContact, Visitor, AmenityBooking, GymTheatreLog } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -150,6 +150,11 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   // Search through all owners
   const [adminSearch, setAdminSearch] = useState<string>('');
   const [flatFilter, setFlatFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  
+  // Inactive Message Generator state
+  const [showInactiveMessageModal, setShowInactiveMessageModal] = useState(false);
+  const [inactiveMessageText, setInactiveMessageText] = useState('');
+
 
   // Selected Flat for detailed review
   const [selectedFlat, setSelectedFlat] = useState<FlatOwner | null>(null);
@@ -639,7 +644,45 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
     }
   };
 
-    const handleEditMemberInFlat = async (wing: string, flatNo: number, indexToEdit: number) => {
+    const handleGenerateInactiveMessage = () => {
+    // get all inactive flats that are not vacant
+    const inactiveFlats = owners.filter(owner => {
+       const isVacant = owner.nameEn.toLowerCase().includes('vacant') || owner.nameEn.toLowerCase().includes('empty');
+       const isActive = (owner.devices && owner.devices.length > 0) || 
+                        (owner.members && owner.members.length > 0) || 
+                        !!owner.secondaryContact;
+       return !isVacant && !isActive;
+    });
+
+    let message = `*ઓર્કિડ હાઈટ્સ ગેટકીપર એપ્લિકેશન*\n`;
+    message += `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n`;
+    message += `*હજુ સુધી કેટલાક ફ્લેટધારકો ને ઓર્કિડ હાઈટ્સ ની એપ્લીકેશન માં લોગ ઇન થવાનું બાકી છે. જેમની યાદી નીચે મુજબ ઉપસ્થિત છે. નીચે મુજબ આ બધા ફ્લેટધારકો ને વિનંતી છે કે, તેઓ વહેલાસર રીતે એપ માં લોગ ઇન કરો જેથી એપ નો ઉપયોગ આપણે સૌ સવિનયપૂર્વક કરી શકીએ.* :\n\n`;
+
+    inactiveFlats.forEach(owner => {
+      message += `• *${owner.wing}-${owner.flatNo}* - ${owner.nameGu || owner.nameEn}\n`;
+    });
+    
+    message += `~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`;
+
+    setInactiveMessageText(message);
+    setShowInactiveMessageModal(true);
+  };
+
+  const handleCopyInactiveMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(inactiveMessageText);
+      alert('Message copied to clipboard successfully!');
+    } catch (err) {
+      alert('Failed to copy message. Please try manually.');
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    const url = `https://wa.me/?text=${encodeURIComponent(inactiveMessageText)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleEditMemberInFlat = async (wing: string, flatNo: number, indexToEdit: number) => {
     const freshOwner = owners.find((o) => o.wing === wing && o.flatNo === flatNo);
     if (!freshOwner) return;
     
@@ -1588,8 +1631,71 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <option value="active">Active Only</option>
                     <option value="inactive">Non-Active Only</option>
                   </select>
+                  <button
+                    onClick={handleGenerateInactiveMessage}
+                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-xl text-xs transition whitespace-nowrap shadow-sm shadow-emerald-200"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    <span>Non-Active Reminder</span>
+                  </button>
                 </div>
               </div>
+              {/* Inactive Devices Reminder Modal */}
+              <AnimatePresence>
+                {showInactiveMessageModal && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
+                  >
+                    <motion.div
+                      initial={{ scale: 0.95 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0.95 }}
+                      className="bg-white border border-slate-200 p-5 md:p-6 rounded-2xl w-full max-w-lg shadow-xl"
+                    >
+                      <div className="flex justify-between items-center border-b border-slate-100 pb-3 mb-4">
+                        <h4 className="font-display font-bold text-sm text-slate-800 flex items-center gap-2">
+                          <MessageCircle className="w-4 h-4 text-emerald-600" />
+                          Non-Active Devices Reminder
+                        </h4>
+                        <button onClick={() => setShowInactiveMessageModal(false)} className="text-slate-400 hover:text-slate-600">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                      
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 max-h-[50vh] overflow-y-auto whitespace-pre-wrap font-mono text-xs text-slate-700">
+                        {inactiveMessageText}
+                      </div>
+
+                      <div className="flex justify-end gap-3">
+                        <button
+                          onClick={() => setShowInactiveMessageModal(false)}
+                          className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                        >
+                          Close
+                        </button>
+                        <button
+                          onClick={handleCopyInactiveMessage}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-2"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          Copy
+                        </button>
+                        <button
+                          onClick={handleShareWhatsApp}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-2 shadow-sm shadow-emerald-200"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          Share to WhatsApp
+                        </button>
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Inline Owner Editor Dialog (inside directory) */}
               {editOwner && (
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm overflow-y-auto">
