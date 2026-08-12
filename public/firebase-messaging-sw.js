@@ -60,8 +60,7 @@ self.addEventListener('push', function(event) {
     tag: tag,
     data: data,
     requireInteraction: type === 'visitor' || type === 'visitor_request' || type === 'sos',
-    vibrate: [200, 100, 200, 100, 200, 100, 200],
-    sound: '/notification.wav'
+    vibrate: [200, 100, 200]
   };
 
   if (type === 'visitor' || type === 'visitor_request') {
