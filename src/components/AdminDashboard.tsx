@@ -149,7 +149,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
   // Search through all owners
   const [adminSearch, setAdminSearch] = useState<string>('');
-  const [flatFilter, setFlatFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [flatFilter, setFlatFilter] = useState<'all' | 'active' | 'inactive' | 'last_24_hours'>('all');
   
   // Inactive Message Generator state
   const [showInactiveMessageModal, setShowInactiveMessageModal] = useState(false);
@@ -1522,6 +1522,44 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   const filteredOwners = owners.filter((owner) => {
     if (flatFilter === 'active' && !isOwnerActive(owner)) return false;
     if (flatFilter === 'inactive' && isOwnerActive(owner)) return false;
+    if (flatFilter === 'last_24_hours') {
+      // 1. Must be currently active (has at least 1 device logged in currently)
+      if (!owner.devices || owner.devices.length === 0) return false;
+
+      const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000;
+      
+      // 2. Gather ALL known login timestamps from history (devices + deviceSessions)
+      const allLoginTimestamps: number[] = [];
+
+      owner.devices.forEach(d => {
+        if (d.lastLogin) {
+          const t = new Date(d.lastLogin).getTime();
+          if (!isNaN(t)) allLoginTimestamps.push(t);
+        }
+      });
+
+      if (owner.deviceSessions) {
+        owner.deviceSessions.forEach(s => {
+          if (s.lastLogin) {
+            const t = new Date(s.lastLogin).getTime();
+            if (!isNaN(t)) allLoginTimestamps.push(t);
+          }
+        });
+      }
+
+      // If we couldn't find any login timestamps, they can't be newly activated
+      if (allLoginTimestamps.length === 0) return false;
+
+      // 3. Find the absolute OLDEST login time in their entire history
+      const oldestLoginTime = Math.min(...allLoginTimestamps);
+
+      // If their oldest login time is OLDER than 24 hours ago, 
+      // it means they were ALREADY ACTIVE before the 24 hour window. Exclude them!
+      if (oldestLoginTime < twentyFourHoursAgo) return false;
+
+      // If we made it here, their VERY FIRST login happened WITHIN the last 24 hours!
+      return true;
+    }
 
     const q = adminSearch.toLowerCase().trim();
     if (q === '') return true;
@@ -1630,6 +1668,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <option value="all">All Flats</option>
                     <option value="active">Active Only</option>
                     <option value="inactive">Non-Active Only</option>
+                    <option value="last_24_hours">Last 24 Hours (New Logins)</option>
                   </select>
                   <button
                     onClick={handleGenerateInactiveMessage}
