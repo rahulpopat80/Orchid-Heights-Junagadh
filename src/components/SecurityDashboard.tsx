@@ -1270,6 +1270,8 @@ export default function SecurityDashboard({ owners, onRefreshOwners }: SecurityD
                     </div>
                     {owner && (
                       (() => {
+                        const isOwnerActive = (owner.devices && owner.devices.length > 0) || (owner.members && owner.members.length > 0) || !!owner.secondaryContact;
+                        if (!isOwnerActive) return <div className="text-rose-500 font-bold bg-rose-50 px-4 py-2 rounded-xl text-center text-sm border border-rose-100">ફ્લેટ હજુ સક્રિય નથી<br/><span className="text-xs font-normal">Not Signed In</span></div>;
                         const memberOptions: { name: string; phone: string; nameEn: string }[] = [];
                         
                         let ownerNameGu = owner.nameGu || owner.nameEn || 'Owner';

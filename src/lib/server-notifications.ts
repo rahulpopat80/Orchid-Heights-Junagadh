@@ -313,7 +313,7 @@ async function sendFCMPushServer(
         if (!response.ok) {
           const errText = await response.text();
           console.warn(`[Server FCM] Failed to send to token ${token.substring(0, 8)}: ${errText}`);
-          if (errText.includes("UNREGISTERED")) {
+          if (errText.includes("UNREGISTERED") || errText.includes("INVALID_ARGUMENT")) {
             await removeInvalidFCMTokenServer(token);
           }
         } else {
