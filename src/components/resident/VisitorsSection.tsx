@@ -38,7 +38,8 @@ export default function VisitorsSection({
 }: VisitorsSectionProps) {
 
   const [searchName, setSearchName] = useState('');
-  const [searchDate, setSearchDate] = useState('');
+  const [searchDateFrom, setSearchDateFrom] = useState('');
+  const [searchDateTo, setSearchDateTo] = useState('');
   const [searchStartTime, setSearchStartTime] = useState('');
   const [searchEndTime, setSearchEndTime] = useState('');
   const [searchType, setSearchType] = useState('');
@@ -47,9 +48,13 @@ export default function VisitorsSection({
     let match = true;
     if (searchName && !log.fullName.toLowerCase().includes(searchName.toLowerCase())) match = false;
     if (searchType && log.guestType.toLowerCase() !== searchType.toLowerCase()) match = false;
-    if (searchDate) {
+    if (searchDateFrom) {
       const logDate = new Date(log.requestTime).toISOString().split('T')[0];
-      if (logDate !== searchDate) match = false;
+      if (logDate < searchDateFrom) match = false;
+    }
+    if (searchDateTo) {
+      const logDate = new Date(log.requestTime).toISOString().split('T')[0];
+      if (logDate > searchDateTo) match = false;
     }
     if (searchStartTime || searchEndTime) {
       const logTime = new Date(log.requestTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -229,13 +234,22 @@ export default function VisitorsSection({
             </div>
           </div>
           <div className="relative w-full md:w-auto">
-            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">તારીખ (Date)</label>
-            <input
-              type="date"
-              value={searchDate}
-              onChange={(e) => setSearchDate(e.target.value)}
-              className="w-full bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
-            />
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">સમયગાળો (Date Duration)</label>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-lg py-1 px-2 focus-within:border-indigo-500 transition">
+              <input
+                type="date"
+                value={searchDateFrom}
+                onChange={(e) => setSearchDateFrom(e.target.value)}
+                className="w-full bg-transparent p-1 text-xs font-bold outline-none text-slate-600"
+              />
+              <span className="text-slate-300 font-medium text-xs">to</span>
+              <input
+                type="date"
+                value={searchDateTo}
+                onChange={(e) => setSearchDateTo(e.target.value)}
+                className="w-full bg-transparent p-1 text-xs font-bold outline-none text-slate-600"
+              />
+            </div>
           </div>
           <div className="relative w-full md:w-auto col-span-2 sm:col-span-1">
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">સમયગાળો (Time Duration)</label>

@@ -13,7 +13,8 @@ interface AdminVisitorRecordsProps {
 
 export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisitorRecordsProps) {
   const [filterTime, setFilterTime] = useState<'today' | '1m' | '2m' | 'all'>('today');
-  const [filterDate, setFilterDate] = useState<string>('');
+  const [filterDateFrom, setFilterDateFrom] = useState<string>('');
+  const [filterDateTo, setFilterDateTo] = useState<string>('');
   const [filterStartTime, setFilterStartTime] = useState<string>('');
   const [filterEndTime, setFilterEndTime] = useState<string>('');
   const [filterWing, setFilterWing] = useState<'ALL' | 'A' | 'B'>('ALL');
@@ -44,9 +45,13 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
     return list.filter(v => {
       let match = new Date(v.requestTime) >= cutoff;
       
-      if (match && filterDate) {
+      if (match && filterDateFrom) {
         const logDate = new Date(v.requestTime).toISOString().split('T')[0];
-        if (logDate !== filterDate) match = false;
+        if (logDate < filterDateFrom) match = false;
+      }
+      if (match && filterDateTo) {
+        const logDate = new Date(v.requestTime).toISOString().split('T')[0];
+        if (logDate > filterDateTo) match = false;
       }
       
       if (match && (filterStartTime || filterEndTime)) {
@@ -152,7 +157,7 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
 
       <div className="space-y-4">
         {/* Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
           <div>
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Time Range</label>
             <select
@@ -166,14 +171,23 @@ export default function AdminVisitorRecords({ onBack, owners = [] }: AdminVisito
               <option value="all">🗂️ All-Time Logs</option>
             </select>
           </div>
-          <div>
-            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Specific Date</label>
-            <input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-xs font-bold outline-none text-slate-700"
-            />
+          <div className="col-span-2 sm:col-span-2">
+            <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">સમયગાળો (Date Duration)</label>
+            <div className="flex items-center space-x-2 bg-white border border-slate-200 rounded-xl p-1.5 focus-within:border-indigo-500 transition">
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="w-full bg-transparent p-1 text-xs font-bold outline-none text-slate-700"
+              />
+              <span className="text-slate-300 font-medium text-xs">to</span>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="w-full bg-transparent p-1 text-xs font-bold outline-none text-slate-700"
+              />
+            </div>
           </div>
           <div className="col-span-2 sm:col-span-1">
             <label className="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase">Time Duration</label>
