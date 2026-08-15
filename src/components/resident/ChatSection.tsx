@@ -24,6 +24,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
 
   // Poll state
   const [showPollModal, setShowPollModal] = useState(false);
+  const [viewVotersForPoll, setViewVotersForPoll] = useState<ChatMessage | null>(null);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState([{ id: '1', text: '' }, { id: '2', text: '' }]);
 
@@ -231,21 +232,27 @@ export default function ChatSection({ session }: ChatSectionProps) {
                 const optionVotes = votes.filter(v => v === opt.id).length;
                 const totalVotes = votes.length;
                 const percentage = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
-                const myVote = msg.pollVotes ? msg.pollVotes[flatId] : null;
+                const isSelected = msg.pollVotes ? msg.pollVotes[flatId] === opt.id : false;
+                
+                // If the user hasn't voted yet, just show empty grey backgrounds for all options.
+                // If they have voted, only the selected one gets the solid background color, the unselected ones just get the grey bar.
+                const hasVoted = msg.pollVotes && msg.pollVotes[flatId] !== undefined;
 
                 return (
                   <button
                     key={opt.id}
                     onClick={() => handleVote(msg.id, opt.id)}
-                    className={`relative w-full overflow-hidden rounded-lg p-2 text-left transition ${
-                      myVote === opt.id 
-                        ? (isMe ? 'bg-white/20 border-white/30' : 'bg-indigo-50 border-indigo-200 text-indigo-900') 
-                        : (isMe ? 'bg-black/10 hover:bg-black/20' : 'bg-slate-50 hover:bg-slate-100')
-                    } border`}
+                    className={`relative w-full overflow-hidden rounded-lg p-2 text-left transition border-2 ${
+                      isSelected 
+                        ? (isMe ? 'bg-white/20 border-white text-white shadow-sm' : 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-sm') 
+                        : (isMe ? 'bg-black/10 border-transparent hover:bg-black/20 text-indigo-100' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700')
+                    }`}
                   >
                     <div 
                       className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${
-                        isMe ? 'bg-white/20' : 'bg-indigo-100'
+                        isMe 
+                          ? (isSelected ? 'bg-white/30' : 'bg-white/10') 
+                          : (isSelected ? 'bg-indigo-200' : 'bg-slate-100')
                       }`}
                       style={{ width: `${percentage}%` }}
                     />
@@ -256,8 +263,11 @@ export default function ChatSection({ session }: ChatSectionProps) {
                   </button>
                 );
               })}
-              <div className={`text-[9px] mt-1 text-right ${isMe ? 'text-indigo-200' : 'text-slate-400'}`}>
-                {Object.keys(msg.pollVotes || {}).length} votes
+              <div 
+                className={`text-xs mt-2 text-right font-bold transition ${isMe ? 'text-emerald-700 hover:text-emerald-900 cursor-pointer underline underline-offset-2' : 'text-slate-500'}`}
+                onClick={() => { if (isMe) setViewVotersForPoll(msg); }}
+              >
+                {Object.keys(msg.pollVotes || {}).length} Voted
               </div>
             </div>
           )}
@@ -394,6 +404,56 @@ export default function ChatSection({ session }: ChatSectionProps) {
               >
                 Send Poll
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewVotersForPoll && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]">
+            <div className="flex justify-between items-center p-4 border-b border-slate-100 bg-slate-50">
+              <h3 className="font-bold text-slate-800 text-sm">Poll Voters</h3>
+              <button onClick={() => setViewVotersForPoll(null)} className="p-1.5 text-slate-400 hover:bg-slate-200 rounded-lg transition"><X className="w-5 h-5"/></button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-5">
+              <p className="font-bold text-sm text-slate-700 leading-snug">{viewVotersForPoll.pollQuestion}</p>
+              
+              {viewVotersForPoll.pollOptions?.map(opt => {
+                const votesForOpt = Object.entries(viewVotersForPoll.pollVotes || {}).filter(([fid, oid]) => oid === opt.id);
+                if (votesForOpt.length === 0) return null;
+                return (
+                  <div key={opt.id} className="space-y-2">
+                    <h4 className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md inline-block">
+                      {opt.text} ({votesForOpt.length})
+                    </h4>
+                    <ul className="space-y-1.5">
+                      {votesForOpt.map(([fid, _]) => {
+                        const [wing, flatNo] = fid.split('-');
+                        const flatOwnerInfo = owners.find(o => String(o.wing) === String(wing) && String(o.flatNo) === String(flatNo));
+                        // Look up the real owner if there's a stored name, or fallback to generic
+                        let voterName = 'Resident';
+                        if (flatOwnerInfo && flatOwnerInfo.nameEn) {
+                          voterName = flatOwnerInfo.nameEn;
+                        } else {
+                          voterName = 'Family Member';
+                        }
+
+                        return (
+                          <li key={fid} className="text-xs flex items-center justify-between bg-white border border-slate-200 p-2.5 rounded-lg shadow-sm">
+                            <span className="font-medium text-slate-700 truncate mr-2">{voterName}</span>
+                            <span className="font-bold font-mono text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 shrink-0">{fid}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                );
+              })}
+              
+              {Object.keys(viewVotersForPoll.pollVotes || {}).length === 0 && (
+                <p className="text-sm text-slate-500 text-center py-6 font-medium">No one has voted yet.</p>
+              )}
             </div>
           </div>
         </div>

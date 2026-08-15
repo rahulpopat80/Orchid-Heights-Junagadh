@@ -1703,7 +1703,7 @@ export function subscribeToVisitorNotifications(wing: string, flatNo: number, on
         if (!active) return;
         if (isQuotaError(error)) {
           markQuotaExceeded();
-          if (unsubFirestore) unsubFirestore();
+          if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); }
           onUpdate(getFiltered());
           unsubFirestore = fallback.localEvents.subscribe('visitor_update_trigger', () => onUpdate(getFiltered()));
         } else if (onError) onError(error);
@@ -1716,7 +1716,7 @@ export function subscribeToVisitorNotifications(wing: string, flatNo: number, on
       unsubFirestore = fallback.localEvents.subscribe('visitor_update_trigger', () => onUpdate(getFiltered()));
     } else throw error;
   }
-  return () => { active = false; if (unsubFirestore) unsubFirestore(); };
+  return () => { active = false; if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); } };
 }
 
 export function subscribeToAllVisitors(onUpdate: (visitors: Visitor[]) => void, onError?: (error: Error) => void) {
@@ -1742,7 +1742,7 @@ export function subscribeToAllVisitors(onUpdate: (visitors: Visitor[]) => void, 
       if (!active) return;
       if (isQuotaError(error)) {
         markQuotaExceeded();
-        if (unsubFirestore) unsubFirestore();
+        if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); }
         onUpdate(getSorted());
         unsubFirestore = fallback.localEvents.subscribe('all_visitors', () => onUpdate(getSorted()));
       } else if (onError) onError(error);
@@ -1754,7 +1754,7 @@ export function subscribeToAllVisitors(onUpdate: (visitors: Visitor[]) => void, 
       unsubFirestore = fallback.localEvents.subscribe('all_visitors', () => onUpdate(getSorted()));
     } else throw error;
   }
-  return () => { active = false; if (unsubFirestore) unsubFirestore(); };
+  return () => { active = false; if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); } };
 }
 
 export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpdate: (announcements: Announcement[]) => void, onError?: (error: Error) => void) {
@@ -1799,7 +1799,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
       if (!active) return;
       if (isQuotaError(error)) {
         markQuotaExceeded();
-        if (unsubFirestore) unsubFirestore();
+        if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); }
         onUpdate(getFiltered());
         unsubFirestore = fallback.localEvents.subscribe('announcements_update_trigger', () => onUpdate(getFiltered()));
       } else if (onError) onError(error);
@@ -1811,7 +1811,7 @@ export function subscribeToAnnouncements(wing: 'A' | 'B', flatNo: number, onUpda
       unsubFirestore = fallback.localEvents.subscribe('announcements_update_trigger', () => onUpdate(getFiltered()));
     } else throw error;
   }
-  return () => { active = false; if (unsubFirestore) unsubFirestore(); };
+  return () => { active = false; if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); } };
 }
 
 export function subscribeToSocietyNotifications(wing: string, flatNo: number, onUpdate: (notifications: any[]) => void) {
@@ -1862,7 +1862,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
       if (!active) return;
       if (isQuotaError(error)) {
         markQuotaExceeded();
-        if (unsubFirestore) unsubFirestore();
+        if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); }
         onUpdate(getFiltered());
         unsubFirestore = fallback.localEvents.subscribe('society_notifications_update_trigger', () => onUpdate(getFiltered()));
       }
@@ -1874,7 +1874,7 @@ export function subscribeToSocietyNotifications(wing: string, flatNo: number, on
       unsubFirestore = fallback.localEvents.subscribe('society_notifications_update_trigger', () => onUpdate(getFiltered()));
     } else throw error;
   }
-  return () => { active = false; if (unsubFirestore) unsubFirestore(); };
+  return () => { active = false; if (unsubFirestore) if (typeof unsubFirestore === "function") { unsubFirestore(); } };
 }
 
 // ============================================================
@@ -2510,12 +2510,8 @@ export function subscribeToChatMessages(onUpdate: (msgs: ChatMessage[]) => void,
   }
 
   return () => {
-    if (unsubFirestore) {
-      if (typeof unsubFirestore === 'function') {
-        unsubFirestore();
-      } else {
-        fallback.localEvents.unsubscribe('chat_messages_update_trigger', unsubFirestore);
-      }
+    if (unsubFirestore && typeof unsubFirestore === 'function') {
+      unsubFirestore();
     }
   };
 }
