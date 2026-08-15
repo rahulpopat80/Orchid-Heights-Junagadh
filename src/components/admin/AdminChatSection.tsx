@@ -49,23 +49,38 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
-const formatMessageText = (text: string) => {
+const formatMessageText = (text: string): React.ReactNode => {
   if (!text) return null;
-  const parts = text.split(/(\*[^*]+\*|_[^_]+_|-[^-]+-)/g);
-  return parts.map((part, i) => {
-    if (part.length > 2) {
-      if (part.startsWith('*') && part.endsWith('*')) return <strong key={i}>{part.slice(1, -1)}</strong>;
-      if (part.startsWith('_') && part.endsWith('_')) return <u key={i}>{part.slice(1, -1)}</u>;
-      if (part.startsWith('-') && part.endsWith('-')) return <em key={i}>{part.slice(1, -1)}</em>;
-    }
-    return <React.Fragment key={i}>{part}</React.Fragment>;
-  });
+  const match = text.match(/(\*|_|-)([\s\S]*?)\1/);
+  if (!match) return <>{text}</>;
+  
+  const fullMatch = match[0];
+  const char = match[1];
+  const innerText = match[2];
+  const index = match.index!;
+  
+  const before = text.substring(0, index);
+  const after = text.substring(index + fullMatch.length);
+  
+  let wrappedInner: React.ReactNode = formatMessageText(innerText);
+  if (char === '*') wrappedInner = <strong>{wrappedInner}</strong>;
+  if (char === '_') wrappedInner = <u>{wrappedInner}</u>;
+  if (char === '-') wrappedInner = <em>{wrappedInner}</em>;
+  
+  return (
+    <React.Fragment>
+      {formatMessageText(before)}
+      {wrappedInner}
+      {formatMessageText(after)}
+    </React.Fragment>
+  );
 };
 
 export default function AdminChatSection() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [owners, setOwners] = useState<FlatOwner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [previewMediaMsg, setPreviewMediaMsg] = useState<ChatMessage | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVal, setEditVal] = useState('');
   const [removeMedia, setRemoveMedia] = useState(false);
@@ -325,7 +340,9 @@ export default function AdminChatSection() {
                         {msg.mediaUrl && (
                           <div className="mt-2 max-w-sm">
                             <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mb-2 inline-block">Media Attached</span>
-                            <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} />
+                            <div onClick={() => msg.mediaType?.startsWith('image/') && setPreviewMediaMsg(msg)} className={msg.mediaType?.startsWith('image/') ? 'cursor-pointer' : ''}>
+                <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} />
+              </div>
                           </div>
                         )}
 
@@ -411,6 +428,34 @@ export default function AdminChatSection() {
           </div>
         </div>
       )}
+
+      {previewMediaMsg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200">
+          <button 
+            onClick={() => setPreviewMediaMsg(null)}
+            className="absolute top-4 right-4 text-white hover:text-slate-300 z-50 p-2"
+          >
+            <X className="w-8 h-8" />
+          </button>
+          <div className="max-w-4xl max-h-[90vh] w-full h-full flex flex-col items-center justify-center relative">
+            <ChunkedMedia 
+              fileId={previewMediaMsg.mediaUrl!} 
+              type={previewMediaMsg.mediaType!} 
+              fallbackName={previewMediaMsg.mediaName!}
+              variant="raw"
+              className="max-w-full max-h-[85vh] object-contain rounded-lg"
+            />
+            {previewMediaMsg.text && (
+              <div className="absolute bottom-4 left-0 right-0 text-center">
+                <p className="inline-block bg-black/60 text-white px-4 py-2 rounded-xl text-sm max-w-2xl whitespace-pre-wrap">
+                  {formatMessageText(previewMediaMsg.text)}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+  
     </div>
   );
 }
