@@ -24,7 +24,7 @@ export async function uploadFileInChunks(
     reader.onload = async () => {
       try {
         const base64String = reader.result as string;
-        const chunkSize = 700 * 1024; // 700KB chunks of base64 characters (~500KB binary data, well under 1MB)
+        const chunkSize = 900 * 1024; // 700KB chunks of base64 characters (~500KB binary data, well under 1MB)
         const totalChunks = Math.ceil(base64String.length / chunkSize);
 
         const chunkPromises = [];

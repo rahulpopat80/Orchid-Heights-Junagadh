@@ -38,6 +38,7 @@ export default function AdminChatSection() {
 
   const handleDelete = async (id: string) => {
     if (confirm("Are you sure you want to delete this message?")) {
+      setMessages(prev => prev.filter(m => m.id !== id));
       await api.deleteChatMessage(id);
     }
   };
@@ -48,8 +49,10 @@ export default function AdminChatSection() {
   };
 
   const saveEdit = async (id: string) => {
-    await api.updateChatMessage(id, { text: editVal });
+    const newVal = editVal;
+    setMessages(prev => prev.map(m => m.id === id ? { ...m, text: newVal } : m));
     setEditingId(null);
+    await api.updateChatMessage(id, { text: newVal });
   };
 
   const downloadMedia = async (fileId: string, filename: string) => {
@@ -92,11 +95,9 @@ export default function AdminChatSection() {
               const flatOwnerInfo = owners.find(o => o.wing === msg.senderWing && o.flatNo === msg.senderFlatNo);
               let senderTitle = msg.senderOwnerName;
               if (flatOwnerInfo) {
-                if (flatOwnerInfo.nameEn === msg.senderOwnerName) {
-                  senderTitle = `${msg.senderOwnerName}, (${msg.senderWing}-${msg.senderFlatNo})`;
-                } else {
-                  senderTitle = `${msg.senderOwnerName}, (${flatOwnerInfo.nameEn}), ${msg.senderWing}-${msg.senderFlatNo}`;
-                }
+                senderTitle = `${flatOwnerInfo.nameEn} (${msg.senderWing}-${msg.senderFlatNo})`;
+              } else {
+                senderTitle = `${msg.senderOwnerName} (${msg.senderWing}-${msg.senderFlatNo})`;
               }
 
               return (

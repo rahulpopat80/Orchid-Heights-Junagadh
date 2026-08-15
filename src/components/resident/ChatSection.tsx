@@ -104,16 +104,36 @@ export default function ChatSection({ session }: ChatSectionProps) {
       return;
     }
 
+    const tempId = 'temp_' + Date.now();
+    const localUrl = URL.createObjectURL(file);
+    
+    // Optimistic UI for media
+    const tempMsg: ChatMessage = {
+      id: tempId,
+      senderWing: session.wing,
+      senderFlatNo: session.flatNo,
+      senderOwnerName: session.ownerName || 'Resident',
+      text: '',
+      mediaUrl: localUrl,
+      mediaType: file.type,
+      mediaName: file.name,
+      createdAt: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, tempMsg]);
+
     setUploading(true);
     setUploadProgress(0);
     try {
       const metadata = await uploadFileInChunks(file, (prog) => {
         setUploadProgress(prog);
       });
+      // Replace the temp message natively when firebase updates
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       await handleSendMessage('', metadata);
     } catch (err) {
       console.error(err);
       alert("Failed to upload file.");
+      setMessages(prev => prev.filter(m => m.id !== tempId));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -137,6 +157,18 @@ export default function ChatSection({ session }: ChatSectionProps) {
   };
 
   const handleVote = async (messageId: string, optionId: string) => {
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        return {
+          ...m,
+          pollVotes: {
+            ...(m.pollVotes || {}),
+            [flatId]: optionId
+          }
+        };
+      }
+      return m;
+    }));
     await api.votePoll(messageId, flatId, optionId);
   };
 
