@@ -16,6 +16,8 @@ export default function AdminChatSection() {
   const [newMediaType, setNewMediaType] = useState<string | null>(null);
   const [newMediaName, setNewMediaName] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [editPollQuestion, setEditPollQuestion] = useState("");
+  const [editPollOptions, setEditPollOptions] = useState<{id: string, text: string}[]>([]);
   const [viewVotersForPoll, setViewVotersForPoll] = useState<ChatMessage | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +59,13 @@ export default function AdminChatSection() {
     setNewMediaUrl(null);
     setNewMediaName(null);
     setNewMediaType(null);
+    if (msg.isPoll) {
+      setEditPollQuestion(msg.pollQuestion || '');
+      setEditPollOptions(msg.pollOptions ? [...msg.pollOptions] : []);
+    } else {
+      setEditPollQuestion('');
+      setEditPollOptions([]);
+    }
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -172,14 +181,44 @@ export default function AdminChatSection() {
 
                     {editingId === msg.id ? (
                       <div className="flex flex-col gap-2 mt-2 bg-slate-100 p-3 rounded-xl border border-slate-200">
-                        <input
-                          type="text"
-                          value={editVal}
-                          onChange={(e) => setEditVal(e.target.value)}
-                          className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Edit text..."
-                        />
+                        {(!msg.isPoll || editVal) && (
+                          <input
+                            type="text"
+                            value={editVal}
+                            onChange={(e) => setEditVal(e.target.value)}
+                            className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="Edit text..."
+                          />
+                        )}
                         
+                        {msg.isPoll && (
+                          <div className="flex flex-col gap-2">
+                            <input
+                              type="text"
+                              value={editPollQuestion}
+                              onChange={(e) => setEditPollQuestion(e.target.value)}
+                              className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                              placeholder="Poll Question"
+                            />
+                            <div className="pl-4 border-l-2 border-indigo-200 space-y-2">
+                              {editPollOptions.map((opt, i) => (
+                                <input
+                                  key={opt.id}
+                                  type="text"
+                                  value={opt.text}
+                                  onChange={(e) => {
+                                    const newOpts = [...editPollOptions];
+                                    newOpts[i].text = e.target.value;
+                                    setEditPollOptions(newOpts);
+                                  }}
+                                  className="w-full bg-white border border-slate-200 rounded-lg p-1.5 text-sm outline-none focus:border-indigo-400"
+                                  placeholder={"Option " + (i+1)}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {(msg.mediaUrl || newMediaUrl) && (
                            <div className="flex items-center gap-3 text-xs bg-white p-2 rounded-lg border border-slate-200">
                              <span className="font-bold text-slate-600">Attached:</span>
@@ -249,11 +288,9 @@ export default function AdminChatSection() {
                   </div>
 
                   <div className="flex items-start gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                    {!msg.isPoll && (
-                      <button onClick={() => handleEdit(msg)} className="p-2 text-slate-400 hover:text-indigo-600 bg-white border border-slate-200 rounded-lg transition shadow-sm">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    )}
+                    <button onClick={() => handleEdit(msg)} className="p-2 text-slate-400 hover:text-indigo-600 bg-white border border-slate-200 rounded-lg transition shadow-sm">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
                     <button onClick={() => handleDelete(msg.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white border border-slate-200 rounded-lg transition shadow-sm">
                       <Trash2 className="w-4 h-4" />
                     </button>

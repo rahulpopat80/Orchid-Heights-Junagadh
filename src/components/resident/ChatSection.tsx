@@ -19,6 +19,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
   
   // Media upload state
   const [uploading, setUploading] = useState(false);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -95,50 +96,81 @@ export default function ChatSection({ session }: ChatSectionProps) {
     setInputText('');
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
+    const newFiles: File[] = Array.from(e.target.files);
     
-    // Max 15MB
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File is too large! Maximum allowed is 15MB.");
+    let validFiles: File[] = [];
+    for (const file of newFiles) {
+      if (file.size > 15 * 1024 * 1024) {
+        alert(`File ${file.name} is too large! Maximum allowed is 15MB.`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (stagedFiles.length + validFiles.length > 5) {
+      alert("You can only attach up to 5 files at a time.");
+      validFiles = validFiles.slice(0, 5 - stagedFiles.length);
+    }
+
+    setStagedFiles(prev => [...prev, ...validFiles]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeStagedFile = (index: number) => {
+    setStagedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSendAction = async () => {
+    if (!inputText.trim() && stagedFiles.length === 0) return;
+    
+    const textToSend = inputText.trim();
+    const filesToSend = [...stagedFiles];
+    setInputText('');
+    setStagedFiles([]);
+
+    if (filesToSend.length === 0) {
+      await handleSendMessage(textToSend);
       return;
     }
 
-    const tempId = 'temp_' + Date.now();
-    const localUrl = URL.createObjectURL(file);
-    
-    // Optimistic UI for media
-    const tempMsg: ChatMessage = {
-      id: tempId,
-      senderWing: session.wing,
-      senderFlatNo: session.flatNo,
-      senderOwnerName: session.ownerName || 'Resident',
-      text: '',
-      mediaUrl: localUrl,
-      mediaType: file.type,
-      mediaName: file.name,
-      createdAt: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, tempMsg]);
-
     setUploading(true);
     setUploadProgress(0);
+    
     try {
-      const metadata = await uploadFileInChunks(file, (prog) => {
-        setUploadProgress(prog);
-      });
-      // Replace the temp message natively when firebase updates
-      setMessages(prev => prev.filter(m => m.id !== tempId));
-      await handleSendMessage('', metadata);
+      for(let i=0; i<filesToSend.length; i++) {
+        const file = filesToSend[i];
+        
+        // Optimistic UI for each file
+        const tempId = 'temp_' + Date.now() + '_' + i;
+        const localUrl = URL.createObjectURL(file);
+        const tempMsg: ChatMessage = {
+          id: tempId,
+          senderWing: session.wing!,
+          senderFlatNo: session.flatNo!,
+          senderOwnerName: session.ownerName || 'Resident',
+          text: i === 0 ? textToSend : '',
+          mediaUrl: localUrl,
+          mediaType: file.type,
+          mediaName: file.name,
+          createdAt: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, tempMsg]);
+
+        const meta = await uploadFileInChunks(file, (prog) => {
+          setUploadProgress(Math.round(((i * 100) + prog) / filesToSend.length));
+        });
+        
+        setMessages(prev => prev.filter(m => m.id !== tempId));
+        await handleSendMessage(i === 0 ? textToSend : '', meta);
+      }
     } catch (err) {
       console.error(err);
-      alert("Failed to upload file.");
-      setMessages(prev => prev.filter(m => m.id !== tempId));
+      alert("Failed to upload some files.");
     } finally {
       setUploading(false);
       setUploadProgress(0);
-      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -244,14 +276,14 @@ export default function ChatSection({ session }: ChatSectionProps) {
                     onClick={() => handleVote(msg.id, opt.id)}
                     className={`relative w-full overflow-hidden rounded-lg p-2 text-left transition border-2 ${
                       isSelected 
-                        ? (isMe ? 'bg-white/20 border-white text-white shadow-sm' : 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-sm') 
-                        : (isMe ? 'bg-black/10 border-transparent hover:bg-black/20 text-indigo-100' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700')
+                        ? (isMe ? 'bg-emerald-900/10 border-emerald-900/50 text-emerald-950 shadow-sm' : 'bg-indigo-50 border-indigo-500 text-indigo-900 shadow-sm') 
+                        : (isMe ? 'bg-black/10 border-transparent hover:bg-black/20 text-emerald-900/80' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-700')
                     }`}
                   >
                     <div 
                       className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${
                         isMe 
-                          ? (isSelected ? 'bg-white/30' : 'bg-white/10') 
+                          ? (isSelected ? 'bg-emerald-900/20' : 'bg-black/10') 
                           : (isSelected ? 'bg-indigo-200' : 'bg-slate-100')
                       }`}
                       style={{ width: `${percentage}%` }}
@@ -295,6 +327,25 @@ export default function ChatSection({ session }: ChatSectionProps) {
       </div>
 
       <div className="p-3 bg-white border-t border-slate-200">
+        {stagedFiles.length > 0 && (
+          <div className="flex gap-2 mb-3 overflow-x-auto py-2">
+            {stagedFiles.map((file, idx) => (
+              <div key={idx} className="relative w-16 h-16 shrink-0 bg-slate-100 rounded-lg border border-slate-200 flex flex-col items-center justify-center overflow-hidden">
+                <button 
+                  onClick={() => removeStagedFile(idx)} 
+                  className="absolute -top-1 -right-1 bg-slate-800 text-white rounded-full p-0.5 shadow-md hover:bg-red-600 transition z-10"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+                {file.type.startsWith('image/') ? (
+                  <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-[9px] font-bold text-slate-500 text-center px-1 truncate w-full">{file.name}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         {uploading && (
           <div className="mb-2 w-full bg-slate-100 rounded-full h-1.5">
             <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
@@ -326,13 +377,13 @@ export default function ChatSection({ session }: ChatSectionProps) {
             type="text"
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage(inputText)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSendAction()}
             placeholder="Type a message..."
             className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"
           />
 
           <button
-            onClick={() => handleSendMessage(inputText)}
+            onClick={handleSendAction}
             disabled={!inputText.trim() && !uploading}
             className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"
           >
