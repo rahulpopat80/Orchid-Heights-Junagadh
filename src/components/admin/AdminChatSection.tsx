@@ -336,15 +336,12 @@ export default function AdminChatSection() {
                         
                         {activeMessageId === msg.id && (
                           <>
-                            <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
+                            <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
                             <div 
-                              className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
+                              className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
                               style={{
-                                top: (window as any).adminMenuPosition ? ((window as any).adminMenuPosition.y > window.innerHeight - 250 ? (window as any).adminMenuPosition.y - 140 : (window as any).adminMenuPosition.y + 20) : '50%',
-                                ...((window as any).adminMenuPosition && (window as any).adminMenuPosition.x > window.innerWidth / 2
-                                  ? { right: Math.max(10, window.innerWidth - (window as any).adminMenuPosition.x - 20) + 'px' }
-                                  : { left: (window as any).adminMenuPosition ? Math.max(10, (window as any).adminMenuPosition.x - 20) + 'px' : '50%' }
-                                )
+                                top: (window as any).adminMenuPosition ? Math.max(20, Math.min((window as any).adminMenuPosition.y - 85, window.innerHeight - 220)) + 'px' : '50%',
+                                ...( (window as any).adminMenuPosition && (window as any).adminMenuPosition.x > window.innerWidth / 2 ? { right: '16px' } : { left: '16px' })
                               }}
                               onClick={e => e.stopPropagation()}
                             >

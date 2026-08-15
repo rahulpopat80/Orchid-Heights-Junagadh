@@ -618,17 +618,14 @@ export default function ChatSection({ session }: ChatSectionProps) {
           
           {activeMessageId === msg.id && (
              <>
-               <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
+               <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
                {/* Reaction Menu */}
-        <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
+        <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
         <div 
-          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
+          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
           style={{
-             top: menuPosition ? (menuPosition.y > window.innerHeight - 250 ? menuPosition.y - 140 : menuPosition.y + 20) : '50%',
-             ...(menuPosition && menuPosition.x > window.innerWidth / 2
-               ? { right: Math.max(10, window.innerWidth - menuPosition.x - 20) + 'px' }
-               : { left: menuPosition ? Math.max(10, menuPosition.x - 20) + 'px' : '50%' }
-             )
+             top: menuPosition ? Math.max(20, Math.min(menuPosition.y - 85, window.innerHeight - 220)) + 'px' : '50%',
+             ...(isMe ? { right: '16px' } : { left: '16px' })
           }}
           onClick={e => e.stopPropagation()}
         >
