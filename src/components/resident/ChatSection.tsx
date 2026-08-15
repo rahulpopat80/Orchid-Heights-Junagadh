@@ -72,10 +72,6 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const [viewVotersForPoll, setViewVotersForPoll] = useState<ChatMessage | null>(null);
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOptions, setPollOptions] = useState([{ id: '1', text: '' }, { id: '2', text: '' }]);
-  const [actionMenuId, setActionMenuId] = useState<string | null>(null);
-  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
-  const [editVal, setEditVal] = useState<string>('');
-  const pressTimer = useRef<NodeJS.Timeout | null>(null);
 
   const flatId = `${session.wing}-${session.flatNo}`;
 
@@ -274,58 +270,6 @@ export default function ChatSection({ session }: ChatSectionProps) {
     setPollOptions([{ id: '1', text: '' }, { id: '2', text: '' }]);
   };
 
-  
-  const handleTouchStart = (msg: ChatMessage, isMe: boolean) => {
-    if (!isMe) return;
-    const msgTime = new Date(msg.createdAt).getTime();
-    const isWithin24h = Date.now() - msgTime < 24 * 60 * 60 * 1000;
-    if (!isWithin24h) return;
-    
-    pressTimer.current = setTimeout(() => {
-      setActionMenuId(msg.id);
-    }, 500);
-  };
-
-  const handleTouchEnd = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-  };
-
-  const handleTouchMove = () => {
-    if (pressTimer.current) {
-      clearTimeout(pressTimer.current);
-      pressTimer.current = null;
-    }
-  };
-
-  const startEdit = (msg: ChatMessage) => {
-    setEditingMsgId(msg.id);
-    setEditVal(msg.text || '');
-    setActionMenuId(null);
-  };
-
-  const saveEdit = async (id: string) => {
-    try {
-      await api.updateChatMessage(id, { text: editVal });
-      setEditingMsgId(null);
-    } catch(e) {
-      alert("Failed to edit");
-    }
-  };
-
-  const deleteMsg = async (id: string) => {
-    if(confirm("Delete this message?")) {
-      try {
-        await api.deleteChatMessage(id);
-        setActionMenuId(null);
-      } catch(e) {
-        alert("Failed to delete");
-      }
-    }
-  };
-
   const renderMessage = (msg: ChatMessage) => {
     const isMe = msg.senderWing === session.wing && msg.senderFlatNo === session.flatNo;
     
@@ -347,50 +291,10 @@ export default function ChatSection({ session }: ChatSectionProps) {
             {senderTitle}
           </div>
         )}
-        <div className="relative flex">
-          {actionMenuId === msg.id && isMe && (
-            <div className="mr-2 self-center bg-white shadow-lg rounded-xl border border-slate-200 flex flex-col overflow-hidden z-10 shrink-0">
-              <button onClick={() => startEdit(msg)} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 whitespace-nowrap">
-                <Edit2 className="w-3.5 h-3.5" /> Edit
-              </button>
-              <button onClick={() => deleteMsg(msg.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 whitespace-nowrap border-t border-slate-100">
-                <Trash2 className="w-3.5 h-3.5" /> Delete
-              </button>
-              <button onClick={() => setActionMenuId(null)} className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-slate-500 hover:bg-slate-100 whitespace-nowrap border-t border-slate-100">
-                <X className="w-3.5 h-3.5" /> Cancel
-              </button>
-            </div>
-          )}
-
-          <div 
-            onTouchStart={() => handleTouchStart(msg, isMe)}
-            onTouchEnd={handleTouchEnd}
-            onTouchMove={handleTouchMove}
-            onMouseDown={() => handleTouchStart(msg, isMe)}
-            onMouseUp={handleTouchEnd}
-            onMouseLeave={handleTouchEnd}
-            className={`relative p-2.5 pb-5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border select-none ${isMe ? 'cursor-pointer' : ''} ${
-            isMe ? 'bg-[#DCF8C6] text-slate-800 border-[#c6e4b1] rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
-          } ${actionMenuId === msg.id ? 'ring-2 ring-indigo-500 ring-offset-1' : ''}`}
-          >
-          
-          {editingMsgId === msg.id ? (
-            <div className="flex flex-col gap-2 mt-1 mb-2 bg-white/60 p-2 rounded-xl border border-[#b2dca0]">
-              <input
-                type="text"
-                value={editVal}
-                onChange={(e) => setEditVal(e.target.value)}
-                className="w-full bg-white border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                placeholder="Edit message..."
-              />
-              <div className="flex justify-end gap-2 mt-1">
-                <button onClick={() => setEditingMsgId(null)} className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-300">Cancel</button>
-                <button onClick={() => saveEdit(msg.id)} className="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold hover:bg-emerald-700">Save</button>
-              </div>
-            </div>
-          ) : (
-            msg.text && <p className="whitespace-pre-wrap text-sm pr-10">{msg.text}</p>
-          )}
+        <div className={`relative p-2.5 pb-5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border ${
+          isMe ? 'bg-[#DCF8C6] text-slate-800 border-[#c6e4b1] rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
+        }`}>
+          {msg.text && <p className="whitespace-pre-wrap text-sm pr-10">{msg.text}</p>}
           
           {msg.mediaUrl && (
             <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
@@ -449,7 +353,6 @@ export default function ChatSection({ session }: ChatSectionProps) {
           <div className={`absolute bottom-1 right-2 text-[9px] ${isMe ? 'text-green-800' : 'text-slate-400'}`}>
             {timeStr}
           </div>
-        </div>
         </div>
       </div>
     );
