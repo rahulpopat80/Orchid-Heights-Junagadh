@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
 import { FileText, Loader2, Download } from 'lucide-react';
+import AudioMessagePlayer from './AudioMessagePlayer';
 
 interface ChunkedMediaProps {
   fileId: string;
@@ -9,9 +10,10 @@ interface ChunkedMediaProps {
   key?: any;
   variant?: 'default' | 'raw';
   className?: string;
+  isMe?: boolean;
 }
 
-export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'default', className }: ChunkedMediaProps) {
+export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'default', className, isMe }: ChunkedMediaProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [mediaUrl, setMediaUrl] = useState<string>('');
@@ -111,8 +113,8 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
   
   if (type?.startsWith('audio/')) {
     return (
-      <div className="rounded-xl border border-slate-200/60 overflow-hidden bg-white flex flex-col p-2 w-full min-w-[200px]">
-        <audio src={mediaUrl} controls className="w-full h-10" />
+      <div className="w-full min-w-[200px]">
+        <AudioMessagePlayer src={mediaUrl} isMe={isMe} />
       </div>
     );
   }

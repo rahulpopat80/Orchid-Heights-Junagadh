@@ -273,7 +273,17 @@ export default function AdminChatSection() {
               return (
                 <div key={msg.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between group">
                   <div className="flex-1 relative" 
-      onPointerDown={(e) => {
+      onPointerMove={(e) => {
+    if ((window as any).adminLongPress && (window as any).adminPointerDownX) {
+      if (Math.abs(e.clientX - (window as any).adminPointerDownX) > 10 || Math.abs(e.clientY - (window as any).adminPointerDownY) > 10) {
+        clearTimeout((window as any).adminLongPress);
+        (window as any).adminLongPress = null;
+      }
+    }
+  }}
+  onPointerDown={(e) => {
+    (window as any).adminPointerDownX = e.clientX;
+    (window as any).adminPointerDownY = e.clientY;
         const cx = e.clientX; const cy = e.clientY;
         (window as any).adminLongPress = setTimeout(() => {
           setActiveMessageId(msg.id);
@@ -425,7 +435,7 @@ export default function AdminChatSection() {
                           <div className="mt-2 max-w-sm">
                             <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mb-2 inline-block">Media Attached</span>
                             <div onClick={() => msg.mediaType?.startsWith('image/') && setPreviewMediaMsg(msg)} className={msg.mediaType?.startsWith('image/') ? 'cursor-pointer' : ''}>
-                <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} />
+                <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} isMe={msg.senderWing === 'admin'} />
               </div>
                           </div>
                         )}
@@ -528,6 +538,7 @@ export default function AdminChatSection() {
               fallbackName={previewMediaMsg.mediaName!}
               variant="raw"
               className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              isMe={false}
             />
             {previewMediaMsg.text && (
               <div className="absolute bottom-4 left-0 right-0 text-center">

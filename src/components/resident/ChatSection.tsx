@@ -179,6 +179,8 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const longPressTimer = useRef<any>(null);
 
   const handlePointerDown = (id: string, e: React.PointerEvent) => {
+    (window as any).pointerDownX = e.clientX;
+    (window as any).pointerDownY = e.clientY;
     const cx = e.clientX; const cy = e.clientY;
     longPressTimer.current = setTimeout(() => {
       setActiveMessageId(id);
@@ -452,11 +454,20 @@ export default function ChatSection({ session }: ChatSectionProps) {
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onPointerMove={(e) => {
+            if (longPressTimer.current && (window as any).pointerDownX) {
+              if (Math.abs(e.clientX - (window as any).pointerDownX) > 10 || Math.abs(e.clientY - (window as any).pointerDownY) > 10) {
+                clearTimeout(longPressTimer.current);
+                longPressTimer.current = null;
+              }
+            }
+          }}
           onTouchStart={(e) => { 
             touchStartX.current = e.touches[0].clientX; 
             e.currentTarget.style.transition = 'none';
           }}
           onTouchMove={(e) => {
+             if (longPressTimer.current && touchStartX.current && Math.abs(e.touches[0].clientX - touchStartX.current) > 5) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
              if (touchStartX.current) {
                 const diff = e.touches[0].clientX - touchStartX.current;
                 if (diff > 0) { // Swipe right
@@ -526,7 +537,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
           {msg.mediaUrl && (
             <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
               <div onClick={() => msg.mediaType?.startsWith('image/') && setPreviewMediaMsg(msg)} className={msg.mediaType?.startsWith('image/') ? 'cursor-pointer' : ''}>
-                <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} />
+                <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} isMe={isMe} />
               </div>
             </div>
           )}
@@ -603,7 +614,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
           className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
           style={{
              top: menuPosition ? (menuPosition.y > window.innerHeight - 250 ? menuPosition.y - 140 : menuPosition.y + 20) : '50%',
-             left: menuPosition ? (isMe ? Math.max(10, menuPosition.x - 240) : Math.min(menuPosition.x, window.innerWidth - 250)) : '50%'
+             left: menuPosition ? Math.max(10, Math.min(menuPosition.x - 120, window.innerWidth - 260)) : '50%'
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -897,6 +908,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
               fallbackName={previewMediaMsg.mediaName!}
               variant="raw"
               className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              isMe={false}
             />
             {previewMediaMsg.text && (
               <div className="absolute bottom-4 left-0 right-0 text-center">
