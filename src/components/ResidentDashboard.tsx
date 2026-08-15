@@ -1920,6 +1920,9 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                     session={session}
                   />
                 )}
+                {activeSubSection === 'chat' && (
+                  <ChatSection session={session} />
+                )}
 
                 {activeSubSection === 'notifications' && (
                   <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-5 text-left">

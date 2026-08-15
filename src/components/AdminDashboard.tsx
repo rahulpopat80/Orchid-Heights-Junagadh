@@ -3781,6 +3781,9 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
         {/* 8. VISITOR RECORDS TAB */}
         {activeTab === 'visitors' && (
           <AdminVisitorRecords onBack={() => window.location.hash = 'home'} owners={owners} />
+        )}
+        {activeTab === 'chat' && (
+          <AdminChatSection />
         )}</div>
         </motion.div>
       </AnimatePresence>

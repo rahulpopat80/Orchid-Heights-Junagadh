@@ -253,7 +253,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
   };
 
   return (
-    <div className="flex flex-col h-[70vh] max-h-[800px] bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden relative shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-160px)] max-h-[900px] bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden relative shadow-sm mt-2">
       <div className="p-4 bg-white border-b border-slate-200 shadow-sm z-10">
         <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider">Community Chat</h3>
         <p className="text-xs text-slate-500 font-medium">Connect with other residents. Messages older than 1 month are deleted.</p>
