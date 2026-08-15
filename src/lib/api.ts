@@ -227,6 +227,20 @@ export const api = {
   cleanupOldChatMessages: async () => {
     await cleanupOldChatMessages();
   },
+  reactToMessage: async (messageId: string, flatId: string, emoji: string | null) => {
+    try {
+      const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
+      const docRef = doc(db, 'chat_messages', messageId);
+      if (emoji) {
+        await updateDoc(docRef, { [`reactions.${flatId}`]: emoji });
+      } else {
+        await updateDoc(docRef, { [`reactions.${flatId}`]: deleteField() });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  },
   deleteChatMessage: async (id: string): Promise<boolean> => {
     return deleteChatMessage(id);
   },

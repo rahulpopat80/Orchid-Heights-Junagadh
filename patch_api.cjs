@@ -1,10 +1,34 @@
 const fs = require('fs');
-const path = require('path');
+let code = fs.readFileSync('src/lib/api.ts', 'utf8');
 
-const file = path.join(__dirname, 'src', 'lib', 'api.ts');
-let code = fs.readFileSync(file, 'utf8');
+if (!code.includes('reactToMessage')) {
+  // Find deleteMessage
+  if (code.includes('deleteMessage: async (messageId: string) => {')) {
+    code = code.replace(
+      'deleteMessage: async (messageId: string) => {',
+      `reactToMessage: async (messageId: string, flatId: string, emoji: string | null) => {
+    if (useLocalFallback) return;
+    try {
+      const { doc, updateDoc, deleteField } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
+      const docRef = doc(db, 'chat_messages', messageId);
+      if (emoji) {
+        await updateDoc(docRef, { [\`reactions.\${flatId}\`]: emoji });
+      } else {
+        await updateDoc(docRef, { [\`reactions.\${flatId}\`]: deleteField() });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  },
+  deleteMessage: async (messageId: string) => {`
+    );
+    fs.writeFileSync('src/lib/api.ts', code);
+    console.log("Patched api.ts successfully");
+  } else {
+    console.log("Could not find deleteMessage");
+  }
+} else {
+  console.log("reactToMessage already exists");
+}
 
-code = code.replace("getFinancialReportsList,", "getFinancialReportsList,\n  subscribeToFinancialReports,");
-code = code.replace("getFinancialReports: async (): Promise<FinancialReport[]> => {", "subscribeToFinancialReports: (onUpdate: (reports: FinancialReport[]) => void) => {\n    return subscribeToFinancialReports(onUpdate);\n  },\n  getFinancialReports: async (): Promise<FinancialReport[]> => {");
-
-fs.writeFileSync(file, code);

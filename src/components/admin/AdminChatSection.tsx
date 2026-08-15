@@ -78,6 +78,32 @@ const formatMessageText = (text: string): React.ReactNode => {
 
 export default function AdminChatSection() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [viewReactionsForMsg, setViewReactionsForMsg] = useState<ChatMessage | null>(null);
+  const [showCustomEmojiInput, setShowCustomEmojiInput] = useState<string | null>(null);
+  const [customEmoji, setCustomEmoji] = useState<string>('');
+  const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+
+  const handleReact = async (messageId: string, emoji: string | null) => {
+    setActiveMessageId(null);
+    setShowCustomEmojiInput(null);
+    setCustomEmoji('');
+    
+    const reactorId = "admin";
+    
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        const newReactions = { ...(m.reactions || {}) };
+        if (emoji) {
+          newReactions[reactorId] = emoji;
+        } else {
+          delete newReactions[reactorId];
+        }
+        return { ...m, reactions: newReactions };
+      }
+      return m;
+    }));
+    await api.reactToMessage(messageId, reactorId, emoji);
+  };
   const [owners, setOwners] = useState<FlatOwner[]>([]);
   const [loading, setLoading] = useState(true);
   const [previewMediaMsg, setPreviewMediaMsg] = useState<ChatMessage | null>(null);
@@ -452,6 +478,33 @@ export default function AdminChatSection() {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+  
+
+      {viewReactionsForMsg && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200" onClick={() => setViewReactionsForMsg(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800">Reactions</h3>
+              <button onClick={() => setViewReactionsForMsg(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {Object.entries(viewReactionsForMsg.reactions || {}).map(([reactor, emoji]) => (
+                <div key={reactor} className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <span className="font-medium text-slate-700 text-sm">
+                    {reactor === 'admin' ? 'Admin' : `Flat ${reactor}`}
+                  </span>
+                  <span className="text-2xl">{emoji}</span>
+                </div>
+              ))}
+              {(!viewReactionsForMsg.reactions || Object.keys(viewReactionsForMsg.reactions).length === 0) && (
+                <div className="text-center text-slate-400 text-sm">No reactions yet</div>
+              )}
+            </div>
           </div>
         </div>
       )}

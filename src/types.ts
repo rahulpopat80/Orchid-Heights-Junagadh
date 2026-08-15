@@ -223,6 +223,7 @@ export interface PollOption {
 }
 
 export interface ChatMessage {
+  reactions?: Record<string, string>; // flatId -> emoji
   id: string;
   senderWing: string;
   senderFlatNo: number;

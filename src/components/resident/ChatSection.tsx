@@ -103,6 +103,31 @@ export default function ChatSection({ session }: ChatSectionProps) {
   
   // Message Action State
   const [activeMessageId, setActiveMessageId] = useState<string | null>(null);
+  const [viewReactionsForMsg, setViewReactionsForMsg] = useState<ChatMessage | null>(null);
+  const [showCustomEmojiInput, setShowCustomEmojiInput] = useState<string | null>(null);
+  const [customEmoji, setCustomEmoji] = useState<string>('');
+  
+  const handleReact = async (messageId: string, emoji: string | null) => {
+    setActiveMessageId(null);
+    setShowCustomEmojiInput(null);
+    setCustomEmoji('');
+    
+    const reactorId = flatId;
+    
+    setMessages(prev => prev.map(m => {
+      if (m.id === messageId) {
+        const newReactions = { ...(m.reactions || {}) };
+        if (emoji) {
+          newReactions[reactorId] = emoji;
+        } else {
+          delete newReactions[reactorId];
+        }
+        return { ...m, reactions: newReactions };
+      }
+      return m;
+    }));
+    await api.reactToMessage(messageId, reactorId, emoji);
+  };
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [editInputText, setEditInputText] = useState<string>('');
   const longPressTimer = useRef<any>(null);
@@ -391,7 +416,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
             </div>
           ) : (
             <>
-          {msg.text && <p className="whitespace-pre-wrap text-sm pr-10">{formatMessageText(msg.text)}</p>}
+          {msg.text && <p className="whitespace-pre-wrap text-sm pr-10 select-none">{formatMessageText(msg.text)}</p>}
           
           {msg.mediaUrl && (
             <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
@@ -452,11 +477,38 @@ export default function ChatSection({ session }: ChatSectionProps) {
           <div className={`absolute bottom-1 right-2 text-[9px] ${isMe ? 'text-green-800' : 'text-slate-400'}`}>
             {timeStr}
           </div>
+
+          {msg.reactions && Object.keys(msg.reactions).length > 0 && (
+            <div 
+              onClick={(e) => { e.stopPropagation(); setViewReactionsForMsg(msg); }}
+              className={`absolute -bottom-3 ${isMe ? 'right-2' : 'left-2'} bg-white border border-slate-200 shadow-sm rounded-full px-1.5 py-0.5 text-[10px] flex items-center gap-1 cursor-pointer z-10 hover:bg-slate-50 transition-colors`}
+            >
+              {Array.from(new Set(Object.values(msg.reactions))).slice(0, 3).join('')}
+              <span className="font-bold text-slate-500 ml-0.5">{Object.keys(msg.reactions).length > 1 ? Object.keys(msg.reactions).length : ''}</span>
+            </div>
+          )}
+  
           
           {activeMessageId === msg.id && (
              <>
                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
-               <div className="absolute top-8 right-4 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[140px] animate-in fade-in zoom-in duration-200">
+               <div className="absolute top-8 right-4 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in fade-in zoom-in duration-200">
+
+               <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
+                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => (
+                   <button key={emoji} onClick={() => handleReact(msg.id, emoji)} className="text-xl hover:scale-125 transition-transform">
+                     {emoji}
+                   </button>
+                 ))}
+                 <button onClick={(e) => { e.stopPropagation(); setShowCustomEmojiInput(msg.id); }} className="text-xl hover:scale-125 transition-transform text-slate-400 font-bold">+</button>
+               </div>
+               {showCustomEmojiInput === msg.id && (
+                 <div className="p-2 border-b border-slate-100 flex gap-2 items-center bg-white">
+                   <input type="text" value={customEmoji} onChange={e => setCustomEmoji(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm outline-none" placeholder="Paste emoji..." autoFocus />
+                   <button onClick={() => handleReact(msg.id, customEmoji)} className="bg-emerald-600 text-white px-3 py-1 rounded text-sm font-bold">Go</button>
+                 </div>
+               )}
+  
                  <button onClick={() => { navigator.clipboard.writeText(msg.text || ''); setActiveMessageId(null); }} className="px-4 py-3 text-sm text-left hover:bg-slate-50 text-slate-700 font-bold border-b border-slate-100 flex items-center gap-3">
                    <Copy className="w-4 h-4 text-slate-400" /> Copy Text
                  </button>
@@ -701,6 +753,33 @@ export default function ChatSection({ session }: ChatSectionProps) {
                 </p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+  
+
+      {viewReactionsForMsg && (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200" onClick={() => setViewReactionsForMsg(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[80vh]" onClick={e => e.stopPropagation()}>
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-bold text-slate-800">Reactions</h3>
+              <button onClick={() => setViewReactionsForMsg(null)} className="text-slate-400 hover:text-slate-600 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto flex-1 space-y-3">
+              {Object.entries(viewReactionsForMsg.reactions || {}).map(([reactor, emoji]) => (
+                <div key={reactor} className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <span className="font-medium text-slate-700 text-sm">
+                    {reactor === 'admin' ? 'Admin' : `Flat ${reactor}`}
+                  </span>
+                  <span className="text-2xl">{emoji}</span>
+                </div>
+              ))}
+              {(!viewReactionsForMsg.reactions || Object.keys(viewReactionsForMsg.reactions).length === 0) && (
+                <div className="text-center text-slate-400 text-sm">No reactions yet</div>
+              )}
+            </div>
           </div>
         </div>
       )}
