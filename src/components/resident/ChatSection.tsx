@@ -547,7 +547,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
           
           {msg.mediaUrl && (
             <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
-              <div onClick={() => msg.mediaType?.startsWith('image/') && setPreviewMediaMsg(msg)} className={msg.mediaType?.startsWith('image/') ? 'cursor-pointer' : ''}>
+              <div onClick={() => (msg.mediaType?.startsWith('image/') || msg.mediaType?.startsWith('video/')) && setPreviewMediaMsg(msg)} className={(msg.mediaType?.startsWith('image/') || msg.mediaType?.startsWith('video/')) ? 'cursor-pointer' : ''}>
                 <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} isMe={isMe} />
               </div>
             </div>
@@ -622,10 +622,13 @@ export default function ChatSection({ session }: ChatSectionProps) {
                {/* Reaction Menu */}
         <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
         <div 
-          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
+          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
           style={{
              top: menuPosition ? (menuPosition.y > window.innerHeight - 250 ? menuPosition.y - 140 : menuPosition.y + 20) : '50%',
-             left: menuPosition ? Math.max(10, Math.min(menuPosition.x - 120, window.innerWidth - 260)) + 'px' : '50%'
+             ...(menuPosition && menuPosition.x > window.innerWidth / 2
+               ? { right: Math.max(10, window.innerWidth - menuPosition.x - 20) + 'px' }
+               : { left: menuPosition ? Math.max(10, menuPosition.x - 20) + 'px' : '50%' }
+             )
           }}
           onClick={e => e.stopPropagation()}
         >

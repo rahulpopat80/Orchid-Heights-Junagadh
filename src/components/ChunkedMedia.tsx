@@ -114,12 +114,23 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
   if (type?.startsWith('audio/')) {
     return (
       <div className="w-full min-w-[200px]">
-        <AudioMessagePlayer src={mediaUrl} isMe={isMe} />
+        <AudioMessagePlayer src={mediaUrl} isMe={isMe} type={type} fileName={fallbackName} />
       </div>
     );
   }
 
   if (type?.startsWith('video/')) {
+    if (variant === 'raw') {
+      return (
+        <video 
+          src={mediaUrl} 
+          controls 
+          className={className || "w-full h-full object-contain"} 
+          playsInline
+          autoPlay
+        />
+      );
+    }
     return (
       <div className="rounded-xl border border-slate-200/60 overflow-hidden bg-black flex flex-col items-center justify-center p-1 w-full">
         <video src={mediaUrl} controls className="max-h-[220px] w-full rounded-lg" />

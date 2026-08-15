@@ -338,10 +338,13 @@ export default function AdminChatSection() {
                           <>
                             <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
                             <div 
-                              className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
+                              className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
                               style={{
-                                top: (window as any).adminMenuPosition ? Math.min((window as any).adminMenuPosition.y, window.innerHeight - 200) : '50%',
-                                left: (window as any).adminMenuPosition ? Math.min((window as any).adminMenuPosition.x, window.innerWidth - 250) : '50%'
+                                top: (window as any).adminMenuPosition ? ((window as any).adminMenuPosition.y > window.innerHeight - 250 ? (window as any).adminMenuPosition.y - 140 : (window as any).adminMenuPosition.y + 20) : '50%',
+                                ...((window as any).adminMenuPosition && (window as any).adminMenuPosition.x > window.innerWidth / 2
+                                  ? { right: Math.max(10, window.innerWidth - (window as any).adminMenuPosition.x - 20) + 'px' }
+                                  : { left: (window as any).adminMenuPosition ? Math.max(10, (window as any).adminMenuPosition.x - 20) + 'px' : '50%' }
+                                )
                               }}
                               onClick={e => e.stopPropagation()}
                             >
@@ -440,7 +443,7 @@ export default function AdminChatSection() {
                         {msg.mediaUrl && (
                           <div className="mt-2 max-w-sm">
                             <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded mb-2 inline-block">Media Attached</span>
-                            <div onClick={() => msg.mediaType?.startsWith('image/') && setPreviewMediaMsg(msg)} className={msg.mediaType?.startsWith('image/') ? 'cursor-pointer' : ''}>
+                            <div onClick={() => (msg.mediaType?.startsWith('image/') || msg.mediaType?.startsWith('video/')) && setPreviewMediaMsg(msg)} className={(msg.mediaType?.startsWith('image/') || msg.mediaType?.startsWith('video/')) ? 'cursor-pointer' : ''}>
                 <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} isMe={msg.senderWing === 'admin'} />
               </div>
                           </div>
