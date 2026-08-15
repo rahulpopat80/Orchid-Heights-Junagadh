@@ -160,35 +160,30 @@ export default function ChatSection({ session }: ChatSectionProps) {
   };
 
   const renderMessage = (msg: ChatMessage) => {
-    const isMe = msg.senderWing === session.wing && msg.senderFlatNo === session.flatNo && msg.senderOwnerName === (session.ownerName || 'Resident');
+    const isMe = msg.senderWing === session.wing && msg.senderFlatNo === session.flatNo;
     
     let senderTitle = 'Resident';
     const flatOwnerInfo = owners.find(o => o.wing === msg.senderWing && o.flatNo === msg.senderFlatNo);
     
     if (flatOwnerInfo) {
-      if (flatOwnerInfo.nameEn === msg.senderOwnerName) {
-        // It's the owner
-        senderTitle = `${msg.senderOwnerName}, (${msg.senderWing}-${msg.senderFlatNo})`;
-      } else {
-        // It's a member
-        senderTitle = `${msg.senderOwnerName}, (${flatOwnerInfo.nameEn}), ${msg.senderWing}-${msg.senderFlatNo}`;
-      }
+      senderTitle = `${flatOwnerInfo.nameEn} (${msg.senderWing}-${msg.senderFlatNo})`;
     } else {
-      senderTitle = `${msg.senderOwnerName}, (${msg.senderWing}-${msg.senderFlatNo})`;
+      senderTitle = `${msg.senderOwnerName} (${msg.senderWing}-${msg.senderFlatNo})`;
     }
 
-    if (isMe) senderTitle = 'You';
-
+    const timeStr = new Date(msg.createdAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
     return (
-      <div key={msg.id} className={`flex flex-col mb-4 ${isMe ? 'items-end' : 'items-start'}`}>
-        <div className="text-[10px] text-slate-400 mb-1 font-semibold ml-1 mr-1">
-          {senderTitle} • {new Date(msg.createdAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
-        </div>
-        <div className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border ${
-          isMe ? 'bg-indigo-600 text-white border-indigo-700 rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
+      <div key={msg.id} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'}`}>
+        {!isMe && (
+          <div className="text-[10px] text-slate-500 font-bold ml-1 mb-0.5" style={{ color: '#075E54' }}>
+            {senderTitle}
+          </div>
+        )}
+        <div className={`relative p-2.5 pb-5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border ${
+          isMe ? 'bg-[#DCF8C6] text-slate-800 border-[#c6e4b1] rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
         }`}>
-          {msg.text && <p className="whitespace-pre-wrap text-sm">{msg.text}</p>}
+          {msg.text && <p className="whitespace-pre-wrap text-sm pr-10">{msg.text}</p>}
           
           {msg.mediaUrl && (
             <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
@@ -234,17 +229,18 @@ export default function ChatSection({ session }: ChatSectionProps) {
               </div>
             </div>
           )}
+          
+          <div className={`absolute bottom-1 right-2 text-[9px] ${isMe ? 'text-green-800' : 'text-slate-400'}`}>
+            {timeStr}
+          </div>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 md:rounded-2xl border border-slate-200 overflow-hidden relative shadow-sm md:mt-2">
-      <div className="p-4 bg-white border-b border-slate-200 shadow-sm z-10">
-        <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider">Community Chat</h3>
-        <p className="text-xs text-slate-500 font-medium">Connect with other residents. Messages older than 1 month are deleted.</p>
-      </div>
+    <div className="flex flex-col h-full bg-slate-50 overflow-hidden relative">
+      
       
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {loading ? (

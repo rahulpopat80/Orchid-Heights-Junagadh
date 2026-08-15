@@ -145,7 +145,7 @@ export default function AdminChatSection() {
                     )}
                   </div>
 
-                  <div className="flex items-start gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-start gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                     {!msg.isPoll && !msg.mediaUrl && (
                       <button onClick={() => handleEdit(msg)} className="p-2 text-slate-400 hover:text-indigo-600 bg-white border border-slate-200 rounded-lg">
                         <Edit2 className="w-4 h-4" />

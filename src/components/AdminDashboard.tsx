@@ -1650,7 +1650,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                 
                 {/* Search */}
                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <div className="relative w-full sm:w-64">
+                  <div className="relative w-full sm:w-64 max-w-[calc(100vw-3rem)]">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                       <Search className="w-3.5 h-3.5" />
                     </div>
@@ -1793,7 +1793,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
               )}
 
               {/* Master directory table */}
-              <div className="max-h-[600px] overflow-y-auto border border-slate-100 rounded-xl">
+              <div className="max-h-[600px] overflow-y-auto overflow-x-auto border border-slate-100 rounded-xl w-full">
                 <table className="w-full text-left text-xs text-slate-600 border-collapse">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-150 text-slate-500 font-bold uppercase text-[9px] tracking-wider sticky top-0 z-10">
