@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserSession, ChatMessage , FlatOwner} from '../../types';
 import { api } from '../../lib/api';
-import { Send, Image as ImageIcon, File as FileIcon, BarChart2, Trash2, Edit2, X, Plus, Copy } from 'lucide-react';
+import { Send, Image as ImageIcon, File as FileIcon, BarChart2, Trash2, Edit2, X, Plus, Copy, Mic } from 'lucide-react';
 import { uploadFileInChunks, downloadChunkedFile } from '../../lib/fileStorage';
 import ChunkedMedia from '../ChunkedMedia';
 
@@ -88,6 +88,72 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const touchStartX = useRef<number | null>(null);
+
+  // --- Voice Message State ---
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<any>(null);
+
+  const startRecording = async (e: React.PointerEvent) => {
+    e.preventDefault();
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const file = new File([audioBlob], `Voice_Message_${Date.now()}.webm`, { type: 'audio/webm' });
+        setUploading(true);
+        try {
+          const meta = await uploadFileInChunks(file, (prog) => setUploadProgress(prog));
+          await handleSendMessage('', meta);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setUploading(false);
+          setUploadProgress(0);
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setRecordingDuration(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      alert("Microphone permission denied or not available.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      clearInterval(recordingTimerRef.current);
+    }
+  };
+
+  const cancelRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.onstop = null; // Prevent sending
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+      clearInterval(recordingTimerRef.current);
+    }
+  };
+
   const [loading, setLoading] = useState(true);
   const [previewMediaMsg, setPreviewMediaMsg] = useState<ChatMessage | null>(null);
 
@@ -561,7 +627,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
         <div 
           className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
           style={{
-             top: menuPosition ? Math.min(menuPosition.y, window.innerHeight - 200) : '50%',
+             top: menuPosition ? Math.max(10, Math.min(menuPosition.y - 60, window.innerHeight - 140)) : '50%',
              left: menuPosition ? (isMe ? Math.max(10, menuPosition.x - 240) : Math.min(menuPosition.x, window.innerWidth - 250)) : '50%'
           }}
           onClick={e => e.stopPropagation()}
@@ -569,7 +635,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
 
                <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
                  {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => (
-                   <button key={emoji} onClick={() => handleReact(msg.id, emoji)} className="text-xl hover:scale-125 transition-transform">
+                   <button key={emoji} onClick={() => handleReact(msg.id, msg.reactions && msg.reactions[`${session.wing}-${session.flatNo}`] === emoji ? null : emoji)} className={`text-xl hover:scale-125 transition-transform ${msg.reactions && msg.reactions[`\${session.wing}-\${session.flatNo}`] === emoji ? 'bg-slate-200 rounded-full scale-110 p-1' : ''}`}>
                      {emoji}
                    </button>
                  ))}
@@ -841,14 +907,33 @@ export default function ChatSection({ session }: ChatSectionProps) {
               </button>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {Object.entries(viewReactionsForMsg.reactions || {}).map(([reactor, emoji]) => (
-                <div key={reactor} className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <span className="font-medium text-slate-700 text-sm">
-                    {reactor === 'admin' ? 'Admin' : `Flat ${reactor}`}
-                  </span>
-                  <span className="text-2xl">{emoji}</span>
-                </div>
-              ))}
+              {Object.entries(viewReactionsForMsg.reactions || {})
+                .sort(([rA], [rB]) => {
+                   const myId = `${session.wing}-${session.flatNo}`;
+                   if (rA === myId) return -1;
+                   if (rB === myId) return 1;
+                   return 0;
+                })
+                .map(([reactor, emoji]) => {
+                  const isMe = reactor === `${session.wing}-${session.flatNo}`;
+                  return (
+                    <div 
+                      key={reactor} 
+                      className={`flex items-center justify-between border-b border-slate-50 pb-2 ${isMe ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                      onClick={() => {
+                        if (isMe) {
+                          handleReact(viewReactionsForMsg.id, null);
+                          setViewReactionsForMsg(null);
+                        }
+                      }}
+                    >
+                      <span className={`text-sm ${isMe ? 'font-bold text-emerald-600' : 'font-medium text-slate-700'}`}>
+                        {reactor === 'admin' ? 'Admin' : (isMe ? 'You' : `Flat ${reactor}`)}
+                      </span>
+                      <span className="text-2xl">{emoji}</span>
+                    </div>
+                  );
+              })}
               {(!viewReactionsForMsg.reactions || Object.keys(viewReactionsForMsg.reactions).length === 0) && (
                 <div className="text-center text-slate-400 text-sm">No reactions yet</div>
               )}

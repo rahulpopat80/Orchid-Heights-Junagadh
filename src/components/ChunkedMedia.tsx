@@ -108,6 +108,17 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
     );
   }
 
+  
+  if (type?.startsWith('audio/')) {
+    return (
+      <div className={"rounded-xl border border-slate-200/60 overflow-hidden bg-slate-50 flex flex-col p-2 " + (className || "w-full")}>
+        <div className="flex items-center gap-2 mb-1">
+          <audio src={mediaUrl} controls className="h-10 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   if (type?.startsWith('video/')) {
     return (
       <div className="rounded-xl border border-slate-200/60 overflow-hidden bg-black flex flex-col items-center justify-center p-1 w-full">

@@ -324,14 +324,14 @@ export default function AdminChatSection() {
                             <div 
                               className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
                               style={{
-                                top: (window as any).adminMenuPosition ? Math.min((window as any).adminMenuPosition.y, window.innerHeight - 200) : '50%',
+                                top: (window as any).adminMenuPosition ? Math.max(10, Math.min((window as any).adminMenuPosition.y - 60, window.innerHeight - 140)) : '50%',
                                 left: (window as any).adminMenuPosition ? Math.min((window as any).adminMenuPosition.x, window.innerWidth - 250) : '50%'
                               }}
                               onClick={e => e.stopPropagation()}
                             >
                               <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
                                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => (
-                                  <button key={emoji} onClick={() => handleReact(msg.id, emoji)} className="text-xl hover:scale-125 transition-transform">
+                                  <button key={emoji} onClick={() => handleReact(msg.id, msg.reactions && msg.reactions['admin'] === emoji ? null : emoji)} className={`text-xl hover:scale-125 transition-transform ${msg.reactions && msg.reactions['admin'] === emoji ? 'bg-slate-200 rounded-full scale-110 p-1' : ''}`}>
                                     {emoji}
                                   </button>
                                 ))}
@@ -548,14 +548,32 @@ export default function AdminChatSection() {
               </button>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {Object.entries(viewReactionsForMsg.reactions || {}).map(([reactor, emoji]) => (
-                <div key={reactor} className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <span className="font-medium text-slate-700 text-sm">
-                    {reactor === 'admin' ? 'Admin' : `Flat ${reactor}`}
-                  </span>
-                  <span className="text-2xl">{emoji}</span>
-                </div>
-              ))}
+              {Object.entries(viewReactionsForMsg.reactions || {})
+                .sort(([rA], [rB]) => {
+                   if (rA === 'admin') return -1;
+                   if (rB === 'admin') return 1;
+                   return 0;
+                })
+                .map(([reactor, emoji]) => {
+                  const isMe = reactor === 'admin';
+                  return (
+                    <div 
+                      key={reactor} 
+                      className={`flex items-center justify-between border-b border-slate-50 pb-2 ${isMe ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+                      onClick={() => {
+                        if (isMe) {
+                          handleReact(viewReactionsForMsg.id, null);
+                          setViewReactionsForMsg(null);
+                        }
+                      }}
+                    >
+                      <span className={`text-sm ${isMe ? 'font-bold text-emerald-600' : 'font-medium text-slate-700'}`}>
+                        {reactor === 'admin' ? 'You (Admin)' : `Flat ${reactor}`}
+                      </span>
+                      <span className="text-2xl">{emoji}</span>
+                    </div>
+                  );
+              })}
               {(!viewReactionsForMsg.reactions || Object.keys(viewReactionsForMsg.reactions).length === 0) && (
                 <div className="text-center text-slate-400 text-sm">No reactions yet</div>
               )}

@@ -1,82 +1,60 @@
 const fs = require('fs');
 let code = fs.readFileSync('src/components/admin/AdminChatSection.tsx', 'utf8');
 
-const compressImageHelper = `const compressImage = (file: File): Promise<File> => {
-  return new Promise((resolve) => {
-    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
-      return resolve(file);
-    }
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (e) => {
-      const img = new Image();
-      img.src = e.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const max = 1200;
-        if (width > max || height > max) {
-          if (width > height) {
-            height = Math.round((height *= max / width));
-            width = max;
-          } else {
-            width = Math.round((width *= max / height));
-            height = max;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return resolve(file);
-        ctx.drawImage(img, 0, 0, width, height);
-        canvas.toBlob((blob) => {
-          if (!blob) return resolve(file);
-          const newFile = new File([blob], file.name, {
-            type: 'image/jpeg',
-            lastModified: Date.now(),
-          });
-          resolve(newFile);
-        }, 'image/jpeg', 0.7);
-      };
-      img.onerror = () => resolve(file);
-    };
-    reader.onerror = () => resolve(file);
-  });
-};
+// 1. Reaction Position
+code = code.replace(
+  /top: \(window as any\)\.adminMenuPosition \? Math\.min\(\(window as any\)\.adminMenuPosition\.y, window\.innerHeight - 200\) : '50%',/g,
+  "top: (window as any).adminMenuPosition ? Math.max(10, Math.min((window as any).adminMenuPosition.y - 60, window.innerHeight - 140)) : '50%',"
+);
 
-export default function AdminChatSection() {`;
+// Reaction highlight
+code = code.replace(
+  /<button key=\{emoji\} onClick=\{\(\) => handleReact\(msg\.id, emoji\)\} className="text-xl hover:scale-125 transition-transform">/g,
+  `<button key={emoji} onClick={() => handleReact(msg.id, msg.reactions && msg.reactions['admin'] === emoji ? null : emoji)} className={\`text-xl hover:scale-125 transition-transform \${msg.reactions && msg.reactions['admin'] === emoji ? 'bg-slate-200 rounded-full scale-110 p-1' : ''}\`}>`
+);
 
-if (code.includes('export default function AdminChatSection() {')) {
-  code = code.replace('export default function AdminChatSection() {', compressImageHelper);
-}
+// 3. Reaction List View
+const reactionListMatch = `              {Object.entries(viewReactionsForMsg.reactions || {}).map(([reactor, emoji]) => (
+                <div key={reactor} className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <span className="font-medium text-slate-700 text-sm">
+                    {reactor === 'admin' ? 'Admin' : \`Flat \${reactor}\`}
+                  </span>
+                  <span className="text-2xl">{emoji}</span>
+                </div>
+              ))}`;
 
-const targetHandleFileUpload = `  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File is too large! Maximum allowed is 15MB.");
-      return;
-    }
-    setUploading(true);
-    try {
-      const metadata = await uploadFileInChunks(file);`;
+const reactionListNew = `              {Object.entries(viewReactionsForMsg.reactions || {})
+                .sort(([rA], [rB]) => {
+                   if (rA === 'admin') return -1;
+                   if (rB === 'admin') return 1;
+                   return 0;
+                })
+                .map(([reactor, emoji]) => {
+                  const isMe = reactor === 'admin';
+                  return (
+                    <div 
+                      key={reactor} 
+                      className={\`flex items-center justify-between border-b border-slate-50 pb-2 \${isMe ? 'cursor-pointer hover:bg-slate-50' : ''}\`}
+                      onClick={() => {
+                        if (isMe) {
+                          handleReact(viewReactionsForMsg.id, null);
+                          setViewReactionsForMsg(null);
+                        }
+                      }}
+                    >
+                      <span className={\`text-sm \${isMe ? 'font-bold text-emerald-600' : 'font-medium text-slate-700'}\`}>
+                        {reactor === 'admin' ? 'You (Admin)' : \`Flat \${reactor}\`}
+                      </span>
+                      <span className="text-2xl">{emoji}</span>
+                    </div>
+                  );
+              })}`;
 
-const replaceHandleFileUpload = `  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return;
-    const file = e.target.files[0];
-    if (file.size > 15 * 1024 * 1024) {
-      alert("File is too large! Maximum allowed is 15MB.");
-      return;
-    }
-    setUploading(true);
-    try {
-      const processedFile = await compressImage(file);
-      const metadata = await uploadFileInChunks(processedFile);`;
-
-if (code.includes(targetHandleFileUpload)) {
-  code = code.replace(targetHandleFileUpload, replaceHandleFileUpload);
+if (code.includes(reactionListMatch)) {
+  code = code.replace(reactionListMatch, reactionListNew);
+} else {
+  console.log("No reaction match found in admin");
 }
 
 fs.writeFileSync('src/components/admin/AdminChatSection.tsx', code);
-console.log("Patched Admin ChatSection");
+console.log("Admin Chat Patched");
