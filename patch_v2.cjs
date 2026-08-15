@@ -33,18 +33,8 @@ function patchChatSection() {
   );
   
   // 5. Move Reply preview from bottom-fixed to right above the input
-  const oldReplyBlock = `{replyingTo && (
-          <div className="bg-slate-100 rounded-t-xl p-3 flex justify-between items-center border-b border-slate-200/60 shadow-sm relative z-0">
-            <div className="flex-1 border-l-4 border-indigo-500 pl-2">
-              <div className="text-xs font-bold text-indigo-700 mb-0.5">Replying to {replyingTo.senderOwnerName || 'Resident'}</div>
-              <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || 'Photo'}</div>
-            </div>
-            <button onClick={() => setReplyingTo(null)} className="p-1.5 bg-slate-200 text-slate-500 hover:bg-slate-300 rounded-full transition">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}`;
-  code = code.replace(oldReplyBlock, '');
+  const oldReplyBlockRegex = /\{replyingTo && \([\s\S]*?<X className="w-4 h-4" \/>\s*<\/button>\s*<\/div>\s*<\/div>\s*\)\}/;
+  code = code.replace(oldReplyBlockRegex, '');
 
   const newReplyBlock = `{replyingTo && (
           <div className="bg-[#f0f2f5] px-3 pt-2 pb-1 rounded-t-xl -mx-3 -mt-3 mb-2">
@@ -62,9 +52,10 @@ function patchChatSection() {
           </div>
         )}`;
 
+  // Find the exact chat input div to insert before
   code = code.replace(
-    '<div className="flex items-center gap-2">',
-    newReplyBlock + '\n        <div className="flex items-center gap-2">'
+    /<div className="flex items-center gap-2">\s*<button\s*onClick=\{\(\) => fileInputRef\.current\?\.click\(\)\}/,
+    newReplyBlock + '\n        <div className="flex items-center gap-2">\n          <button\n            onClick={() => fileInputRef.current?.click()}'
   );
 
   // 6. Voice Message Functionality
@@ -120,8 +111,11 @@ function patchChatSection() {
     );
   }
 
+  // Safely replace the main chat input
+  const mainInputRegex = /<input\s*type="text"\s*value=\{inputText\}\s*onChange=\{\(e\) => setInputText\(e\.target\.value\)\}\s*onKeyDown=\{\(e\) => e\.key === 'Enter' && handleSendAction\(\)\}\s*placeholder="Type a message\.\.\."\s*className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"\s*\/>/;
+  
   code = code.replace(
-    /<input[\s\S]*?className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"\s*\/>/,
+    mainInputRegex,
     `{isRecording ? (
             <div className="flex-1 flex items-center justify-between bg-red-50 rounded-xl px-4 py-2 border border-red-100">
               <div className="flex items-center gap-2 text-red-500 animate-pulse">
@@ -142,8 +136,11 @@ function patchChatSection() {
           )}`
   );
 
+  // Safely replace the main send button
+  const sendButtonRegex = /<button\s*onClick=\{handleSendAction\}\s*disabled=\{\(!inputText\.trim\(\) && stagedFiles\.length === 0\) \|\| uploading\}\s*className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"\s*>\s*<Send className="w-5 h-5 ml-0\.5" \/>\s*<\/button>/;
+
   code = code.replace(
-    /<button\s*onClick=\{handleSendAction\}\s*disabled=\{\(!inputText\.trim\(\) && stagedFiles\.length === 0\) \|\| uploading\}\s*className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"\s*>\s*<Send className="w-5 h-5 ml-0\.5" \/>\s*<\/button>/,
+    sendButtonRegex,
     `{(inputText.trim().length > 0 || stagedFiles.length > 0) ? (
             <button
               onClick={handleSendAction}

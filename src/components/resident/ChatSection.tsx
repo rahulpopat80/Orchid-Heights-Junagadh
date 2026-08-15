@@ -83,77 +83,52 @@ const formatMessageText = (text: string): React.ReactNode => {
 export default function ChatSection({ session }: ChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
-  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
-  const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [showScrollDown, setShowScrollDown] = useState(false);
-  const touchStartX = useRef<number | null>(null);
-
-  // --- Voice Message State ---
   const [isRecording, setIsRecording] = useState(false);
-  const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const recordingTimerRef = useRef<any>(null);
 
-  const startRecording = async (e: React.PointerEvent) => {
-    e.preventDefault();
+  const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
       audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (ev) => {
-        if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+      
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
-
-      mediaRecorder.onstop = async () => {
+      
+      recorder.onstop = () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const file = new File([audioBlob], `Voice_Message_${Date.now()}.webm`, { type: 'audio/webm' });
-        setUploading(true);
-        try {
-          const meta = await uploadFileInChunks(file, (prog) => setUploadProgress(prog));
-          await handleSendMessage('', meta);
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setUploading(false);
-          setUploadProgress(0);
-        }
+        setStagedFiles(prev => [...prev, file]);
+        stream.getTracks().forEach(track => track.stop());
       };
-
-      mediaRecorder.start();
+      
+      recorder.start();
       setIsRecording(true);
       setRecordingDuration(0);
-      recordingTimerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
+      recordingTimerRef.current = setInterval(() => setRecordingDuration(p => p + 1), 1000);
     } catch (err) {
       console.error(err);
-      alert("Microphone permission denied or not available.");
+      alert("Microphone access denied or not available.");
     }
   };
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
       clearInterval(recordingTimerRef.current);
     }
   };
-
-  const cancelRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.onstop = null; // Prevent sending
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
-      setIsRecording(false);
-      clearInterval(recordingTimerRef.current);
-    }
-  };
-
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewMediaMsg, setPreviewMediaMsg] = useState<ChatMessage | null>(null);
 
@@ -519,8 +494,8 @@ export default function ChatSection({ session }: ChatSectionProps) {
                   onClick={() => document.getElementById(`msg-${msg.replyToMessageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                   className="bg-black/5 border-l-4 border-indigo-500 rounded p-2 mb-2 cursor-pointer active:opacity-70 transition-opacity"
                 >
-                  <div className="text-[10px] font-bold text-indigo-700">{repliedMsg.senderOwnerName || 'Resident'}</div>
-                  <div className="text-xs text-slate-600 truncate">{repliedMsg.text || 'Photo'}</div>
+                  <div className="text-[10px] font-bold text-indigo-700 select-none">{repliedMsg.senderOwnerName || 'Resident'}</div>
+                  <div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || 'Photo'}</div>
                 </div>
               );
             })()
@@ -627,18 +602,21 @@ export default function ChatSection({ session }: ChatSectionProps) {
         <div 
           className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
           style={{
-             top: menuPosition ? Math.max(10, Math.min(menuPosition.y - 60, window.innerHeight - 140)) : '50%',
+             top: menuPosition ? (menuPosition.y > window.innerHeight - 250 ? menuPosition.y - 140 : menuPosition.y + 20) : '50%',
              left: menuPosition ? (isMe ? Math.max(10, menuPosition.x - 240) : Math.min(menuPosition.x, window.innerWidth - 250)) : '50%'
           }}
           onClick={e => e.stopPropagation()}
         >
 
                <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
-                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => (
-                   <button key={emoji} onClick={() => handleReact(msg.id, msg.reactions && msg.reactions[`${session.wing}-${session.flatNo}`] === emoji ? null : emoji)} className={`text-xl hover:scale-125 transition-transform ${msg.reactions && msg.reactions[`\${session.wing}-\${session.flatNo}`] === emoji ? 'bg-slate-200 rounded-full scale-110 p-1' : ''}`}>
-                     {emoji}
-                   </button>
-                 ))}
+                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => {
+       const isSelected = msg.reactions?.[flatId] === emoji;
+       return (
+         <button key={emoji} onClick={() => handleReact(msg.id, isSelected ? null : emoji)} className={`text-xl hover:scale-125 transition-transform p-1 rounded-full ${isSelected ? 'bg-slate-200/80' : ''}`}>
+           {emoji}
+         </button>
+       );
+     })}
                  <button onClick={(e) => { e.stopPropagation(); setShowCustomEmojiInput(msg.id); }} className="text-xl hover:scale-125 transition-transform text-slate-400 font-bold">+</button>
                </div>
                {showCustomEmojiInput === msg.id && (
@@ -710,6 +688,21 @@ export default function ChatSection({ session }: ChatSectionProps) {
             <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
           </div>
         )}
+        {replyingTo && (
+          <div className="bg-[#f0f2f5] px-3 pt-2 pb-1 rounded-t-xl -mx-3 -mt-3 mb-2">
+            <div className="bg-white rounded-lg p-2 flex justify-between items-center relative shadow-sm border border-slate-100">
+              <div className="flex-1 border-l-4 border-[#027a5b] pl-2 bg-black/5 rounded-r flex flex-col justify-center min-h-[40px]">
+                <div className="text-xs font-bold" style={{ color: '#027a5b' }}>
+                  {(replyingTo.senderWing === session.wing && replyingTo.senderFlatNo === session.flatNo) ? 'You' : (replyingTo.senderOwnerName || 'Resident')}
+                </div>
+                <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || 'Photo'}</div>
+              </div>
+              <button onClick={() => setReplyingTo(null)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 rounded-full transition bg-white shadow-sm border border-slate-100">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -732,22 +725,42 @@ export default function ChatSection({ session }: ChatSectionProps) {
             <BarChart2 className="w-5 h-5" />
           </button>
 
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSendAction()}
-            placeholder="Type a message..."
-            className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"
-          />
+          {isRecording ? (
+            <div className="flex-1 flex items-center justify-between bg-red-50 rounded-xl px-4 py-2 border border-red-100">
+              <div className="flex items-center gap-2 text-red-500 animate-pulse">
+                <Mic className="w-4 h-4" />
+                <span className="text-sm font-bold">{Math.floor(recordingDuration / 60)}:{(recordingDuration % 60).toString().padStart(2, '0')}</span>
+              </div>
+              <button onClick={stopRecording} className="text-red-600 font-bold text-xs bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200 transition">Stop & Attach</button>
+            </div>
+          ) : (
+            <input
+              type="text"
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSendAction()}
+              placeholder="Type a message..."
+              className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"
+            />
+          )}
 
-          <button
-            onClick={handleSendAction}
-            disabled={(!inputText.trim() && stagedFiles.length === 0) || uploading}
-            className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"
-          >
-            <Send className="w-5 h-5 ml-0.5" />
-          </button>
+          {(inputText.trim().length > 0 || stagedFiles.length > 0) ? (
+            <button
+              onClick={handleSendAction}
+              disabled={uploading}
+              className="p-3 bg-[#00a884] text-white rounded-full hover:bg-emerald-700 transition shrink-0 shadow-sm"
+            >
+              <Send className="w-5 h-5 ml-0.5" />
+            </button>
+          ) : (
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={uploading}
+              className={`p-3 text-white rounded-full transition shrink-0 shadow-sm ${isRecording ? 'bg-red-500 hover:bg-red-600' : 'bg-[#00a884] hover:bg-emerald-700'}`}
+            >
+              <Mic className="w-5 h-5" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -907,33 +920,23 @@ export default function ChatSection({ session }: ChatSectionProps) {
               </button>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {Object.entries(viewReactionsForMsg.reactions || {})
-                .sort(([rA], [rB]) => {
-                   const myId = `${session.wing}-${session.flatNo}`;
-                   if (rA === myId) return -1;
-                   if (rB === myId) return 1;
-                   return 0;
-                })
-                .map(([reactor, emoji]) => {
-                  const isMe = reactor === `${session.wing}-${session.flatNo}`;
-                  return (
-                    <div 
-                      key={reactor} 
-                      className={`flex items-center justify-between border-b border-slate-50 pb-2 ${isMe ? 'cursor-pointer hover:bg-slate-50' : ''}`}
-                      onClick={() => {
-                        if (isMe) {
-                          handleReact(viewReactionsForMsg.id, null);
-                          setViewReactionsForMsg(null);
-                        }
-                      }}
-                    >
-                      <span className={`text-sm ${isMe ? 'font-bold text-emerald-600' : 'font-medium text-slate-700'}`}>
-                        {reactor === 'admin' ? 'Admin' : (isMe ? 'You' : `Flat ${reactor}`)}
-                      </span>
-                      <span className="text-2xl">{emoji}</span>
-                    </div>
-                  );
-              })}
+              {Object.entries(viewReactionsForMsg.reactions || {}).sort((a,b)=>a[0]===flatId?-1:(b[0]===flatId?1:0)).map(([reactor, emoji]) => (
+                <div 
+                  key={reactor} 
+                  className={`flex items-center justify-between border-b border-slate-50 pb-2 ${reactor === flatId ? 'cursor-pointer hover:bg-slate-100 rounded px-2 -mx-2' : 'px-2'}`}
+                  onClick={() => {
+                    if (reactor === flatId) {
+                      handleReact(viewReactionsForMsg.id, null);
+                      setViewReactionsForMsg(prev => prev ? {...prev, reactions: Object.fromEntries(Object.entries(prev.reactions || {}).filter(([k]) => k !== flatId))} : null);
+                    }
+                  }}
+                >
+                  <span className={`text-sm ${reactor === flatId ? 'font-bold text-[#00a884]' : 'font-medium text-slate-700'}`}>
+                    {reactor === flatId ? 'You (Tap to remove)' : (reactor === 'admin' ? 'Admin' : `Flat ${reactor}`)}
+                  </span>
+                  <span className="text-2xl">{emoji}</span>
+                </div>
+              ))}
               {(!viewReactionsForMsg.reactions || Object.keys(viewReactionsForMsg.reactions).length === 0) && (
                 <div className="text-center text-slate-400 text-sm">No reactions yet</div>
               )}
