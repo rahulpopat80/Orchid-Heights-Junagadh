@@ -83,6 +83,11 @@ const formatMessageText = (text: string): React.ReactNode => {
 export default function ChatSection({ session }: ChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ x: number, y: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const touchStartX = useRef<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [previewMediaMsg, setPreviewMediaMsg] = useState<ChatMessage | null>(null);
 
@@ -132,9 +137,11 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const [editInputText, setEditInputText] = useState<string>('');
   const longPressTimer = useRef<any>(null);
 
-  const handlePointerDown = (id: string) => {
+  const handlePointerDown = (id: string, e: React.PointerEvent) => {
+    const cx = e.clientX; const cy = e.clientY;
     longPressTimer.current = setTimeout(() => {
       setActiveMessageId(id);
+      setMenuPosition({ x: cx, y: cy });
     }, 500);
   };
   const handlePointerUp = () => {
@@ -143,6 +150,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const handleContextMenu = (id: string, e: React.MouseEvent) => {
     e.preventDefault();
     setActiveMessageId(id);
+    setMenuPosition({ x: e.clientX, y: e.clientY });
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -169,6 +177,20 @@ export default function ChatSection({ session }: ChatSectionProps) {
   };
 
   const flatId = `${session.wing}-${session.flatNo}`;
+  
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop - clientHeight > 100) {
+      setShowScrollDown(true);
+    } else {
+      setShowScrollDown(false);
+    }
+  };
+  const scrollToBottom = () => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    }
+  };
 
   useEffect(() => {
     // Disable body scroll when chat is open to make it sticky
@@ -214,6 +236,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
       senderFlatNo: session.flatNo!,
       senderOwnerName: session.ownerName || 'Resident',
       text: text || undefined,
+      replyToMessageId: replyingTo?.id || undefined,
       createdAt: new Date().toISOString()
     };
 
@@ -232,6 +255,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
     }
 
     await api.sendChatMessage(newMsg);
+    setReplyingTo(null); // Clear reply
     setInputText('');
   };
 
@@ -380,21 +404,47 @@ export default function ChatSection({ session }: ChatSectionProps) {
     const timeStr = new Date(msg.createdAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
     return (
-      <div key={msg.id} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'}`}>
+      <div key={msg.id} id={`msg-${msg.id}`} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'}`}>
         {!isMe && (
           <div className="text-[10px] text-slate-500 font-bold ml-1 mb-0.5" style={{ color: '#075E54' }}>
             {senderTitle}
           </div>
         )}
         <div 
-          onPointerDown={() => handlePointerDown(msg.id)}
+          onPointerDown={(e) => handlePointerDown(msg.id, e)}
           onPointerUp={handlePointerUp}
           onPointerLeave={handlePointerUp}
           onPointerCancel={handlePointerUp}
+          onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+          onTouchMove={(e) => {
+             if (touchStartX.current) {
+                const diff = e.touches[0].clientX - touchStartX.current;
+                if (Math.abs(diff) > 60) { // Swiped
+                  setReplyingTo(msg);
+                  touchStartX.current = null;
+                }
+             }
+          }}
+          onTouchEnd={() => { touchStartX.current = null; }}
           onContextMenu={(e) => handleContextMenu(msg.id, e)}
           className={`relative p-2.5 pb-5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border ${
           isMe ? 'bg-[#DCF8C6] text-slate-800 border-[#c6e4b1] rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
         }`}>
+          {msg.replyToMessageId && (
+            (() => {
+              const repliedMsg = messages.find(m => m.id === msg.replyToMessageId);
+              if (!repliedMsg) return null;
+              return (
+                <div 
+                  onClick={() => document.getElementById(`msg-${msg.replyToMessageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className="bg-black/5 border-l-4 border-indigo-500 rounded p-2 mb-2 cursor-pointer active:opacity-70 transition-opacity"
+                >
+                  <div className="text-[10px] font-bold text-indigo-700">{repliedMsg.senderOwnerName || 'Resident'}</div>
+                  <div className="text-xs text-slate-600 truncate">{repliedMsg.text || 'Photo'}</div>
+                </div>
+              );
+            })()
+          )}
           {editingMessageId === msg.id ? (
             <div className="flex flex-col gap-2 mt-1 bg-white/60 p-2 rounded-xl">
               <input
@@ -492,7 +542,16 @@ export default function ChatSection({ session }: ChatSectionProps) {
           {activeMessageId === msg.id && (
              <>
                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
-               <div className="absolute top-8 right-4 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in fade-in zoom-in duration-200">
+               {/* Reaction Menu */}
+        <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
+        <div 
+          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
+          style={{
+             top: menuPosition ? Math.min(menuPosition.y, window.innerHeight - 200) : '50%',
+             left: menuPosition ? (isMe ? Math.max(10, menuPosition.x - 240) : Math.min(menuPosition.x, window.innerWidth - 250)) : '50%'
+          }}
+          onClick={e => e.stopPropagation()}
+        >
 
                <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
                  {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => (
@@ -783,7 +842,6 @@ export default function ChatSection({ session }: ChatSectionProps) {
           </div>
         </div>
       )}
-  
     </div>
   );
 }
