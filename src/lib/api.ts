@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FlatOwner, Visitor, UserSession, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
+import { FlatOwner, Visitor, UserSession, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry , ChatMessage} from '../types';
 import { 
   verifyCredentials,
   getAllOwners,
@@ -52,7 +52,7 @@ import {
   getPreEntries,
   getPreEntryById,
   usePreEntry
-} from './firebase';
+, sendChatMessage, deleteChatMessage, updateChatMessage, subscribeToChatMessages, votePoll} from './firebase';
 
 export async function detectServerEnvironment(): Promise<boolean> {
   // Always true for Firestore as it connects directly to online cloud servers
@@ -220,6 +220,23 @@ export const api = {
   },
 
   // Subscribe to real-time announcements
+  
+  sendChatMessage: async (msg: ChatMessage): Promise<boolean> => {
+    return sendChatMessage(msg);
+  },
+  deleteChatMessage: async (id: string): Promise<boolean> => {
+    return deleteChatMessage(id);
+  },
+  updateChatMessage: async (id: string, updates: Partial<ChatMessage>): Promise<boolean> => {
+    return updateChatMessage(id, updates);
+  },
+  votePoll: async (messageId: string, flatId: string, optionId: string): Promise<boolean> => {
+    return votePoll(messageId, flatId, optionId);
+  },
+  subscribeToChatMessages: (onUpdate: (msgs: ChatMessage[]) => void, onError?: (error: Error) => void) => {
+    return subscribeToChatMessages(onUpdate, onError);
+  },
+
   subscribeAnnouncements: (
     wing: 'A' | 'B',
     flatNo: number,

@@ -20,6 +20,7 @@ import ChunkedMedia from './ChunkedMedia';
 import { generateGymTheatrePDF, generateGymEntryPDF, generateAmenityPDF, generateMoviePDF, generateDeviceHistoryPDF } from '../lib/pdfGenerator';
 import { uploadFileInChunks, downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
 import AdminLocalServices from './admin/AdminLocalServices';
+import AdminChatSection from './admin/AdminChatSection';
 
 interface AdminDashboardProps {
   owners: FlatOwner[];
@@ -27,7 +28,7 @@ interface AdminDashboardProps {
   onLogoutAdmin?: () => void;
 }
 
-type AdminTab = 'home' | 'flats' | 'notices' | 'complaints' | 'finance' | 'address-book' | 'system' | 'amenities' | 'visitors' | 'local-services';
+type AdminTab = 'home' | 'flats' | 'notices' | 'complaints' | 'finance' | 'address-book' | 'system' | 'amenities' | 'visitors' | 'local-services' | 'chat';
 
 // Device Deduplication Utility
 const deduplicateDevices = (devices: any[] = []) => {

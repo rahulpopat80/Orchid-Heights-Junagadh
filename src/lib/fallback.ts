@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry } from '../types';
+import { FlatOwner, Visitor, Announcement, DeviceInfo, Complaint, FinancialReport, EssentialContact, PreEntry , ChatMessage} from '../types';
 import { getInitialOwners } from '../data/ownersData';
 
 // --- Event Subscription & Triggering for Subscriptions ---
@@ -252,6 +252,7 @@ export function resetDatabaseToDefaultLocal(): boolean {
   // DO NOT remove 'orchid_local_owners' and 'orchid_local_passwords' to preserve user data
   localStorage.removeItem('orchid_local_visitors');
   localStorage.removeItem('orchid_local_announcements');
+  localStorage.removeItem('orchid_local_chat_messages');
   localStorage.removeItem('orchid_local_complaints');
   localStorage.removeItem('orchid_local_financial_reports');
   // Keep essential contacts intact optionally, but we'll remove it per old logic or keep it. Let's keep it safe.
@@ -946,4 +947,54 @@ export function createSocietyNotificationLocal(payload: {
   notifs.push(newNotif);
   saveLocalSocietyNotifications(notifs);
   return true;
+}
+
+export function getLocalChatMessages(): ChatMessage[] {
+  const data = localStorage.getItem('orchid_local_chat_messages');
+  return data ? JSON.parse(data) : [];
+}
+
+export function saveLocalChatMessages(msgs: ChatMessage[]) {
+  localStorage.setItem('orchid_local_chat_messages', JSON.stringify(msgs));
+  localEvents.emit('chat_messages_update_trigger', null);
+}
+
+export function sendChatMessageLocal(msg: ChatMessage): boolean {
+  const msgs = getLocalChatMessages();
+  msgs.push(msg);
+  saveLocalChatMessages(msgs);
+  return true;
+}
+
+export function deleteChatMessageLocal(id: string): boolean {
+  const msgs = getLocalChatMessages();
+  const filtered = msgs.filter(m => m.id !== id);
+  if (filtered.length !== msgs.length) {
+    saveLocalChatMessages(filtered);
+    return true;
+  }
+  return false;
+}
+
+export function updateChatMessageLocal(id: string, updates: Partial<ChatMessage>): boolean {
+  const msgs = getLocalChatMessages();
+  const index = msgs.findIndex(m => m.id === id);
+  if (index !== -1) {
+    msgs[index] = { ...msgs[index], ...updates };
+    saveLocalChatMessages(msgs);
+    return true;
+  }
+  return false;
+}
+
+export function votePollLocal(messageId: string, flatId: string, optionId: string): boolean {
+  const msgs = getLocalChatMessages();
+  const index = msgs.findIndex(m => m.id === messageId);
+  if (index !== -1 && msgs[index].isPoll) {
+    if (!msgs[index].pollVotes) msgs[index].pollVotes = {};
+    msgs[index].pollVotes![flatId] = optionId;
+    saveLocalChatMessages(msgs);
+    return true;
+  }
+  return false;
 }

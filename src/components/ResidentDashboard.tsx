@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell, ShieldAlert, Check, X, Users, Car, Phone, Lock, Eye, EyeOff, ClipboardList, AlertCircle, Trash2, Plus, Clock, RefreshCw, Megaphone, FileText, Download, Search, Wrench, CheckCircle, Upload, Calendar, Home, User, Dumbbell, Film, Sparkles, BookOpen, MapPin, CheckSquare, PlusCircle, ChevronRight, ArrowLeft, QrCode } from 'lucide-react';
+import { Bell, MessageSquare,  ShieldAlert, Check, X, Users, Car, Phone, Lock, Eye, EyeOff, ClipboardList, AlertCircle, Trash2, Plus, Clock, RefreshCw, Megaphone, FileText, Download, Search, Wrench, CheckCircle, Upload, Calendar, Home, User, Dumbbell, Film, Sparkles, BookOpen, MapPin, CheckSquare, PlusCircle, ChevronRight, ArrowLeft, QrCode } from 'lucide-react';
 import { FlatOwner, Visitor, Vehicle, UserSession, Announcement, AmenityBooking, GymTheatreLog, DailyHelper, AbsenceLog, EssentialContact } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -23,6 +23,7 @@ import NoticeSection from './resident/NoticeSection';
 import ProfileSection from './resident/ProfileSection';
 import BuildingServicesSection from './resident/BuildingServicesSection';
 import PreEntrySection from './resident/PreEntrySection';
+import ChatSection from './resident/ChatSection';
 import { generateVisitorPDF } from '../lib/pdfGenerator';
 
 let alarmIntervalId: any = null;
@@ -1722,6 +1723,25 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                     </div>
                     <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
                       Pre-Entry
+                    </h4>
+                  </div>
+
+                  {/* Block 9: Community Chat */}
+                  <div
+                    id="block-chat"
+                    onClick={() => {
+                      setLastVisitedSubSection('chat');
+                      navigateToRoute('/chat', 'chat');
+                    }}
+                    className={`bg-white rounded-none p-6 border shadow-sm flex flex-col items-center justify-center min-h-[140px] text-center hover:shadow-md transition cursor-pointer relative group ${
+                      highlightBlock === 'chat' ? 'ring-2 ring-indigo-500 ring-offset-2 animate-pulse bg-indigo-50/20 border-indigo-300' : 'border-slate-200/60'
+                    }`}
+                  >
+                    <div className="w-14 h-14 rounded-none bg-sky-500 text-white flex items-center justify-center shrink-0 shadow-sm mb-3 group-hover:scale-105 transition-transform duration-300">
+                      <MessageSquare className="w-7 h-7" />
+                    </div>
+                    <h4 className="font-display font-bold text-slate-800 text-sm tracking-tight leading-snug">
+                      Community Chat
                     </h4>
                   </div>
 

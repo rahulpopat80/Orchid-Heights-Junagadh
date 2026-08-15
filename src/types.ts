@@ -217,6 +217,30 @@ export interface DailyHelper {
   photoUrl?: string;
 }
 
+export interface PollOption {
+  id: string;
+  text: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  senderWing: string;
+  senderFlatNo: number;
+  senderOwnerName: string;
+  senderMemberName?: string;
+  text?: string;
+  mediaUrl?: string; // object URL or fileId
+  mediaType?: string;
+  mediaName?: string;
+  mediaSize?: number;
+  isPoll?: boolean;
+  pollQuestion?: string;
+  pollOptions?: PollOption[];
+  pollVotes?: Record<string, string>; // mapping `${wing}-${flatNo}` -> optionId
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AbsenceLog {
   id: string;
   flatId: string;
