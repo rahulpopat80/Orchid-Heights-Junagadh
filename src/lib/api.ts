@@ -52,7 +52,7 @@ import {
   getPreEntries,
   getPreEntryById,
   usePreEntry
-, sendChatMessage, deleteChatMessage, updateChatMessage, subscribeToChatMessages, votePoll} from './firebase';
+, sendChatMessage, deleteChatMessage, updateChatMessage, subscribeToChatMessages, votePoll, cleanupOldChatMessages} from './firebase';
 
 export async function detectServerEnvironment(): Promise<boolean> {
   // Always true for Firestore as it connects directly to online cloud servers
@@ -223,6 +223,9 @@ export const api = {
   
   sendChatMessage: async (msg: ChatMessage): Promise<boolean> => {
     return sendChatMessage(msg);
+  },
+  cleanupOldChatMessages: async () => {
+    await cleanupOldChatMessages();
   },
   deleteChatMessage: async (id: string): Promise<boolean> => {
     return deleteChatMessage(id);

@@ -76,7 +76,14 @@ export async function uploadFileInChunks(
 /**
  * Reconstructs a file from chunks and returns its filename, mime type, and a download URL (object URL or data URL)
  */
+
+const memoryCache = new Map<string, { name: string; type: string; base64: string }>();
+
 export async function downloadChunkedFile(fileId: string): Promise<{ name: string; type: string; base64: string }> {
+  if (memoryCache.has(fileId)) {
+    return memoryCache.get(fileId)!;
+  }
+
   const metaDoc = await getDoc(doc(db, 'file_metadata', fileId));
   if (!metaDoc.exists()) {
     throw new Error('File metadata not found in database');
@@ -105,11 +112,20 @@ export async function downloadChunkedFile(fileId: string): Promise<{ name: strin
   // Re-join parts
   const base64 = chunks.map((c) => c.data).join('');
 
-  return {
+  const result = {
     name: meta.name,
     type: meta.type,
     base64
   };
+  
+  // Cache up to 100 files to prevent memory leak
+  if (memoryCache.size > 100) {
+    const firstKey = memoryCache.keys().next().value;
+    if (firstKey) memoryCache.delete(firstKey);
+  }
+  memoryCache.set(fileId, result);
+
+  return result;
 }
 
 /**

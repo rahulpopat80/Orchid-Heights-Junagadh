@@ -9,6 +9,50 @@ interface ChatSectionProps {
   session: UserSession;
 }
 
+const compressImage = (file: File): Promise<File> => {
+  return new Promise((resolve) => {
+    if (!file.type.startsWith('image/') || file.type === 'image/gif') {
+      return resolve(file);
+    }
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const max = 1200;
+        if (width > max || height > max) {
+          if (width > height) {
+            height = Math.round((height *= max / width));
+            width = max;
+          } else {
+            width = Math.round((width *= max / height));
+            height = max;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!blob) return resolve(file);
+          const newFile = new File([blob], file.name, {
+            type: 'image/jpeg',
+            lastModified: Date.now(),
+          });
+          resolve(newFile);
+        }, 'image/jpeg', 0.7);
+      };
+      img.onerror = () => resolve(file);
+    };
+    reader.onerror = () => resolve(file);
+  });
+};
+
 export default function ChatSection({ session }: ChatSectionProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -96,7 +140,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
     setInputText('');
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return;
     const newFiles: File[] = Array.from(e.target.files);
     
@@ -106,7 +150,9 @@ export default function ChatSection({ session }: ChatSectionProps) {
         alert(`File ${file.name} is too large! Maximum allowed is 15MB.`);
         continue;
       }
-      validFiles.push(file);
+      // Compress if image to save time/bandwidth
+      const processedFile = await compressImage(file);
+      validFiles.push(processedFile);
     }
 
     if (stagedFiles.length + validFiles.length > 5) {
@@ -360,7 +406,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
             <ImageIcon className="w-5 h-5" />
           </button>
           <input 
-            type="file" 
+            type="file" multiple 
             ref={fileInputRef} 
             onChange={handleFileUpload} 
             className="hidden" 
@@ -384,7 +430,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
 
           <button
             onClick={handleSendAction}
-            disabled={!inputText.trim() && !uploading}
+            disabled={(!inputText.trim() && stagedFiles.length === 0) || uploading}
             className="p-2 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed shrink-0 shadow-sm"
           >
             <Send className="w-5 h-5 ml-0.5" />
