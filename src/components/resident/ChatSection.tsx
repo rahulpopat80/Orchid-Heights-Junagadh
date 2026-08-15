@@ -450,46 +450,57 @@ export default function ChatSection({ session }: ChatSectionProps) {
       <div key={msg.id} id={`msg-${msg.id}`} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'}`}>
         
         <div 
-          onPointerDown={(e) => handlePointerDown(msg.id, e)}
-          onPointerUp={handlePointerUp}
-          onPointerLeave={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          onPointerMove={(e) => {
-            if (longPressTimer.current && (window as any).pointerDownX) {
-              if (Math.abs(e.clientX - (window as any).pointerDownX) > 10 || Math.abs(e.clientY - (window as any).pointerDownY) > 10) {
+          onTouchStart={(e) => {
+            const cx = e.touches[0].clientX;
+            const cy = e.touches[0].clientY;
+            touchStartX.current = cx;
+            (window as any).touchStartY = cy;
+            e.currentTarget.style.transition = 'none';
+            if (longPressTimer.current) clearTimeout(longPressTimer.current);
+            longPressTimer.current = setTimeout(() => {
+              setActiveMessageId(msg.id);
+              setMenuPosition({ x: cx, y: cy });
+              longPressTimer.current = null;
+            }, 400);
+          }}
+          onTouchMove={(e) => {
+            const cx = e.touches[0].clientX;
+            const cy = e.touches[0].clientY;
+            if (longPressTimer.current && touchStartX.current !== null && (window as any).touchStartY !== null) {
+              if (Math.abs(cx - touchStartX.current) > 10 || Math.abs(cy - (window as any).touchStartY) > 10) {
                 clearTimeout(longPressTimer.current);
                 longPressTimer.current = null;
               }
             }
-          }}
-          onTouchStart={(e) => { 
-            touchStartX.current = e.touches[0].clientX; 
-            e.currentTarget.style.transition = 'none';
-          }}
-          onTouchMove={(e) => {
-             if (longPressTimer.current && touchStartX.current && Math.abs(e.touches[0].clientX - touchStartX.current) > 5) { clearTimeout(longPressTimer.current); longPressTimer.current = null; }
-             if (touchStartX.current) {
-                const diff = e.touches[0].clientX - touchStartX.current;
-                if (diff > 0) { // Swipe right
-                  e.currentTarget.style.transform = `translateX(${Math.min(diff, 100)}px)`;
-                }
-             }
+            if (touchStartX.current) {
+              const diff = cx - touchStartX.current;
+              if (diff > 0) {
+                e.currentTarget.style.transform = `translateX(${Math.min(diff, 100)}px)`;
+              }
+            }
           }}
           onTouchEnd={(e) => {
-             if (touchStartX.current) {
-                const diff = e.changedTouches[0].clientX - touchStartX.current;
-                if (diff > 50) {
-                  setReplyingTo(msg);
-                }
-                e.currentTarget.style.transform = 'translateX(0px)';
-                e.currentTarget.style.transition = 'transform 0.2s ease-out';
-                setTimeout(() => {
-                   if (e.currentTarget) e.currentTarget.style.transition = '';
-                }, 200);
-                touchStartX.current = null;
-             }
+            if (longPressTimer.current) {
+              clearTimeout(longPressTimer.current);
+              longPressTimer.current = null;
+            }
+            if (touchStartX.current && e.changedTouches && e.changedTouches.length > 0) {
+              const cx = e.changedTouches[0].clientX;
+              const diff = cx - touchStartX.current;
+              if (diff > 50) {
+                setReplyingTo(msg);
+              }
+            }
+            e.currentTarget.style.transform = 'translateX(0px)';
+            e.currentTarget.style.transition = 'transform 0.2s ease-out';
+            setTimeout(() => {
+              if (e.currentTarget) e.currentTarget.style.transition = '';
+            }, 200);
+            touchStartX.current = null;
+            (window as any).touchStartY = null;
           }}
-          onContextMenu={(e) => handleContextMenu(msg.id, e)}
+          onContextMenu={(e) => { e.preventDefault(); return false; }}
+          style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
           className={`relative p-2.5 pb-5 rounded-2xl max-w-[85%] sm:max-w-[70%] shadow-sm border ${
           isMe ? 'bg-[#DCF8C6] text-slate-800 border-[#c6e4b1] rounded-tr-none' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none'
         }`}>
@@ -614,7 +625,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
           className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden flex flex-col min-w-[240px] animate-in zoom-in-95 duration-100"
           style={{
              top: menuPosition ? (menuPosition.y > window.innerHeight - 250 ? menuPosition.y - 140 : menuPosition.y + 20) : '50%',
-             left: menuPosition ? Math.max(10, Math.min(menuPosition.x - 120, window.innerWidth - 260)) : '50%'
+             left: menuPosition ? Math.max(10, Math.min(menuPosition.x - 120, window.innerWidth - 260)) + 'px' : '50%'
           }}
           onClick={e => e.stopPropagation()}
         >

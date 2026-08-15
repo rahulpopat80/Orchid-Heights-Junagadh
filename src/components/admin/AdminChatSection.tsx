@@ -272,33 +272,39 @@ export default function AdminChatSection() {
 
               return (
                 <div key={msg.id} className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 justify-between group">
-                  <div className="flex-1 relative" 
-      onPointerMove={(e) => {
-    if ((window as any).adminLongPress && (window as any).adminPointerDownX) {
-      if (Math.abs(e.clientX - (window as any).adminPointerDownX) > 10 || Math.abs(e.clientY - (window as any).adminPointerDownY) > 10) {
-        clearTimeout((window as any).adminLongPress);
-        (window as any).adminLongPress = null;
-      }
-    }
-  }}
-  onPointerDown={(e) => {
-    (window as any).adminPointerDownX = e.clientX;
-    (window as any).adminPointerDownY = e.clientY;
-        const cx = e.clientX; const cy = e.clientY;
-        (window as any).adminLongPress = setTimeout(() => {
-          setActiveMessageId(msg.id);
-          (window as any).adminMenuPosition = { x: cx, y: cy };
-        }, 500);
-      }}
-      onPointerUp={() => clearTimeout((window as any).adminLongPress)}
-      onPointerLeave={() => clearTimeout((window as any).adminLongPress)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setActiveMessageId(msg.id);
-        (window as any).adminMenuPosition = { x: e.clientX, y: e.clientY };
-      }}
-    >
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 relative"
+                  onTouchStart={(e) => {
+                    const cx = e.touches[0].clientX;
+                    const cy = e.touches[0].clientY;
+                    (window as any).adminTouchStartX = cx;
+                    (window as any).adminTouchStartY = cy;
+                    e.currentTarget.style.transition = 'none';
+                    if ((window as any).adminLongPress) clearTimeout((window as any).adminLongPress);
+                    (window as any).adminLongPress = setTimeout(() => {
+                      setActiveMessageId(msg.id);
+                      (window as any).adminMenuPosition = { x: cx, y: cy };
+                      (window as any).adminLongPress = null;
+                    }, 400);
+                  }}
+                  onTouchMove={(e) => {
+                    const cx = e.touches[0].clientX;
+                    const cy = e.touches[0].clientY;
+                    if ((window as any).adminLongPress && (window as any).adminTouchStartX !== null && (window as any).adminTouchStartY !== null) {
+                      if (Math.abs(cx - (window as any).adminTouchStartX) > 10 || Math.abs(cy - (window as any).adminTouchStartY) > 10) {
+                        clearTimeout((window as any).adminLongPress);
+                        (window as any).adminLongPress = null;
+                      }
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if ((window as any).adminLongPress) {
+                      clearTimeout((window as any).adminLongPress);
+                      (window as any).adminLongPress = null;
+                    }
+                  }}
+                  onContextMenu={(e) => { e.preventDefault(); return false; }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
                       <span className="font-bold text-slate-800 text-sm">{senderTitle}</span>
                       <span className="text-xs text-slate-400 font-mono">
                         {new Date(msg.createdAt).toLocaleString('en-IN')}
