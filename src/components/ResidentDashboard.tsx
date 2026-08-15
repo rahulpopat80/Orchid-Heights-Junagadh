@@ -1936,7 +1936,8 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                         <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                           <MessageSquare className="w-5 h-5" />
                         </div>
-                        <div className="pt-2">
+                        <div className="pt-3">
+                          <br />
                           <br />
                           <h3 className="font-bold text-sm text-slate-800">Community Chat</h3>
                           <p className="text-[10px] text-emerald-600 font-bold">Online</p>
