@@ -55,7 +55,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash.replace('#', '');
-      if (['home', 'flats', 'notices', 'complaints', 'finance', 'address-book', 'system', 'amenities', 'visitors', 'local-services'].includes(hash)) {
+      if (['home', 'flats', 'notices', 'complaints', 'finance', 'address-book', 'system', 'amenities', 'visitors', 'local-services', 'chat'].includes(hash)) {
         setActiveTab(hash as AdminTab);
       } else {
         setActiveTab('home');
@@ -1586,7 +1586,8 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
             { id: 'amenities', label: 'Amenities', icon: Sparkles, color: 'text-purple-600', bg: 'bg-purple-50' },
             { id: 'system', label: 'System Utils', icon: Database, color: 'text-slate-600', bg: 'bg-slate-50' },
             { id: 'visitors', label: 'Visitor Gate Records', icon: ShieldCheck, color: 'text-teal-600', bg: 'bg-teal-50' },
-            { id: 'local-services', label: 'Local Services', icon: Grid, color: 'text-amber-600', bg: 'bg-amber-50' }
+            { id: 'local-services', label: 'Local Services', icon: Grid, color: 'text-amber-600', bg: 'bg-amber-50' },
+            { id: 'chat', label: 'Community Chat', icon: MessageCircle, color: 'text-sky-600', bg: 'bg-sky-50' }
           ].map((block) => {
             const Icon = block.icon;
             return (

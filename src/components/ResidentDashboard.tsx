@@ -1921,7 +1921,9 @@ export default function ResidentDashboard({ session, owners, onRefreshOwners, on
                   />
                 )}
                 {activeSubSection === 'chat' && (
-                  <ChatSection session={session} />
+                  <div className="h-[calc(100dvh-240px)] flex flex-col">
+                    <ChatSection session={session} />
+                  </div>
                 )}
 
                 {activeSubSection === 'notifications' && (

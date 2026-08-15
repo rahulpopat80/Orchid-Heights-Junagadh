@@ -3,6 +3,7 @@ import { UserSession, ChatMessage , FlatOwner} from '../../types';
 import { api } from '../../lib/api';
 import { Send, Image as ImageIcon, File as FileIcon, BarChart2, Trash2, Edit2, X, Plus } from 'lucide-react';
 import { uploadFileInChunks, downloadChunkedFile } from '../../lib/fileStorage';
+import ChunkedMedia from '../ChunkedMedia';
 
 interface ChatSectionProps {
   session: UserSession;
@@ -27,6 +28,14 @@ export default function ChatSection({ session }: ChatSectionProps) {
   const [pollOptions, setPollOptions] = useState([{ id: '1', text: '' }, { id: '2', text: '' }]);
 
   const flatId = `${session.wing}-${session.flatNo}`;
+
+  useEffect(() => {
+    // Disable body scroll when chat is open to make it sticky
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   useEffect(() => {
     const fetchOwners = async () => {
@@ -182,30 +191,8 @@ export default function ChatSection({ session }: ChatSectionProps) {
           {msg.text && <p className="whitespace-pre-wrap text-sm">{msg.text}</p>}
           
           {msg.mediaUrl && (
-            <div className="mt-2">
-              {msg.mediaType?.startsWith('image/') ? (
-                <div 
-                  className="relative rounded-lg overflow-hidden border border-white/20 cursor-pointer"
-                  onClick={() => downloadMedia(msg.mediaUrl!, msg.mediaName!)}
-                >
-                  <div className="flex items-center justify-center bg-black/10 p-4">
-                    <ImageIcon className="w-8 h-8 opacity-50 mb-2" />
-                  </div>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 bg-black/40 transition-opacity">
-                    <span className="text-white text-xs font-bold bg-black/60 px-2 py-1 rounded">Download Image</span>
-                  </div>
-                </div>
-              ) : (
-                <button 
-                  onClick={() => downloadMedia(msg.mediaUrl!, msg.mediaName!)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-bold transition ${
-                    isMe ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  <FileIcon className="w-4 h-4" />
-                  <span className="truncate max-w-[150px]">{msg.mediaName}</span>
-                </button>
-              )}
+            <div className={`mt-2 w-full min-w-[200px] ${isMe ? 'text-slate-800' : ''}`}>
+              <ChunkedMedia fileId={msg.mediaUrl} type={msg.mediaType || ''} fallbackName={msg.mediaName || 'Attachment'} />
             </div>
           )}
 
@@ -253,7 +240,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-160px)] max-h-[900px] bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden relative shadow-sm mt-2">
+    <div className="flex flex-col h-full bg-slate-50 md:rounded-2xl border border-slate-200 overflow-hidden relative shadow-sm md:mt-2">
       <div className="p-4 bg-white border-b border-slate-200 shadow-sm z-10">
         <h3 className="font-display font-black text-slate-800 text-lg uppercase tracking-wider">Community Chat</h3>
         <p className="text-xs text-slate-500 font-medium">Connect with other residents. Messages older than 1 month are deleted.</p>
