@@ -49,6 +49,19 @@ const compressImage = (file: File): Promise<File> => {
   });
 };
 
+const formatMessageText = (text: string) => {
+  if (!text) return null;
+  const parts = text.split(/(\*[^*]+\*|_[^_]+_|-[^-]+-)/g);
+  return parts.map((part, i) => {
+    if (part.length > 2) {
+      if (part.startsWith('*') && part.endsWith('*')) return <strong key={i}>{part.slice(1, -1)}</strong>;
+      if (part.startsWith('_') && part.endsWith('_')) return <u key={i}>{part.slice(1, -1)}</u>;
+      if (part.startsWith('-') && part.endsWith('-')) return <em key={i}>{part.slice(1, -1)}</em>;
+    }
+    return <React.Fragment key={i}>{part}</React.Fragment>;
+  });
+};
+
 export default function AdminChatSection() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [owners, setOwners] = useState<FlatOwner[]>([]);

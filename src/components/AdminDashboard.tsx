@@ -1794,7 +1794,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
 
               {/* Master directory table */}
               <div className="max-h-[600px] overflow-y-auto overflow-x-auto border border-slate-100 rounded-xl w-full">
-                <table className="w-full text-left text-xs text-slate-600 border-collapse">
+                <div className="overflow-x-auto w-full"><table className="w-full text-left text-xs text-slate-600 border-collapse min-w-[600px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-150 text-slate-500 font-bold uppercase text-[9px] tracking-wider sticky top-0 z-10">
                       <th className="py-2.5 px-3">Flat</th>
@@ -1862,7 +1862,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                       );
                     })}
                   </tbody>
-                </table></div></div>
+                </table></div></div></div>
 
               {/* Flat Inspection Sub-Panel Modal */}
               {selectedFlat && (
@@ -2980,7 +2980,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                     <p className="text-xs text-slate-600 leading-relaxed font-semibold whitespace-pre-line">{report.description}</p>
                     {report.csvRows && report.csvRows.length > 0 && (
                       <div className="mt-3 overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[300px]">
+                        <div className="overflow-x-auto w-full"><table className="w-full text-left border-collapse min-w-[500px]">
                           <thead>
                             <tr className="bg-slate-100 text-[10px] text-slate-500 uppercase tracking-wider">
                               <th className="p-2 border-b border-slate-200 rounded-tl-lg">Category</th>
@@ -2997,7 +2997,7 @@ export default function AdminDashboard({ owners, onRefreshOwners, onLogoutAdmin 
                               </tr>
                             ))}
                           </tbody>
-                        </table>
+                        </table></div>
                       </div>
                     )}
 
