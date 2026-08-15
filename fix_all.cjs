@@ -1,71 +1,50 @@
 const fs = require('fs');
 
-function cleanResident() {
-  let code = fs.readFileSync('src/components/resident/ChatSection.tsx', 'utf8');
+function fixChat(filePath) {
+  let code = fs.readFileSync(filePath, 'utf8');
 
-  // Strip all the messy touch/pointer handlers between `<div` and `className={\`relative p-2.5 pb-5`
-  // We'll replace it entirely.
-  const regex = /<div\s+onPointerDown=\{\(e\) => handlePointerDown\(msg\.id, e\)\}\s+onPointerUp=\{handlePointerUp\}\s+onPointerLeave=\{handlePointerUp\}\s+\}\s+onContextMenu=\{\(e\) => handleContextMenu\(msg\.id, e\)\}\s+className=\{\`relative p-2\.5 pb-5 rounded-2xl max-w-\[85%\] sm:max-w-\[70%\] shadow-sm border \$\{/g;
-  
-  // Wait, let's just find the exact block and replace it:
+  // Fix 1: Reply Click Highlight
   code = code.replace(
-    /<div\s+onPointerDown=[\s\S]*? className=\{\`relative p-2\.5/g,
-    `<div 
-          onTouchStart={(e) => {
-            const cx = e.touches[0].clientX;
-            const cy = e.touches[0].clientY;
-            touchStartX.current = cx;
-            (window as any).touchStartY = cy;
-            e.currentTarget.style.transition = 'none';
-            if (longPressTimer.current) clearTimeout(longPressTimer.current);
-            longPressTimer.current = setTimeout(() => {
-              setActiveMessageId(msg.id);
-              setMenuPosition({ x: cx, y: cy });
-              longPressTimer.current = null;
-            }, 400);
-          }}
-          onTouchMove={(e) => {
-            const cx = e.touches[0].clientX;
-            const cy = e.touches[0].clientY;
-            if (longPressTimer.current && touchStartX.current !== null && (window as any).touchStartY !== null) {
-              if (Math.abs(cx - touchStartX.current) > 10 || Math.abs(cy - (window as any).touchStartY) > 10) {
-                clearTimeout(longPressTimer.current);
-                longPressTimer.current = null;
-              }
-            }
-            if (touchStartX.current) {
-              const diff = cx - touchStartX.current;
-              if (diff > 0) {
-                e.currentTarget.style.transform = \`translateX(\${Math.min(diff, 100)}px)\`;
-              }
-            }
-          }}
-          onTouchEnd={(e) => {
-            if (longPressTimer.current) {
-              clearTimeout(longPressTimer.current);
-              longPressTimer.current = null;
-            }
-            if (touchStartX.current && e.changedTouches && e.changedTouches.length > 0) {
-              const cx = e.changedTouches[0].clientX;
-              const diff = cx - touchStartX.current;
-              if (diff > 50) {
-                setReplyingTo(msg);
-              }
-            }
-            e.currentTarget.style.transform = 'translateX(0px)';
-            e.currentTarget.style.transition = 'transform 0.2s ease-out';
-            setTimeout(() => {
-              if (e.currentTarget) e.currentTarget.style.transition = '';
-            }, 200);
-            touchStartX.current = null;
-            (window as any).touchStartY = null;
-          }}
-          onContextMenu={(e) => { e.preventDefault(); return false; }}
-          style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none', userSelect: 'none' }}
-          className={\`relative p-2.5`
+    /onClick=\{\(\) => document\.getElementById\(\`msg-\$\{msg\.replyToMessageId\}\`\)\?\.scrollIntoView\(\{ behavior: 'smooth', block: 'center' \}\)\}/g,
+    `onClick={() => {
+      const el = document.getElementById(\`msg-\${msg.replyToMessageId}\`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('bg-indigo-50', 'transition-colors', 'duration-500', '-mx-2', 'px-2', 'rounded-lg');
+        setTimeout(() => el.classList.remove('bg-indigo-50', 'transition-colors', 'duration-500', '-mx-2', 'px-2', 'rounded-lg'), 1500);
+      }
+    }}`
   );
 
-  fs.writeFileSync('src/components/resident/ChatSection.tsx', code);
-}
+  // Fix 2: Textarea for Enter to newline
+  code = code.replace(
+    /<input\s+type="text"\s+value=\{inputText\}\s+onChange=\{\(e\) => setInputText\(e\.target\.value\)\}\s+onKeyDown=\{\(e\) => e\.key === 'Enter' && handleSendAction\(\)\}\s+placeholder="Type a message\.\.\."\s+className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"\s+\/>/g,
+    `<textarea
+      value={inputText}
+      onChange={(e) => {
+        setInputText(e.target.value);
+        e.target.style.height = 'auto';
+        e.target.style.height = (e.target.scrollHeight < 120 ? e.target.scrollHeight : 120) + 'px';
+      }}
+      placeholder="Type a message..."
+      className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
+      rows={1}
+    />`
+  );
 
-cleanResident();
+  // Fix 3: Media type text in reply snippets
+  // First snippet (in the bubble):
+  code = code.replace(
+    /<div className="text-xs text-slate-600 truncate select-none">\{repliedMsg\.text \|\| 'Photo'\}<\/div>/g,
+    `<div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || (repliedMsg.mediaUrl ? (repliedMsg.mediaType?.startsWith('video/') ? '🎥 Video' : repliedMsg.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>`
+  );
+
+  // Second snippet (in the typing area):
+  code = code.replace(
+    /<div className="text-sm text-slate-600 truncate pr-4">\{replyingTo\.text \|\| 'Photo'\}<\/div>/g,
+    `<div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || (replyingTo.mediaUrl ? (replyingTo.mediaType?.startsWith('video/') ? '🎥 Video' : replyingTo.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>`
+  );
+
+  fs.writeFileSync(filePath, code);
+}
+fixChat('src/components/resident/ChatSection.tsx');

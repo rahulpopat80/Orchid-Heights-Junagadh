@@ -513,11 +513,18 @@ export default function ChatSection({ session }: ChatSectionProps) {
               if (!repliedMsg) return null;
               return (
                 <div 
-                  onClick={() => document.getElementById(`msg-${msg.replyToMessageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  onClick={() => {
+      const el = document.getElementById(`msg-${msg.replyToMessageId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('bg-indigo-50', 'transition-colors', 'duration-500', '-mx-2', 'px-2', 'rounded-lg');
+        setTimeout(() => el.classList.remove('bg-indigo-50', 'transition-colors', 'duration-500', '-mx-2', 'px-2', 'rounded-lg'), 1500);
+      }
+    }}
                   className="bg-black/5 border-l-4 border-indigo-500 rounded p-2 mb-2 cursor-pointer active:opacity-70 transition-opacity"
                 >
                   <div className="text-[10px] font-bold text-indigo-700 select-none">{repliedMsg.senderOwnerName || 'Resident'}</div>
-                  <div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || 'Photo'}</div>
+                  <div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || (repliedMsg.mediaUrl ? (repliedMsg.mediaType?.startsWith('video/') ? '🎥 Video' : repliedMsg.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
                 </div>
               );
             })()
@@ -620,13 +627,8 @@ export default function ChatSection({ session }: ChatSectionProps) {
              <>
                <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
                {/* Reaction Menu */}
-        <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
         <div 
-          className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
-          style={{
-             top: menuPosition ? Math.max(20, Math.min(menuPosition.y - 85, window.innerHeight - 220)) + 'px' : '50%',
-             ...(isMe ? { right: '16px' } : { left: '16px' })
-          }}
+          className={`relative z-[100] mt-1 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-w-[240px] max-w-[90vw] animate-in slide-in-from-top-2 duration-100 ${isMe ? 'self-end' : 'self-start'}`}
           onClick={e => e.stopPropagation()}
         >
 
@@ -717,7 +719,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
                 <div className="text-xs font-bold" style={{ color: '#027a5b' }}>
                   {(replyingTo.senderWing === session.wing && replyingTo.senderFlatNo === session.flatNo) ? 'You' : (replyingTo.senderOwnerName || 'Resident')}
                 </div>
-                <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || 'Photo'}</div>
+                <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || (replyingTo.mediaUrl ? (replyingTo.mediaType?.startsWith('video/') ? '🎥 Video' : replyingTo.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
               </div>
               <button onClick={() => setReplyingTo(null)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 rounded-full transition bg-white shadow-sm border border-slate-100">
                 <X className="w-3.5 h-3.5" />
@@ -756,14 +758,17 @@ export default function ChatSection({ session }: ChatSectionProps) {
               <button onClick={stopRecording} className="text-red-600 font-bold text-xs bg-red-100 px-3 py-1 rounded-lg hover:bg-red-200 transition">Stop & Attach</button>
             </div>
           ) : (
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendAction()}
-              placeholder="Type a message..."
-              className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2 text-sm text-slate-700 outline-none"
-            />
+            <textarea
+      value={inputText}
+      onChange={(e) => {
+        setInputText(e.target.value);
+        e.target.style.height = 'auto';
+        e.target.style.height = (e.target.scrollHeight < 120 ? e.target.scrollHeight : 120) + 'px';
+      }}
+      placeholder="Type a message..."
+      className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
+      rows={1}
+    />
           )}
 
           {(inputText.trim().length > 0 || stagedFiles.length > 0) ? (

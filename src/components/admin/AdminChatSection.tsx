@@ -336,15 +336,10 @@ export default function AdminChatSection() {
                         
                         {activeMessageId === msg.id && (
                           <>
-                            <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }} />
                             <div 
-                              className="fixed bg-white rounded-xl shadow-2xl border border-slate-200 z-[100] overflow-hidden flex flex-col max-w-[90vw] animate-in zoom-in-95 duration-100"
-                              style={{
-                                top: (window as any).adminMenuPosition ? Math.max(20, Math.min((window as any).adminMenuPosition.y - 85, window.innerHeight - 220)) + 'px' : '50%',
-                                ...( (window as any).adminMenuPosition && (window as any).adminMenuPosition.x > window.innerWidth / 2 ? { right: '16px' } : { left: '16px' })
-                              }}
-                              onClick={e => e.stopPropagation()}
-                            >
+          className={`relative z-[100] mt-1 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-w-[240px] max-w-[90vw] animate-in slide-in-from-top-2 duration-100 self-center`}
+          onClick={e => e.stopPropagation()}
+        >
                               <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
                                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => {
        const isSelected = msg.reactions?.['admin'] === emoji;
