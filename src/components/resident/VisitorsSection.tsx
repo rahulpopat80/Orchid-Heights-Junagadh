@@ -43,11 +43,18 @@ export default function VisitorsSection({
   const [searchStartTime, setSearchStartTime] = useState('');
   const [searchEndTime, setSearchEndTime] = useState('');
   const [searchType, setSearchType] = useState('');
+  const [searchEntryType, setSearchEntryType] = useState('');
 
   const filteredHistory = guestHistory.filter(log => {
     let match = true;
     if (searchName && !log.fullName.toLowerCase().includes(searchName.toLowerCase())) match = false;
     if (searchType && log.guestType.toLowerCase() !== searchType.toLowerCase()) match = false;
+    
+    if (searchEntryType) {
+      if (searchEntryType === 'pre-entry' && !log.isPreEntry) match = false;
+      if (searchEntryType === 'call' && !log.respondedBy?.includes('Through Call')) match = false;
+      if (searchEntryType === 'manually' && (log.isPreEntry || log.respondedBy?.includes('Through Call'))) match = false;
+    }
     if (searchDateFrom) {
       const logDate = new Date(log.requestTime).toISOString().split('T')[0];
       if (logDate < searchDateFrom) match = false;
@@ -288,6 +295,16 @@ export default function VisitorsSection({
             <option value="Other Helper">Other Helper</option>
             <option value="Cabinet">Service Agent</option>
             <option value="Other">Other</option>
+          </select>
+          <select
+            value={searchEntryType}
+            onChange={(e) => setSearchEntryType(e.target.value)}
+            className="w-full md:w-auto bg-white border border-slate-200 focus:border-indigo-500 rounded-lg py-2 px-3 text-xs outline-none transition text-slate-600"
+          >
+            <option value="">All Entry Types</option>
+            <option value="manually">Manually (Security)</option>
+            <option value="call">By Call</option>
+            <option value="pre-entry">Pre-Entry</option>
           </select>
         </div>
 

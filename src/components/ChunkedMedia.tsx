@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { downloadChunkedFile, triggerFileDownload } from '../lib/fileStorage';
-import { FileText, Loader2, Download } from 'lucide-react';
+import { FileText, Loader2, Download, PlayCircle } from 'lucide-react';
 import AudioMessagePlayer from './AudioMessagePlayer';
 
 interface ChunkedMediaProps {
@@ -133,7 +133,12 @@ export default function ChunkedMedia({ fileId, type, fallbackName, variant = 'de
     }
     return (
       <div className="rounded-xl border border-slate-200/60 overflow-hidden bg-black flex flex-col items-center justify-center p-1 w-full">
-        <video src={mediaUrl} controls className="max-h-[220px] w-full rounded-lg" />
+        <div className="relative w-full flex items-center justify-center">
+          <video src={mediaUrl} className="max-h-[220px] w-full rounded-lg opacity-80" />
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <PlayCircle className="w-12 h-12 text-white/80" strokeWidth={1.5} />
+          </div>
+        </div>
         <div className="w-full flex items-center justify-between px-2 py-1.5 mt-1 border-t border-slate-800 bg-slate-900 text-white rounded-b-lg">
           <span className="text-[9px] font-bold text-slate-300 truncate max-w-[140px]">{fallbackName}</span>
           <button

@@ -228,11 +228,17 @@ export const generateVisitorPDF = async (logs: Visitor[], title: string, subtitl
       // If Pre-Entry, place PRE-ENTRY badge directly beside Status badge (at rightX - 53)
       if (log.isPreEntry) {
         doc.setFillColor(219, 234, 254); // Blue-100
-        doc.roundedRect(rightX - 53, currY - 6, 26, 8, 2, 2, 'F');
+        doc.roundedRect(rightX - 63, currY - 6, 36, 8, 2, 2, 'F');
         doc.setTextColor(30, 64, 175); // Blue-800
         doc.setFontSize(7.5);
         doc.setFont('helvetica', 'bold');
-        doc.text('PRE-ENTRY', rightX - 40, currY - 0.5, { align: 'center' });
+        doc.text('PRE-ENTRY', rightX - 45, currY - 0.5, { align: 'center' });
+        if (log.preEntryPassId) {
+          doc.setFontSize(6);
+          doc.setTextColor(100, 116, 139); // Slate-500
+          doc.setFont('helvetica', 'normal');
+          doc.text(`PASS ID: ${log.preEntryPassId}`, rightX - 45, currY + 4.5, { align: 'center' });
+        }
       } else if (log.respondedBy?.includes('Through Call')) {
         doc.setFillColor(243, 232, 255); // Purple-100
         doc.roundedRect(rightX - 53, currY - 6, 26, 8, 2, 2, 'F');

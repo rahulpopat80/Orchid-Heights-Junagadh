@@ -682,16 +682,34 @@ export async function getPreEntries(wing: string, flatNo: number): Promise<PreEn
     snap.forEach((docSnap) => {
       const data = docSnap.data() as PreEntry;
       if (data.wing.toUpperCase() === wing.toUpperCase() && data.flatNo === parseInt(String(flatNo), 10)) {
-        list.push(data);
+                list.push(data);
       }
     });
-    return list;
+
+    // Keep only last 15 days
+    const fifteenDaysAgo = new Date().getTime() - (15 * 24 * 60 * 60 * 1000);
+    return list.filter(entry => new Date(entry.createdAt).getTime() >= fifteenDaysAgo);
   } catch (error) {
     if (isQuotaError(error)) {
       markQuotaExceeded();
       return fallback.getPreEntriesLocal(wing, flatNo);
     }
     handleFirestoreError(error, OperationType.GET, 'pre_entries');
+  }
+}
+
+export async function deletePreEntry(id: string): Promise<boolean> {
+  if (isQuotaExceeded) return false;
+  try {
+    const docRef = doc(db, 'pre_entries', id);
+    await deleteDoc(docRef);
+    return true;
+  } catch (error) {
+    if (isQuotaError(error)) {
+      markQuotaExceeded();
+      return false;
+    }
+    handleFirestoreError(error, OperationType.DELETE, 'pre_entries');
   }
 }
 
@@ -760,6 +778,7 @@ export async function usePreEntry(id: string): Promise<boolean> {
       entryDate,
       entryTime,
       isPreEntry: true,
+      preEntryPassId: id,
       ipAddress: data.ipAddress,
       deviceImei: data.deviceImei
     };

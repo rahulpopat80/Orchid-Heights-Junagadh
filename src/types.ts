@@ -70,6 +70,7 @@ export interface Visitor {
   entryDate?: string; // format: DD/MM/YYYY
   entryTime?: string; // format: HH:MM:SS
   isPreEntry?: boolean; // flag to distinguish Pre-Entry records
+  preEntryPassId?: string; // Original Pre-Entry Pass ID if applicable
   exited?: boolean; // flag indicating visitor has checked out / exited
   exitTime?: string; // ISO timestamp when visitor exited
   duration?: string; // formatted duration stayed e.g. "45 mins" or "1 hr 20 mins"

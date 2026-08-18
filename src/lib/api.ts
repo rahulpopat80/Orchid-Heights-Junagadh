@@ -376,6 +376,9 @@ export const api = {
   },
   usePreEntry: async (id: string): Promise<boolean> => {
     return usePreEntry(id);
+  },
+  deletePreEntry: async (id: string): Promise<boolean> => {
+    return deletePreEntry(id);
   }
 };
 

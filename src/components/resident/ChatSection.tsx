@@ -449,7 +449,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
     const timeStr = new Date(msg.createdAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
     return (
-      <div key={msg.id} id={`msg-${msg.id}`} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'}`}>
+      <div key={msg.id} id={`msg-${msg.id}`} className={`flex flex-col mb-2 ${isMe ? 'items-end' : 'items-start'} ${activeMessageId === msg.id ? 'relative z-50' : ''}`}>
         
         <div 
           onTouchStart={(e) => {
@@ -526,7 +526,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
                   className="bg-black/5 border-l-4 border-indigo-500 rounded p-2 mb-2 cursor-pointer active:opacity-70 transition-opacity"
                 >
                   <div className="text-[10px] font-bold text-indigo-700 select-none">{repliedMsg.senderOwnerName || 'Resident'}</div>
-                  <div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || (repliedMsg.mediaUrl ? (repliedMsg.mediaType?.startsWith('video/') ? '🎥 Video' : repliedMsg.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
+                  <div className="text-xs text-slate-600 truncate select-none">{repliedMsg.text || (repliedMsg.mediaUrl ? ((repliedMsg.mediaType?.startsWith('video/') || repliedMsg.mediaName?.match(/\.(mp4|mov|mkv|webm)$/i)) ? '🎥 Video' : (repliedMsg.mediaType?.startsWith('audio/') || repliedMsg.mediaName?.match(/\.(mp3|wav|ogg|m4a)$/i)) ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
                 </div>
               );
             })()
@@ -625,33 +625,36 @@ export default function ChatSection({ session }: ChatSectionProps) {
           )}
   
           
-          {activeMessageId === msg.id && (
+
+            </>
+          )}
+        </div>
+
+          {activeMessageId === msg.id && ( 
              <>
                <div className="fixed inset-0 z-[90]" onClick={(e) => { e.stopPropagation(); setActiveMessageId(null); }}></div>
                {/* Reaction Menu */}
-        <div 
-          className={`relative z-[100] mt-1 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-w-[240px] max-w-[90vw] animate-in slide-in-from-top-2 duration-100 ${isMe ? 'self-end' : 'self-start'}`}
-          onClick={e => e.stopPropagation()}
-        >
-
-               <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
-                 {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => {
-       const isSelected = msg.reactions?.[flatId] === emoji;
-       return (
-         <button key={emoji} onClick={() => handleReact(msg.id, isSelected ? null : emoji)} className={`text-xl hover:scale-125 transition-transform p-1 rounded-full ${isSelected ? 'bg-slate-200/80' : ''}`}>
-           {emoji}
-         </button>
-       );
-     })}
-                 <button onClick={(e) => { e.stopPropagation(); setShowCustomEmojiInput(msg.id); }} className="text-xl hover:scale-125 transition-transform text-slate-400 font-bold">+</button>
-               </div>
-               {showCustomEmojiInput === msg.id && (
-                 <div className="p-2 border-b border-slate-100 flex gap-2 items-center bg-white">
-                   <input type="text" value={customEmoji} onChange={e => setCustomEmoji(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm outline-none" placeholder="Paste emoji..." autoFocus />
-                   <button onClick={() => handleReact(msg.id, customEmoji)} className="bg-emerald-600 text-white px-3 py-1 rounded text-sm font-bold">Go</button>
+               <div 
+                 className={`relative z-[100] mt-1 bg-white rounded-xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col min-w-[240px] max-w-[90vw] animate-in slide-in-from-top-2 duration-100 ${isMe ? 'self-end' : 'self-start'}`}
+                 onClick={e => e.stopPropagation()}
+               >
+                 <div className="flex items-center gap-2 p-2 border-b border-slate-100 bg-slate-50 justify-between">
+                   {['😡', '🙏', '👍', '❤️', '🔥', '🥳'].map(emoji => {
+                     const isSelected = msg.reactions?.[flatId] === emoji;
+                     return (
+                       <button key={emoji} onClick={() => handleReact(msg.id, isSelected ? null : emoji)} className={`text-xl hover:scale-125 transition-transform p-1 rounded-full ${isSelected ? 'bg-slate-200/80' : ''}`}>
+                         {emoji}
+                       </button>
+                     );
+                   })}
+                   <button onClick={(e) => { e.stopPropagation(); setShowCustomEmojiInput(msg.id); }} className="text-xl hover:scale-125 transition-transform text-slate-400 font-bold">+</button>
                  </div>
-               )}
-  
+                 {showCustomEmojiInput === msg.id && (
+                   <div className="p-2 border-b border-slate-100 flex gap-2 items-center bg-white">
+                     <input type="text" value={customEmoji} onChange={e => setCustomEmoji(e.target.value)} className="flex-1 border rounded px-2 py-1 text-sm outline-none" placeholder="Paste emoji..." autoFocus />
+                     <button onClick={() => handleReact(msg.id, customEmoji)} className="bg-emerald-600 text-white px-3 py-1 rounded text-sm font-bold">Go</button>
+                   </div>
+                 )}
                  <button onClick={() => { navigator.clipboard.writeText(msg.text || ''); setActiveMessageId(null); }} className="px-4 py-3 text-sm text-left hover:bg-slate-50 text-slate-700 font-bold border-b border-slate-100 flex items-center gap-3">
                    <Copy className="w-4 h-4 text-slate-400" /> Copy Text
                  </button>
@@ -668,13 +671,9 @@ export default function ChatSection({ session }: ChatSectionProps) {
                </div>
              </>
           )}
-            </>
-          )}
-        </div>
       </div>
     );
   };
-
   return (
     <div className="flex flex-col h-full bg-slate-50 overflow-hidden relative">
       
@@ -721,7 +720,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
                 <div className="text-xs font-bold" style={{ color: '#027a5b' }}>
                   {(replyingTo.senderWing === session.wing && replyingTo.senderFlatNo === session.flatNo) ? 'You' : (replyingTo.senderOwnerName || 'Resident')}
                 </div>
-                <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || (replyingTo.mediaUrl ? (replyingTo.mediaType?.startsWith('video/') ? '🎥 Video' : replyingTo.mediaType?.startsWith('audio/') ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
+                <div className="text-sm text-slate-600 truncate pr-4">{replyingTo.text || (replyingTo.mediaUrl ? ((replyingTo.mediaType?.startsWith('video/') || replyingTo.mediaName?.match(/\.(mp4|mov|mkv|webm)$/i)) ? '🎥 Video' : (replyingTo.mediaType?.startsWith('audio/') || replyingTo.mediaName?.match(/\.(mp3|wav|ogg|m4a)$/i)) ? '🎤 Audio' : '📷 Image') : 'Attachment')}</div>
               </div>
               <button onClick={() => setReplyingTo(null)} className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 rounded-full transition bg-white shadow-sm border border-slate-100">
                 <X className="w-3.5 h-3.5" />
