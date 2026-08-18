@@ -699,7 +699,7 @@ export async function getPreEntries(wing: string, flatNo: number): Promise<PreEn
 }
 
 export async function deletePreEntry(id: string): Promise<boolean> {
-  if (isQuotaExceeded) return false;
+  if (isQuotaExceeded) return fallback.deletePreEntryLocal(id);
   try {
     const docRef = doc(db, 'pre_entries', id);
     await deleteDoc(docRef);
@@ -707,7 +707,7 @@ export async function deletePreEntry(id: string): Promise<boolean> {
   } catch (error) {
     if (isQuotaError(error)) {
       markQuotaExceeded();
-      return false;
+      return fallback.deletePreEntryLocal(id);
     }
     handleFirestoreError(error, OperationType.DELETE, 'pre_entries');
   }

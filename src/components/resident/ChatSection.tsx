@@ -338,7 +338,7 @@ export default function ChatSection({ session }: ChatSectionProps) {
     setInputText('');
     setStagedFiles([]);
     const ta = document.getElementById('chat-input-textarea');
-    if (ta) ta.style.height = 'auto';
+    if (ta) ta.style.height = '44px';
 
     if (filesToSend.length === 0) {
       await handleSendMessage(textToSend);
@@ -768,6 +768,12 @@ export default function ChatSection({ session }: ChatSectionProps) {
       }}
       placeholder="Type a message..."
       id="chat-input-textarea"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          handleSendAction();
+        }
+      }}
       className="flex-1 bg-slate-100 border-none focus:ring-2 focus:ring-indigo-500 rounded-xl px-4 py-2.5 text-sm text-slate-700 outline-none resize-none min-h-[44px] max-h-[120px] overflow-y-auto"
       rows={1}
     />

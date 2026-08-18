@@ -998,3 +998,14 @@ export function votePollLocal(messageId: string, flatId: string, optionId: strin
   }
   return false;
 }
+
+export function deletePreEntryLocal(id: string): boolean {
+  const list = getLocalPreEntries();
+  const idx = list.findIndex(p => p.id === id);
+  if (idx !== -1) {
+    list.splice(idx, 1);
+    saveLocalPreEntries(list);
+    return true;
+  }
+  return false;
+}
